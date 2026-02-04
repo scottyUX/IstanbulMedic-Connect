@@ -1,0 +1,412 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Gemini-style Chat Styling - Exact Match */
+.gemini-chat-wrapper {
+  background: #f7f8fc !important;
+  min-height: 600px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 40px 20px !important;
+  position: relative !important;
+}
+
+.copilotKitChat {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  max-width: 800px !important;
+  margin: 0 auto !important;
+}
+
+/* Hide header */
+.copilotKitHeader {
+  display: none !important;
+}
+
+/* Messages container - centered when empty */
+.copilotKitMessages {
+  background: transparent !important;
+  padding: 0 !important;
+  min-height: 300px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  overflow-y: auto !important;
+  max-height: none !important;
+}
+
+/* Empty state greeting */
+.gemini-greeting {
+  text-align: center !important;
+  margin-bottom: 40px !important;
+}
+
+.gemini-icon {
+  width: 40px !important;
+  height: 40px !important;
+  margin: 0 auto 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+}
+
+.gemini-icon-diamond {
+  width: 20px !important;
+  height: 20px !important;
+  position: absolute !important;
+  transform: rotate(45deg) !important;
+}
+
+.gemini-icon-diamond:nth-child(1) {
+  top: 2px !important;
+  left: 2px !important;
+  background: #4285f4 !important;
+  border-radius: 2px !important;
+}
+
+.gemini-icon-diamond:nth-child(2) {
+  top: 2px !important;
+  right: 2px !important;
+  background: #34a853 !important;
+  border-radius: 2px !important;
+}
+
+.gemini-icon-diamond:nth-child(3) {
+  bottom: 2px !important;
+  left: 2px !important;
+  background: #fbbc04 !important;
+  border-radius: 2px !important;
+}
+
+.gemini-icon-diamond:nth-child(4) {
+  bottom: 2px !important;
+  right: 2px !important;
+  background: #ea4335 !important;
+  border-radius: 2px !important;
+}
+
+.gemini-greeting h2 {
+  font-size: 16px !important;
+  color: #202124 !important;
+  font-weight: 400 !important;
+  margin: 0 0 8px 0 !important;
+}
+
+.gemini-greeting h1 {
+  font-size: 28px !important;
+  color: #202124 !important;
+  font-weight: 400 !important;
+  margin: 0 !important;
+}
+
+/* User messages - right aligned, blue background */
+.copilotKitUserMessage {
+  background: #1a73e8 !important;
+  color: #ffffff !important;
+  border-radius: 18px 18px 4px 18px !important;
+  padding: 12px 16px !important;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  max-width: 80% !important;
+  margin-bottom: 12px !important;
+  box-shadow: none !important;
+  border: none !important;
+  align-self: flex-end !important;
+}
+
+/* Assistant messages - left aligned, gray background */
+.copilotKitAssistantMessage {
+  background: #f1f3f4 !important;
+  color: #202124 !important;
+  border-radius: 18px 18px 18px 4px !important;
+  padding: 12px 16px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  max-width: 80% !important;
+  margin-bottom: 12px !important;
+  box-shadow: none !important;
+  border: none !important;
+  align-self: flex-start !important;
+}
+
+/* Input area - Gemini style */
+.copilotKitInputContainer {
+  background: transparent !important;
+  border: none !important;
+  padding: 20px 0 !important;
+  position: relative !important;
+  max-width: 800px !important;
+  margin: 0 auto !important;
+}
+
+.gemini-input-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  pointer-events: auto !important;
+}
+
+.copilotKitInput,
+.gemini-input {
+  background: #ffffff !important;
+  border: 1px solid #dadce0 !important;
+  border-radius: 24px !important;
+  padding: 12px 100px 12px 60px !important;
+  font-size: 15px !important;
+  width: 100% !important;
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3),
+    0 1px 3px 1px rgba(60, 64, 67, 0.15) !important;
+  transition: box-shadow 0.2s !important;
+  position: relative !important;
+  resize: none !important;
+  min-height: 48px !important;
+  font-family: inherit !important;
+  pointer-events: auto !important;
+  z-index: 1 !important;
+}
+
+.copilotKitInput:focus,
+.gemini-input:focus {
+  box-shadow: 0 2px 4px 0 rgba(60, 64, 67, 0.3),
+    0 4px 8px 3px rgba(60, 64, 67, 0.15) !important;
+  border-color: #1a73e8 !important;
+  outline: none !important;
+}
+
+.copilotKitInput::placeholder,
+.gemini-input::placeholder {
+  color: #5f6368 !important;
+}
+
+/* Input icons */
+.gemini-input-icons {
+  position: absolute !important;
+  left: 16px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+}
+
+.gemini-input-icons svg {
+  width: 18px !important;
+  height: 18px !important;
+  color: #5f6368 !important;
+}
+
+.gemini-input-right-icons {
+  position: absolute !important;
+  right: 16px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+}
+
+.gemini-input-right-icons svg {
+  width: 20px !important;
+  height: 20px !important;
+  color: #5f6368 !important;
+}
+
+/* Send button - hidden, using enter key */
+.copilotKitSendButton {
+  display: none !important;
+}
+
+/* Suggestion buttons */
+.gemini-suggestions {
+  display: flex !important;
+  gap: 12px !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  margin-top: 24px !important;
+  max-width: 800px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.gemini-suggestion-button {
+  background: #ffffff !important;
+  border: 1px solid #dadce0 !important;
+  border-radius: 20px !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  color: #202124 !important;
+  cursor: pointer !important;
+  transition: box-shadow 0.2s !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3),
+    0 1px 3px 1px rgba(60, 64, 67, 0.15) !important;
+}
+
+.gemini-suggestion-button:hover {
+  box-shadow: 0 2px 4px 0 rgba(60, 64, 67, 0.3),
+    0 4px 8px 3px rgba(60, 64, 67, 0.15) !important;
+}
+
+.gemini-suggestion-icon {
+  width: 16px !important;
+  height: 16px !important;
+  color: #fbbc04 !important;
+}
+
+/* Markdown content */
+.copilotKitMarkdownElement {
+  color: inherit !important;
+  line-height: 1.5 !important;
+}
+
+.copilotKitMarkdownElement p {
+  margin: 0 0 8px 0 !important;
+}
+
+.copilotKitMarkdownElement p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Code blocks */
+.copilotKitMarkdownElement pre {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  overflow-x: auto !important;
+}
+
+.copilotKitMarkdownElement code {
+  background: rgba(0, 0, 0, 0.05) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+}
+
+/* Leila Input Styling */
+.leila-input-wrapper {
+  width: 100% !important;
+  padding: 0 !important;
+}
+
+.leila-input-container {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 24px !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+  transition: all 0.2s ease !important;
+}
+
+.leila-input-container:focus-within {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.leila-input {
+  flex: 1 !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  padding: 10px 8px !important;
+  font-size: 15px !important;
+  line-height: 20px !important;
+  color: #111827 !important;
+  resize: none !important;
+  font-family: inherit !important;
+  min-height: 20px !important;
+  max-height: 120px !important;
+  overflow-y: auto !important;
+}
+
+.leila-input::placeholder {
+  color: #9ca3af !important;
+}
+
+.leila-input:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+.leila-input-attach,
+.leila-input-send {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 50% !important;
+  color: #6b7280 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.leila-input-attach:hover:not(:disabled),
+.leila-input-send:hover:not(:disabled) {
+  background: #f3f4f6 !important;
+  color: #2563eb !important;
+}
+
+.leila-input-send:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
+.leila-input-send:not(:disabled) {
+  color: #2563eb !important;
+}
+
+.leila-spinner {
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid #e5e7eb !important;
+  border-top-color: #2563eb !important;
+  border-radius: 50% !important;
+  animation: spin 0.6s linear infinite !important;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
