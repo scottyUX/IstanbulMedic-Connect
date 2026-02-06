@@ -1,0 +1,85 @@
+{
+  "place_id": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+  "name": "Example Clinic Name",
+  "formatted_address": "123 Main Street, Istanbul, Turkey 34000",
+  "formatted_phone_number": "+90 212 555 1234",
+  "international_phone_number": "+90 212 555 1234",
+  "website": "https://example-clinic.com",
+  "geometry": {
+    "location": {
+      "lat": 41.0082,
+      "lng": 28.9784
+    }
+  },
+  "address_components": [
+    {
+      "long_name": "Istanbul",
+      "short_name": "Istanbul",
+      "types": ["locality", "political"]
+    },
+    {
+      "long_name": "Istanbul",
+      "short_name": "Istanbul",
+      "types": ["administrative_area_level_1", "political"]
+    },
+    {
+      "long_name": "Turkey",
+      "short_name": "TR",
+      "types": ["country", "political"]
+    },
+    {
+      "long_name": "34000",
+      "short_name": "34000",
+      "types": ["postal_code"]
+    }
+  ],
+  "rating": 4.5,
+  "user_ratings_total": 127,
+  "reviews": [
+    {
+      "author_name": "John Doe",
+      "author_url": "https://www.google.com/maps/contrib/123456789",
+      "profile_photo_url": "https://lh3.googleusercontent.com/a-/AOh14Gj...",
+      "rating": 5,
+      "relative_time_description": "2 months ago",
+      "text": "Excellent service and professional staff. Highly recommended!",
+      "time": 1704067200
+    },
+    {
+      "author_name": "Jane Smith",
+      "author_url": "https://www.google.com/maps/contrib/987654321",
+      "profile_photo_url": "https://lh3.googleusercontent.com/a-/AOh14Gj...",
+      "rating": 4,
+      "relative_time_description": "3 months ago",
+      "text": "Good experience overall, clean facilities.",
+      "time": 1701388800
+    }
+  ],
+  "photos": [
+    {
+      "photo_reference": "Aap_uEA7vb0DDYVJWEaX3O-AtYp3AQsQpGDY0ny2ywcy4ua1dvsgcRrFTWsc07sh2upx4wBA8BOftsIXo-6U",
+      "width": 1200,
+      "height": 800,
+      "html_attributions": [
+        "<a href=\"https://maps.google.com/maps/contrib/123456789\">Example Clinic</a>"
+      ]
+    }
+  ],
+  "opening_hours": {
+    "open_now": true,
+    "weekday_text": [
+      "Monday: 9:00 AM – 6:00 PM",
+      "Tuesday: 9:00 AM – 6:00 PM",
+      "Wednesday: 9:00 AM – 6:00 PM",
+      "Thursday: 9:00 AM – 6:00 PM",
+      "Friday: 9:00 AM – 6:00 PM",
+      "Saturday: Closed",
+      "Sunday: Closed"
+    ]
+  },
+  "price_level": 2,
+  "types": ["doctor", "health", "point_of_interest", "establishment"],
+  "business_status": "OPERATIONAL",
+  "url": "https://maps.google.com/?cid=12345678901234567890"
+}
+

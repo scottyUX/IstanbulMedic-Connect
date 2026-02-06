@@ -1,0 +1,61 @@
+{
+  "instagram": {
+    "inputUrl": "https://www.instagram.com/istanbulmedic/",
+    "id": "1234567890",
+    "username": "istanbulmedic",
+    "url": "https://www.instagram.com/istanbulmedic/",
+    "fullName": "Istanbul Medic - Hair Transplant Clinic",
+    "biography": "Leading hair transplant clinic in Istanbul. FUE, DHI. International patients welcome. www.istanbulmedic.com",
+    "externalUrl": "https://www.istanbulmedic.com",
+    "externalUrls": ["https://www.istanbulmedic.com", "https://linktr.ee/istanbulmedic"],
+    "followersCount": 12500,
+    "followsCount": 450,
+    "postsCount": 342,
+    "profilePicUrl": "https://instagram.example/cdn/profile_pic.jpg",
+    "profilePicUrlHD": "https://instagram.example/cdn/profile_pic_hd.jpg",
+    "verified": true,
+    "private": false,
+    "isBusinessAccount": true,
+    "businessCategoryName": "Medical & Health",
+    "businessAddress": {
+      "streetAddress": "123 Medical Center Street",
+      "cityName": "Istanbul",
+      "regionName": "Istanbul",
+      "zipCode": "34000",
+      "countryCode": "TR",
+      "addressString": "123 Medical Center Street, Istanbul, Turkey 34000"
+    },
+    "highlightReelCount": 8,
+    "igtvVideoCount": 12,
+    "hasChannel": true,
+    "joinedRecently": false,
+    "fbid": "987654321098765"
+  },
+  "extracted_claims": {
+    "social": {
+      "instagram": {
+        "handle": "istanbulmedic",
+        "profile_url": "https://www.instagram.com/istanbulmedic/",
+        "profile_id": "1234567890",
+        "is_verified": true,
+        "is_business": true,
+        "business_category": "Medical & Health",
+        "is_private": false,
+        "followers_count": 12500,
+        "posts_count": 342
+      }
+    },
+    "contact": {
+      "website_candidates": ["https://www.istanbulmedic.com", "https://linktr.ee/istanbulmedic"],
+      "link_aggregator_detected": true,
+      "address_text": "123 Medical Center Street, Istanbul, Turkey 34000"
+    },
+    "services": {
+      "claimed": ["hair transplant", "FUE", "DHI"]
+    },
+    "geography": {
+      "claimed": ["Istanbul", "Turkey"]
+    }
+  }
+}
+
