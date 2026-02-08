@@ -106,16 +106,23 @@ body {
   --font-sans: var(--im-font-body), var(--font-sans);
   --font-heading: var(--im-font-heading), var(--font-sans);
 
-  /* brand (teal) + softer surfaces */
-  --primary: 174 55% 46%; /* ~ #3EBBB7 */
-  --primary-foreground: 0 0% 100%;
-  --ring: 174 55% 46%;
+  /* brand (gold) + softer surfaces */
+  --primary: 51 100% 50%;
+  /* #FFD700 */
+  --primary-foreground: 0 0% 0%;
+  /* Black text on gold */
+  --ring: 51 100% 50%;
 
   --background: 0 0% 100%;
   --foreground: 220 18% 14%;
 
   --muted: 210 20% 98%;
   --muted-foreground: 220 10% 45%;
+
+  --accent: 48 100% 95%;
+  /* Gold/Yellow tint */
+  --accent-foreground: 53 100% 26%;
+  /* Dark Gold text */
 
   /* thinner + lighter lines */
   --border: 220 14% 92%;

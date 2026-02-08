@@ -179,12 +179,12 @@ export const ExploreClinicsPage = ({ onSelectClinic }: ExploreClinicsPageProps) 
             {/* Headline */}
             <div className="text-center lg:text-left">
               <h1
-                className="text-3xl font-bold leading-tight text-[#0D1E32] lg:text-5xl"
+                className="text-4xl font-bold leading-tight text-[#0D1E32] lg:text-6xl"
                 style={{ fontFamily: "var(--im-font-heading), serif" }}
               >
                 Connect with a Trusted Hair Transplant Clinic
               </h1>
-              <p className="mt-4 text-lg text-muted-foreground max-w-3xl">
+              <p className="mt-4 text-xl text-muted-foreground max-w-3xl">
                 We know how overwhelming it can be to choose the right clinic for your hair transplant. That’s why we’re here to take the stress away—connecting you with qualified clinics in seconds, completely free and with no obligations.
               </p>
             </div>
@@ -206,12 +206,12 @@ export const ExploreClinicsPage = ({ onSelectClinic }: ExploreClinicsPageProps) 
 
         {/* Toolbar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-xl font-bold text-foreground">
+          <h2 className="text-2xl font-bold text-foreground">
             {filteredClinics.length} clinics available
           </h2>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Sort by:</span>
+            <span className="text-base text-muted-foreground">Sort by:</span>
             <div className="relative">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-[180px] h-9 bg-white" aria-label="Sort clinics">
@@ -244,8 +244,8 @@ export const ExploreClinicsPage = ({ onSelectClinic }: ExploreClinicsPageProps) 
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
                 <Search className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-medium">No clinics found</h3>
-              <p className="mt-2 text-muted-foreground">
+              <h3 className="text-xl font-medium">No clinics found</h3>
+              <p className="mt-2 text-base text-muted-foreground">
                 Try adjusting your filters or search terms.
               </p>
               <Button

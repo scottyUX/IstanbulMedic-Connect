@@ -13,7 +13,7 @@ import { CommunitySignalsSection } from "./CommunitySignalsSection"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
 
-type CommunityPostSource = "reddit" | "instagram" | "other"
+type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
 type CommunitySentiment = "Positive" | "Neutral" | "Negative"
 
 interface ClinicProfilePageProps {
@@ -69,7 +69,7 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
         name: "Dr. Can Öztürk",
         specialty: "Cosmetic & Hair Surgeon",
         photo:
-          "https://images.unsplash.com/photo-1758206523685-6e69f80a11ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxtZWRpY2FsJTIwcHJvZmVzc2lvbmFsJTIwbWFsZXxlbnwxfHx8fDE3NzAxNTQ5MTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+          "https://images.unsplash.com/photo-1758206523685-6e69f80a11ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxtZWRpY2FsJTIwcHJvZmVzc2lvbmFsfTIwbWFsZXxlbnwxfHx8fDE3NzAxNTQ5MTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
         credentials: ["Board Certified Surgeon", "International Training"],
         yearsOfExperience: 10,
         education: "Ankara University Medical School",
@@ -146,50 +146,56 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
     communitySignals: {
       posts: [
         {
-          source: "reddit" as CommunityPostSource,
+          source: "google" as CommunityPostSource,
+          author: "Sarah Jenkins",
           date: "2 days ago",
           snippet:
-            "Had my consultation at Istanbul Hair Center last week. The doctor was thorough and explained everything in detail. Prices were competitive and transparent. Scheduling my procedure for next month.",
+            "Rated 5/5 stars on Google Reviews. 'The best decision I ever made. Dr. Yilmaz is a true artist.' - Verified Google User",
           url: "#",
         },
         {
           source: "reddit" as CommunityPostSource,
-          date: "1 week ago",
-          snippet:
-            "Just finished my 6-month follow-up. Really happy with the results so far. The clinic staff has been responsive to all my questions via WhatsApp. Would definitely recommend.",
-          url: "#",
-        },
-        {
-          source: "reddit" as CommunityPostSource,
-          date: "2 weeks ago",
-          snippet:
-            "Comparing clinics in Istanbul for hair transplant. Istanbul Hair Center seems to have good credentials and the doctors have international training. Anyone have recent experience?",
-          url: "#",
-        },
-        {
-          source: "instagram" as CommunityPostSource,
-          date: "3 days ago",
-          snippet:
-            "Amazing transformation! 8 months post-op and couldn't be happier. Thank you to the entire team @istanbulhaircenter for the professional care and support throughout the journey. #hairtransplant #istanbul",
-          url: "#",
-        },
-        {
-          source: "instagram" as CommunityPostSource,
-          date: "1 week ago",
-          snippet:
-            "Day 1 post-procedure. Feeling great! The team made me feel comfortable and the clinic is spotless. Can't wait to see the final results. #medicaltourism #turkey",
-          url: "#",
-        },
-        {
-          source: "other" as CommunityPostSource,
+          author: "HairLossGuy99",
           date: "5 days ago",
           snippet:
-            "Article: Medical Tourism in Istanbul - Istanbul Hair Center ranks among top facilities for FUE procedures with high patient satisfaction rates and comprehensive aftercare programs.",
+            "Anyone hear about Istanbul Hair Center? I saw their results on IG and they look legit. Just wondering if anyone has personal experience?",
+          url: "#",
+        },
+        {
+          source: "facebook" as CommunityPostSource,
+          author: "David Chen",
+          date: "1 week ago",
+          snippet:
+            "Just joined the Istanbul Hair Transplant Support Group. Lots of positive feedback about this clinic. Someone shared their 6-month progress pics and they look amazing.",
+          url: "#",
+        },
+        {
+          source: "youtube" as CommunityPostSource,
+          author: "TravelWithTom",
+          date: "10 days ago",
+          snippet:
+            "New Vlog Report: 'My Hair Transplant Journey in Turkey'. Vlogger 'TravelWithTom' visits Istanbul Hair Center and documents the entire process.",
+          url: "#",
+        },
+        {
+          source: "forums" as CommunityPostSource,
+          author: "FUE_Veteran",
+          date: "2 weeks ago",
+          snippet:
+            "Thread on HairRestorationNetwork: 'Dr. Yilmaz - Istanbul Hair Center - 3500 Grafts FUE'. Detailed patient log with daily photos.",
+          url: "#",
+        },
+        {
+          source: "instagram" as CommunityPostSource,
+          author: "michael.t",
+          date: "3 weeks ago",
+          snippet:
+            "Amazing transformation! 8 months post-op and couldn't be happier. Thank you to the entire team @istanbulhaircenter. #hairtransplant #istanbul",
           url: "#",
         },
       ],
       summary: {
-        totalMentions: 89,
+        totalMentions: 142,
         sentiment: "Positive" as CommunitySentiment,
         commonThemes: ["Clear pricing", "Professional communication", "Quality aftercare"],
       },

@@ -28,9 +28,9 @@ interface ClinicCardProps {
 
 // Tag color variants matching ArticleCard design
 const TAG_VARIANT_STYLES = {
-  teal: "bg-[#ECF8F8] text-[#2C8582]",
+  teal: "bg-[#FFF9E5] text-[#857500]",
   blue: "bg-[#E8EBEF] text-[#102741]",
-  green: "bg-[#ECF8F8] text-[#2C8582]",
+  green: "bg-[#FFF9E5] text-[#857500]",
   peach: "bg-[#F6EEF1] text-[#723B54]",
   purple: "bg-[#F6EEF1] text-[#723B54]",
   orange: "bg-[#F8F1EB] text-[#835224]",
@@ -89,7 +89,7 @@ export const ClinicCard = ({
             <span
               key={`${specialty}-${index}`}
               className={cn(
-                "inline-flex items-center rounded-full px-3 py-1 text-xs font-normal transition-colors duration-150",
+                "inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-colors duration-150",
                 TAG_VARIANT_STYLES[variant]
               )}
             >
@@ -103,7 +103,7 @@ export const ClinicCard = ({
       <h3
         className={cn(
           merriweather.className,
-          "mt-4 block font-bold text-foreground leading-[140%] text-[20px] sm:text-[22px] lg:text-[24px] line-clamp-2"
+          "mt-4 block font-bold text-foreground leading-[140%] text-2xl line-clamp-2"
         )}
       >
         {name}
@@ -111,12 +111,12 @@ export const ClinicCard = ({
 
       {/* Description */}
       {description ? (
-        <p className="mt-3 text-sm text-muted-foreground line-clamp-2">{description}</p>
+        <p className="mt-3 text-base text-muted-foreground line-clamp-2">{description}</p>
       ) : null}
 
       {/* AI Insight */}
       {aiInsight ? (
-        <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-sm text-muted-foreground">
+        <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-base text-muted-foreground">
           <span className="font-medium text-foreground">AI insight:</span> {aiInsight}
         </div>
       ) : null}
@@ -125,18 +125,18 @@ export const ClinicCard = ({
       <div className="mt-auto flex items-center justify-between gap-3 pt-5">
         {/* Left: Location & Rating */}
         <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-base text-muted-foreground">
             <MapPin className="h-4 w-4 shrink-0" />
             <span className="truncate">{location}</span>
           </div>
           {typeof rating === "number" ? (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="h-3.5 w-3.5 fill-current text-primary" />
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Star className="h-3.5 w-3.5 fill-current text-[#FFD700]" />
               <span className="font-medium">{rating.toFixed(1)}</span>
               <span className="text-muted-foreground/70">Trust {trustScore}</span>
             </div>
           ) : (
-            <div className="text-xs text-muted-foreground">Trust {trustScore}</div>
+            <div className="text-sm text-muted-foreground">Trust {trustScore}</div>
           )}
         </div>
 
@@ -154,7 +154,7 @@ export const ClinicCard = ({
             />
             <label
               htmlFor={compareId}
-              className={cn("cursor-pointer select-none text-xs text-muted-foreground")}
+              className={cn("cursor-pointer select-none text-sm text-muted-foreground")}
             >
               Compare
             </label>

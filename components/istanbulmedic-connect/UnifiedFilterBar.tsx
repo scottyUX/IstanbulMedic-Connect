@@ -55,7 +55,7 @@ export const UnifiedFilterBar = ({
                             value={filters.searchQuery}
                             onChange={(e) => updateFilter("searchQuery", e.target.value)}
                             placeholder="Treatment or clinic name"
-                            className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base md:text-sm placeholder:text-muted-foreground/70 w-full"
+                            className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
                         />
                     </div>
                 </div>
@@ -72,7 +72,7 @@ export const UnifiedFilterBar = ({
                             value={filters.location}
                             onChange={(e) => updateFilter("location", e.target.value)}
                             placeholder="Where in Istanbul?"
-                            className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base md:text-sm placeholder:text-muted-foreground/70 w-full"
+                            className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
                         />
                     </div>
                 </div>
@@ -97,7 +97,7 @@ export const UnifiedFilterBar = ({
                                 <SlidersHorizontal className="h-4 w-4" />
                                 Filters
                                 {totalActiveFilters > 0 && (
-                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#3EBBB7] text-white text-[10px font-bold">
+                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FFD700] text-black text-[10px font-bold">
                                         {totalActiveFilters}
                                     </span>
                                 )}
@@ -110,14 +110,14 @@ export const UnifiedFilterBar = ({
                 <div className="mt-2 md:mt-0">
                     <Button
                         size="icon"
-                        className="hidden md:flex bg-[#3EBBB7] hover:bg-[#2fa8a0] text-white rounded-full h-10 w-10 shrink-0 ml-2"
+                        className="hidden md:flex bg-[#FFD700] hover:bg-[#D4B200] text-black rounded-full h-10 w-10 shrink-0 ml-2"
                         onClick={onSearch}
                     >
                         <Search className="h-4 w-4 stroke-[3px]" />
                     </Button>
                     <Button
                         size="lg"
-                        className="w-full md:hidden bg-[#3EBBB7] hover:bg-[#2fa8a0] text-white font-semibold h-12 shadow-md rounded-lg"
+                        className="w-full md:hidden bg-[#FFD700] hover:bg-[#D4B200] text-black font-semibold h-12 shadow-md rounded-lg"
                         onClick={onSearch}
                     >
                         <Search className="mr-2 h-4 w-4 stroke-[3px]" />

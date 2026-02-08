@@ -52,7 +52,7 @@ export const ConnectTopNav = () => {
       try {
         const maybePromise = router.prefetch(href) as unknown
         if (maybePromise instanceof Promise) {
-          maybePromise.catch(() => {})
+          maybePromise.catch(() => { })
         }
       } catch {
         prefetchedRoutes.current.delete(href)
@@ -152,13 +152,13 @@ export const ConnectTopNav = () => {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Book consultation"
-            className="inline-flex items-center gap-2 rounded-full bg-[#3EBBB7] px-5 py-2 text-center text-sm font-semibold text-white transition hover:bg-[#28A49A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#28A49A]"
+            className="inline-flex items-center gap-2 rounded-full bg-[#FFD700] px-5 py-2 text-center text-sm font-semibold text-black transition hover:bg-[#D4B200] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4B200]"
           >
             Book Consultation
           </a>
           <Link
             href="/leila"
-            className="inline-flex items-center gap-2 rounded-full border border-[#17375B] bg-transparent px-5 py-2 text-center text-sm font-semibold text-[#17375B] transition hover:bg-[#ECF8F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#17375B]"
+            className="inline-flex items-center gap-2 rounded-full border border-[#17375B] bg-transparent px-5 py-2 text-center text-sm font-semibold text-[#17375B] transition hover:bg-[#FFF9E5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#17375B]"
             aria-label="Talk to Leila (AI Assistant)"
           >
             Talk to Leila
@@ -232,7 +232,7 @@ export const ConnectTopNav = () => {
 
                       <a
                         href={CONSULTATION_LINK}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#31C2B5] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(49,194,181,0.35)] transition hover:bg-[#28A49A]"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#FFD700] px-5 py-3 text-sm font-semibold text-black shadow-[0_12px_30px_rgba(255,215,0,0.35)] transition hover:bg-[#D4B200]"
                         onClick={() => setOpen(false)}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -241,7 +241,7 @@ export const ConnectTopNav = () => {
                       </a>
                       <Link
                         href="/leila"
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#17375B] bg-transparent px-5 py-3 text-sm font-semibold text-[#17375B] transition hover:bg-[#ECF8F8]"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#17375B] bg-transparent px-5 py-3 text-sm font-semibold text-[#17375B] transition hover:bg-[#FFF9E5]"
                         onClick={() => setOpen(false)}
                       >
                         Talk to Leila

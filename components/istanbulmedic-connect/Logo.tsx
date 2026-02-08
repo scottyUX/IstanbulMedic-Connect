@@ -25,7 +25,7 @@ export default function Logo({ className = "", onClick }: LogoProps) {
         className="w-40 h-auto sm:w-52 md:w-60"
       />
       <span
-        className="text-[#3EBBB7] font-bold text-xl sm:text-2xl md:text-3xl"
+        className="text-[#FFD700] font-bold text-xl sm:text-2xl md:text-3xl"
         style={{ fontFamily: "var(--im-font-script), cursive" }}
       >
         Connect

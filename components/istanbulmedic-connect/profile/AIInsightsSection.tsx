@@ -14,16 +14,16 @@ export const AIInsightsSection = ({ insights }: AIInsightsSectionProps) => {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">AI Insights</h2>
+          <h2 className="text-2xl font-semibold text-foreground">AI Insights</h2>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Signals detected from public information and verified documentation.
         </p>
       </CardHeader>
       <CardContent>
         <ul className="space-y-3">
           {insights.map((insight) => (
-            <li key={insight} className="rounded-xl border border-border/60 bg-muted/5 p-4 text-sm text-muted-foreground">
+            <li key={insight} className="rounded-xl bg-muted/5 p-4 text-base text-muted-foreground">
               {insight}
             </li>
           ))}

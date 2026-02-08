@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useMemo, useState } from "react"
-import { MapPin, ShieldCheck, Star, Share, Heart, Grid3X3, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { MapPin, ShieldCheck, Star, Share, Heart, Grid3X3, X, ChevronLeft, ChevronRight, Trophy, Sparkles } from "lucide-react"
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog"
 
 import { Badge } from "@/components/ui/badge"
@@ -66,15 +66,15 @@ export const HeroSection = ({
           {/* Header Section */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-start justify-between">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                 {clinicName}
               </h1>
               <div className="hidden sm:flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="gap-2 text-sm font-medium underline underline-offset-2 hover:bg-transparent">
+                <Button variant="ghost" size="sm" className="gap-2 text-base font-medium underline underline-offset-2 hover:bg-transparent">
                   <Share className="h-4 w-4" />
                   Share
                 </Button>
-                <Button variant="ghost" size="sm" className="gap-2 text-sm font-medium underline underline-offset-2 hover:bg-transparent">
+                <Button variant="ghost" size="sm" className="gap-2 text-base font-medium underline underline-offset-2 hover:bg-transparent">
                   <Heart className="h-4 w-4" />
                   Save
                 </Button>
@@ -82,15 +82,15 @@ export const HeroSection = ({
             </div>
 
             {/* Sub-header Stats */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-foreground">
+            <div className="flex flex-wrap items-center gap-4 text-base text-foreground">
               <div className="flex items-center gap-1 font-medium">
-                <Star className="h-4 w-4 fill-foreground" />
+                <Star className="h-4 w-4 fill-[#FFD700] text-[#FFD700]" />
                 <span>{rating.toFixed(2)}</span>
                 <span className="text-muted-foreground font-normal">({reviewCount} reviews)</span>
               </div>
               <span className="hidden sm:inline text-muted-foreground">•</span>
               <div className="flex items-center gap-1 font-medium underline underline-offset-2">
-                <ShieldCheck className="h-4 w-4 text-[#3EBBB7]" />
+                <ShieldCheck className="h-4 w-4 text-[#FFD700]" />
                 <span>Transparency {transparencyScore}</span>
               </div>
               <span className="hidden sm:inline text-muted-foreground">•</span>
@@ -98,6 +98,50 @@ export const HeroSection = ({
                 {location}
               </div>
             </div>
+          </div>
+
+          {/* Patient Favorite Banner */}
+          <div className="border border-border/60 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-background shadow-sm">
+
+            {/* Left: Badge */}
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="relative">
+                <Trophy className="h-12 w-12 text-[#FFD700] fill-[#FFD700]" />
+                <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-[#FFD700] fill-[#FFD700] animate-pulse" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold tracking-tight text-foreground leading-none">Patient</span>
+                <span className="text-xl font-bold tracking-tight text-foreground leading-none">favorite</span>
+              </div>
+            </div>
+
+            {/* Middle: Text */}
+            <div className="flex-1 text-center md:text-left px-4">
+              <p className="text-lg font-medium text-foreground">
+                One of the most loved clinics on Istanbul Medic Connect
+              </p>
+              <p className="text-muted-foreground">
+                Rated highly for hygiene, outcome, and service.
+              </p>
+            </div>
+
+            {/* Right: Stats */}
+            <div className="flex items-center gap-6 shrink-0 md:border-l md:pl-6 border-border/60">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground leading-none">{rating.toFixed(2)}</div>
+                <div className="flex gap-0.5 mt-1 justify-center">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />
+                  ))}
+                </div>
+              </div>
+              <div className="h-10 w-px bg-border/60 hidden md:block"></div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground leading-none">{reviewCount}</div>
+                <div className="text-sm text-foreground underline decoration-1 underline-offset-2 mt-1">Reviews</div>
+              </div>
+            </div>
+
           </div>
 
           {/* Image Grid */}
@@ -147,7 +191,7 @@ export const HeroSection = ({
             <Button
               variant="secondary"
               size="sm"
-              className="absolute bottom-4 right-4 gap-2 bg-white/90 hover:bg-white shadow-sm border border-black/10 text-black font-medium"
+              className="absolute bottom-4 right-4 gap-2 bg-white/90 hover:bg-white shadow-sm border border-black/10 text-black font-semibold text-base"
               onClick={() => openLightbox(0)}
             >
               <Grid3X3 className="h-4 w-4" />
