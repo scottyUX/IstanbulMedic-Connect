@@ -86,3 +86,24 @@ gen-ui-playground/
 - Add more example components for Static Generative UI
 - Experiment with different A2UI templates
 - Customize the A2UI theme
+
+# Supabase
+## Getting Set Up for local development
+
+### Prerequisites
+
+- updated npm
+- a container runtime compatible with Docker APIs (Docker Desktop)
+
+### Installation & Set UP
+- follow this guide: https://supabase.com/docs/guides/local-development?queryGroups=package-manager&package-manager=npm
+- update .env with (from running supabase start or supabase status)
+  - SUPABASE_URL=http://...(project url under APIs)
+  - SUPABASE_ANON_KEY=sb_publishable_...
+  - SUPABASE_SERVICE_ROLE_KEY=sb_secret_....
+  - DATABASE_URL=postgresql://postgres:postgres@...
+- Login to supabase using - supabase login
+- Link to the DB Scott made for us using - supabase link --project-ref ioofmlovhjvnnqvczeri
+
+
+
