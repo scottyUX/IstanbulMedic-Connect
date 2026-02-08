@@ -2,17 +2,12 @@
 
 import { CopilotKit } from "@copilotkit/react-core";
 import { createA2UIMessageRenderer } from "@copilotkit/a2ui-renderer";
+import { a2uiViewerTheme } from "@/lib/a2ui/viewer-theme";
 import StaticGenUI from "@/components/StaticGenUI";
 import GeminiChatWrapper from "@/components/GeminiChatWrapper";
 
-// A2UI theme for UI generation
-const a2uiTheme = {
-  primaryColor: "#6366f1",
-  font: "Inter, system-ui, sans-serif",
-};
-
 // Create A2UI renderer for generating UI components
-const A2UIRenderer = createA2UIMessageRenderer({ theme: a2uiTheme });
+const A2UIRenderer = createA2UIMessageRenderer({ theme: a2uiViewerTheme });
 
 export default function Home() {
   return (

@@ -5,6 +5,7 @@ import {
   OpenAIAdapter,
 } from "@copilotkit/runtime";
 import { BuiltInAgent } from "@copilotkit/runtime/v2";
+import type { AbstractAgent } from "@ag-ui/client";
 
 // OpenAI Vector Store ID
 const VECTOR_STORE_ID = "vs_692cf26be204819194c1d04a94ffbb1b";
@@ -75,11 +76,16 @@ PRIVACY & GDPR:
 When users ask questions or request actions, use the appropriate frontend tools to generate interactive UI components that help them accomplish their goals.`,
 });
 
+// Work around intersected `agents` types in CopilotRuntime (Record & PromiseLike).
+// Runtime accepts a plain record at runtime; this cast keeps TypeScript happy.
+const agents = {
+  default: agent as unknown as AbstractAgent,
+} as unknown as Record<string, AbstractAgent> &
+  PromiseLike<Record<string, AbstractAgent>>;
+
 // Create the runtime - using native OpenAI file_search tool instead of backend actions
 const runtime = new CopilotRuntime({
-  agents: {
-    default: agent,
-  },
+  agents,
 });
 
 // Create the endpoint handler (handles both GET and POST)

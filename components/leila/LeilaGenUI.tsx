@@ -143,7 +143,7 @@ const LeilaGenUI = () => {
         timestamp: new Date().toISOString(),
       });
     },
-    // @ts-ignore - CopilotKit accepts null returns in render functions
+    // @ts-expect-error - CopilotKit accepts null returns in render functions
     render: ({ status, args, result }) => {
       if (status === "complete" && result) {
         try {
@@ -213,7 +213,7 @@ const LeilaGenUI = () => {
         recoveryTime: recoveryTime || "",
       });
     },
-    // @ts-ignore - CopilotKit accepts null returns in render functions
+    // @ts-expect-error - CopilotKit accepts null returns in render functions
     render: ({ status, args, result }) => {
       if (status === "complete" && result) {
         try {
@@ -253,7 +253,7 @@ const LeilaGenUI = () => {
     handler: async ({ purpose }) => {
       return JSON.stringify({ purpose: purpose || "Upload Your Scalp Photos" });
     },
-    // @ts-ignore - CopilotKit accepts null returns in render functions
+    // @ts-expect-error - CopilotKit accepts null returns in render functions
     render: ({ status, args, result }) => {
       if (status === "complete" && result) {
         try {

@@ -78,7 +78,7 @@ const StaticGenUI = () => {
           );
         }
       }
-      return null;
+      return <></>;
     },
   });
 
@@ -109,7 +109,7 @@ const StaticGenUI = () => {
       if (status === "inProgress" || status === "executing") {
         return <div className="text-gray-500">Opening calculator...</div>;
       }
-      return null;
+      return <></>;
     },
   });
 
@@ -140,7 +140,7 @@ const StaticGenUI = () => {
       if (status === "inProgress" || status === "executing") {
         return <div className="text-gray-500">Creating todo list...</div>;
       }
-      return null;
+      return <></>;
     },
   });
 
@@ -182,7 +182,7 @@ const StaticGenUI = () => {
       if (status === "inProgress" || status === "executing") {
         return <div className="text-gray-500">Opening note pad...</div>;
       }
-      return null;
+      return <></>;
     },
   });
 

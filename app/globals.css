@@ -1,28 +1,132 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 20%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 20%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 20%;
+
+  --primary: 217.2193 91.2195% 59.8039%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14.2857% 95.8824%;
+  --secondary-foreground: 215 13.7931% 34.1176%;
+  --muted: 210 20% 98.0392%;
+  --muted-foreground: 220 8.9362% 46.0784%;
+  --accent: 204 93.75% 93.7255%;
+  --accent-foreground: 224.4444 64.2857% 32.9412%;
+
+  --destructive: 0 84.2365% 60.1961%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 220 13.0435% 90.9804%;
+  --input: 220 13.0435% 90.9804%;
+  --ring: 217.2193 91.2195% 59.8039%;
+
+  --radius: 0.75rem;
+
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+.dark {
+  --background: 0 0% 9.0196%;
+  --foreground: 0 0% 89.8039%;
+
+  --card: 0 0% 14.902%;
+  --card-foreground: 0 0% 89.8039%;
+  --popover: 0 0% 14.902%;
+  --popover-foreground: 0 0% 89.8039%;
+
+  --primary: 217.2193 91.2195% 59.8039%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 14.902%;
+  --secondary-foreground: 0 0% 89.8039%;
+  --muted: 0 0% 12.1569%;
+  --muted-foreground: 0 0% 63.9216%;
+  --accent: 224.4444 64.2857% 32.9412%;
+  --accent-foreground: 213.3333 96.9231% 87.2549%;
+
+  --destructive: 0 84.2365% 60.1961%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 25.098%;
+  --input: 0 0% 25.098%;
+  --ring: 217.2193 91.2195% 59.8039%;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --radius-xl: calc(var(--radius) + 0.25rem);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-sm: calc(var(--radius) - 0.25rem);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+}
+
+/* -------------------------------------------------------------------------- */
+/* IstanbulMedic Connect theme (scoped to /connect)                            */
+/* -------------------------------------------------------------------------- */
+.imConnectTheme {
+  /* header */
+  --im-header-height: 80px;
+
+  /* fonts */
+  --font-sans: var(--im-font-body), var(--font-sans);
+  --font-heading: var(--im-font-heading), var(--font-sans);
+
+  /* brand (teal) + softer surfaces */
+  --primary: 174 55% 46%; /* ~ #3EBBB7 */
+  --primary-foreground: 0 0% 100%;
+  --ring: 174 55% 46%;
+
+  --background: 0 0% 100%;
+  --foreground: 220 18% 14%;
+
+  --muted: 210 20% 98%;
+  --muted-foreground: 220 10% 45%;
+
+  /* thinner + lighter lines */
+  --border: 220 14% 92%;
+  --input: 220 14% 92%;
+
+  --radius: 0.875rem;
+}
+
+.imConnectTheme h1,
+.imConnectTheme h2 {
+  font-family: var(--font-heading);
 }
 
 /* Gemini-style Chat Styling - Exact Match */
