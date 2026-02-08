@@ -5,7 +5,7 @@ import { useId, useState } from "react"
 import { MapPin, Star } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
-import { Button } from "@/components/ui/button"
+
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 
@@ -62,7 +62,10 @@ export const ClinicCard = ({
   const [isCompared, setIsCompared] = useState(false)
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[28px] border border-border/60 bg-background p-6 shadow-sm">
+    <div
+      className="group flex h-full flex-col overflow-hidden rounded-[28px] border border-border/60 bg-background p-6 hover:border-primary/20 transition-all duration-300 cursor-pointer"
+      onClick={onViewProfile}
+    >
       {/* Image Section */}
       <div className="relative w-full overflow-hidden rounded-[16px] aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9]">
         <Image
@@ -138,7 +141,10 @@ export const ClinicCard = ({
         </div>
 
         {/* Right: Compare + View Profile */}
-        <div className="flex shrink-0 flex-col items-end gap-2">
+        <div
+          className="flex shrink-0 flex-col items-end gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center gap-2">
             <Checkbox
               id={compareId}
@@ -153,9 +159,6 @@ export const ClinicCard = ({
               Compare
             </label>
           </div>
-          <Button onClick={onViewProfile} size="sm" className="shrink-0">
-            View Profile
-          </Button>
         </div>
       </div>
     </div>

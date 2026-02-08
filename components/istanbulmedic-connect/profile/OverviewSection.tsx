@@ -20,7 +20,7 @@ export const OverviewSection = ({
   description,
 }: OverviewSectionProps) => {
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="border-border/60 shadow-none">
       <CardHeader className="pb-3">
         <h2 className="text-lg font-semibold text-foreground">Overview</h2>
       </CardHeader>

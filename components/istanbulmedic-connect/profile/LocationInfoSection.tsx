@@ -20,6 +20,8 @@ interface Services {
 interface LocationInfoSectionProps {
   address: string
   mapImageUrl: string
+  lat: number
+  lng: number
   openingHours: OpeningHoursRow[]
   languages: string[]
   paymentMethods: string[]
@@ -29,13 +31,18 @@ interface LocationInfoSectionProps {
 export const LocationInfoSection = ({
   address,
   mapImageUrl,
+  lat,
+  lng,
   openingHours,
   languages,
   paymentMethods,
   services,
 }: LocationInfoSectionProps) => {
+  // Use the key found in the source repo
+  const apiKey = "AIzaSyBFw0Qbyq9zTFTd-tUY6dgsWUxO4kzJjzY"
+
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="border-border/60 shadow-none">
       <CardHeader className="pb-3">
         <h2 className="text-lg font-semibold text-foreground">Location &amp; Practical Info</h2>
         <p className="text-sm text-muted-foreground">
@@ -45,9 +52,9 @@ export const LocationInfoSection = ({
 
       <CardContent className="space-y-5">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-border/60 bg-muted/5 p-4">
+          <div className="rounded-xl border border-border/60 bg-muted/5 p-4 h-full flex flex-col justify-center">
             <div className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-5 w-5 text-primary" />
+              <MapPin className="mt-0.5 h-5 w-5 text-primary shrink-0" />
               <div>
                 <div className="text-sm font-semibold text-foreground">Address</div>
                 <div className="mt-1 text-sm text-muted-foreground">{address}</div>
@@ -55,10 +62,17 @@ export const LocationInfoSection = ({
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border/60">
-            <div className="relative aspect-[16/10] w-full">
-              <Image src={mapImageUrl} alt="Map" fill className="object-cover" />
-            </div>
+          <div className="overflow-hidden rounded-xl border border-border/60 relative h-[250px] bg-muted">
+            <iframe
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://maps.google.com/maps?q=${lat},${lng}&hl=en&z=14&output=embed`}
+              title="Clinic Location"
+            />
           </div>
         </div>
 

@@ -36,7 +36,7 @@ const sourceLabel: Record<PostSource, string> = {
 
 export const CommunitySignalsSection = ({ posts, summary }: CommunitySignalsSectionProps) => {
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="border-border/60 shadow-none">
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

@@ -10,7 +10,7 @@ interface AIInsightsSectionProps {
 
 export const AIInsightsSection = ({ insights }: AIInsightsSectionProps) => {
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="border-border/60 shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />

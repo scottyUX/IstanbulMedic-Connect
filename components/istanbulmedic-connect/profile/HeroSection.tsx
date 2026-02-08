@@ -2,7 +2,8 @@
 
 import Image from "next/image"
 import { useMemo, useState } from "react"
-import { MapPin, ShieldCheck, Star } from "lucide-react"
+import { MapPin, ShieldCheck, Star, Share, Heart, Grid3X3, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,108 +29,177 @@ export const HeroSection = ({
   reviewCount,
   specialties,
 }: HeroSectionProps) => {
-  const safeImages = useMemo(() => (images.length > 0 ? images : ["/assets/image2.png"]), [images])
-  const [activeIndex, setActiveIndex] = useState(0)
+  const safeImages = useMemo(() => {
+    if (images.length >= 5) return images.slice(0, 5)
+    // Fill with placeholders if not enough images
+    const placeholders = [
+      "/assets/image2.png",
+      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=2653&ixlib=rb-4.0.3",
+      "https://images.unsplash.com/photo-1516549655169-df83a253836f?auto=format&fit=crop&q=80&w=2696&ixlib=rb-4.0.3",
+      "https://images.unsplash.com/photo-1512918760538-d59402497648?auto=format&fit=crop&q=80&w=2695&ixlib=rb-4.0.3",
+      "https://images.unsplash.com/photo-1596524430615-b46475ddff6e?auto=format&fit=crop&q=80&w=2670&ixlib=rb-4.0.3"
+    ]
+    return [...images, ...placeholders].slice(0, 5)
+  }, [images])
 
-  const activeImage = safeImages[Math.min(activeIndex, safeImages.length - 1)] ?? safeImages[0]
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  const openLightbox = (index: number) => {
+    setCurrentImageIndex(index)
+    setIsLightboxOpen(true)
+  }
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % safeImages.length)
+  }
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + safeImages.length) % safeImages.length)
+  }
 
   return (
-    <div className="bg-muted/20">
-      <div className="mx-auto max-w-7xl px-6 py-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-background text-foreground">
-                  <ShieldCheck className="mr-1 h-4 w-4" />
-                  Transparency {transparencyScore}
-                </Badge>
-                <Badge variant="secondary">
-                  <Star className="mr-1 h-4 w-4 fill-current" />
-                  {rating.toFixed(1)} ({reviewCount})
-                </Badge>
-              </div>
+    <>
+      <div className="bg-background">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 
-              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          {/* Header Section */}
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex items-start justify-between">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                 {clinicName}
               </h1>
+              <div className="hidden sm:flex items-center gap-2">
+                <Button variant="ghost" size="sm" className="gap-2 text-sm font-medium underline underline-offset-2 hover:bg-transparent">
+                  <Share className="h-4 w-4" />
+                  Share
+                </Button>
+                <Button variant="ghost" size="sm" className="gap-2 text-sm font-medium underline underline-offset-2 hover:bg-transparent">
+                  <Heart className="h-4 w-4" />
+                  Save
+                </Button>
+              </div>
+            </div>
 
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
+            {/* Sub-header Stats */}
+            <div className="flex flex-wrap items-center gap-4 text-sm text-foreground">
+              <div className="flex items-center gap-1 font-medium">
+                <Star className="h-4 w-4 fill-foreground" />
+                <span>{rating.toFixed(2)}</span>
+                <span className="text-muted-foreground font-normal">({reviewCount} reviews)</span>
+              </div>
+              <span className="hidden sm:inline text-muted-foreground">•</span>
+              <div className="flex items-center gap-1 font-medium underline underline-offset-2">
+                <ShieldCheck className="h-4 w-4 text-[#3EBBB7]" />
+                <span>Transparency {transparencyScore}</span>
+              </div>
+              <span className="hidden sm:inline text-muted-foreground">•</span>
+              <div className="font-medium underline underline-offset-2 text-muted-foreground">
                 {location}
-              </p>
-
-              <div className="flex flex-wrap gap-2">
-                {specialties.slice(0, 6).map((s) => (
-                  <Badge key={s} variant="secondary" className="font-medium">
-                    {s}
-                  </Badge>
-                ))}
               </div>
-            </div>
-
-            <div className="mt-6">
-              <Card className="overflow-hidden border-border/60 shadow-sm">
-                <div className="relative aspect-[16/9] w-full">
-                  <Image
-                    src={activeImage}
-                    alt={`${clinicName} photo`}
-                    fill
-                    className="object-cover"
-                    priority
-                  />
-                </div>
-                {safeImages.length > 1 ? (
-                  <div className="grid grid-cols-4 gap-2 p-3">
-                    {safeImages.slice(0, 4).map((src, idx) => (
-                      <button
-                        key={`${src}-${idx}`}
-                        type="button"
-                        onClick={() => setActiveIndex(idx)}
-                        className={cn(
-                          "relative aspect-[4/3] overflow-hidden rounded-lg border border-border/60",
-                          activeIndex === idx ? "border-primary" : "border-transparent"
-                        )}
-                        aria-label={`View image ${idx + 1}`}
-                      >
-                        <Image src={src} alt={`${clinicName} thumbnail ${idx + 1}`} fill className="object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </Card>
             </div>
           </div>
 
-          <div className="lg:col-span-1">
-            <Card className="space-y-4 border-border/60 p-6 shadow-sm">
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">Next step</div>
-                <div className="mt-1 text-lg font-semibold text-foreground">
-                  Get a private consultation
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Ask questions, compare options, and get a personalized plan.
-                </p>
+          {/* Image Grid */}
+          <div className="relative mb-8 md:mb-12">
+            <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 h-[400px] lg:h-[480px] rounded-xl overflow-hidden">
+              {/* Main Image */}
+              <div
+                className="col-span-2 row-span-2 relative cursor-pointer hover:opacity-95 transition-opacity"
+                onClick={() => openLightbox(0)}
+              >
+                <Image src={safeImages[0]} alt="Clinic Main View" fill className="object-cover" priority />
               </div>
 
-              <div className="grid gap-3">
-                <Button type="button" aria-label="Book consultation">
-                  Book Consultation
-                </Button>
-                <Button type="button" variant="outline" aria-label="Talk to Leila">
-                  Talk to Leila (AI Assistant)
-                </Button>
+              {/* Secondary Images */}
+              <div
+                className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
+                onClick={() => openLightbox(1)}
+              >
+                <Image src={safeImages[1]} alt="Clinic Interior" fill className="object-cover" />
               </div>
+              <div
+                className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
+                onClick={() => openLightbox(2)}
+              >
+                <Image src={safeImages[2]} alt="Clinic Detail" fill className="object-cover" />
+              </div>
+              <div
+                className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
+                onClick={() => openLightbox(3)}
+              >
+                <Image src={safeImages[3]} alt="Clinic Equipment" fill className="object-cover" />
+              </div>
+              <div
+                className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
+                onClick={() => openLightbox(4)}
+              >
+                <Image src={safeImages[4]} alt="Clinic Staff" fill className="object-cover" />
+              </div>
+            </div>
 
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm text-muted-foreground">
-                Transparency score reflects verified licenses, accreditations, and documented outcomes.
-              </div>
-            </Card>
+            {/* Mobile View (Carousel-like single image for now) */}
+            <div className="md:hidden relative h-[300px] w-full rounded-xl overflow-hidden">
+              <Image src={safeImages[0]} alt="Clinic Main View" fill className="object-cover" priority />
+            </div>
+
+            {/* Show All Photos Button */}
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute bottom-4 right-4 gap-2 bg-white/90 hover:bg-white shadow-sm border border-black/10 text-black font-medium"
+              onClick={() => openLightbox(0)}
+            >
+              <Grid3X3 className="h-4 w-4" />
+              Show all photos
+            </Button>
           </div>
+
         </div>
       </div>
-    </div>
+
+      <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
+        <DialogContent className="max-w-[95vw] h-[95vh] p-0 bg-black border-none flex flex-col items-center justify-center">
+          <DialogClose className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white z-50">
+            <X className="h-6 w-6" />
+          </DialogClose>
+
+          <div className="relative w-full h-full flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute left-4 z-50 text-white hover:bg-black/50 hover:text-white rounded-full h-12 w-12"
+              onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
+            >
+              <ChevronLeft className="h-8 w-8" />
+            </Button>
+
+            <div className="relative w-full h-full max-h-[85vh] max-w-[85vw]">
+              <Image
+                src={safeImages[currentImageIndex]}
+                alt={`Photo ${currentImageIndex + 1}`}
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-4 z-50 text-white hover:bg-black/50 hover:text-white rounded-full h-12 w-12"
+              onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
+            >
+              <ChevronRight className="h-8 w-8" />
+            </Button>
+          </div>
+
+          <div className="absolute bottom-4 text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
+            {currentImageIndex + 1} / {safeImages.length}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

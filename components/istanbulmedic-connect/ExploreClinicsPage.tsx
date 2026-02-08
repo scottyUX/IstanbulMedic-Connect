@@ -1,15 +1,14 @@
 "use client"
 
-import { ChevronDown, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { ClinicCard } from "@/components/istanbulmedic-connect/ClinicCard"
-import { FilterPanel } from "@/components/istanbulmedic-connect/FilterPanel"
+import { UnifiedFilterBar } from "@/components/istanbulmedic-connect/UnifiedFilterBar"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-import type { Clinic } from "@/components/istanbulmedic-connect/types"
+import type { Clinic, FilterState, TreatmentType } from "@/components/istanbulmedic-connect/types"
 
 const CLINICS: Clinic[] = [
   {
@@ -97,152 +96,125 @@ interface ExploreClinicsPageProps {
 }
 
 export const ExploreClinicsPage = ({ onSelectClinic }: ExploreClinicsPageProps) => {
-  const [searchQuery, setSearchQuery] = useState("")
+  const [filters, setFilters] = useState<FilterState>({
+    searchQuery: "",
+    location: "Istanbul, Turkey",
+    treatments: {
+      "Hair Transplant": false,
+      "Dental": false,
+      "Cosmetic Surgery": false,
+      "Eye Surgery": false,
+      "Bariatric Surgery": false,
+    },
+    budgetRange: [500, 12000],
+    languages: {
+      English: true,
+      Turkish: false,
+      Arabic: false,
+      German: false,
+    },
+    accreditations: {
+      JCI: false,
+      ISO: false,
+      "Ministry Licensed": true,
+    },
+    aiMatchScore: 75,
+  })
+
   const [sortBy, setSortBy] = useState("Best Match")
-  const [treatmentSearch, setTreatmentSearch] = useState("")
-  const [location, setLocation] = useState("Istanbul, Turkey")
-  const [insurance, setInsurance] = useState("")
 
   const filteredClinics = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase()
-    if (!query) return CLINICS
-    return CLINICS.filter((clinic) => clinic.name.toLowerCase().includes(query))
-  }, [searchQuery])
+    return CLINICS.filter((clinic) => {
+      // 1. Search Query (Name or Specialty)
+      if (filters.searchQuery) {
+        const query = filters.searchQuery.toLowerCase()
+        const matchesName = clinic.name.toLowerCase().includes(query)
+        const matchesSpecialty = clinic.specialties.some((s) => s.toLowerCase().includes(query))
+        if (!matchesName && !matchesSpecialty) return false
+      }
 
-  const handleFindClinics = () => {
-    // Handle search logic here
-    if (treatmentSearch) {
-      setSearchQuery(treatmentSearch)
-    }
+      // 2. Location (simple includes check for now)
+      if (filters.location && !clinic.location.toLowerCase().includes(filters.location.toLowerCase())) {
+        // Being lenient for demo purposes if location is generic like "Istanbul"
+        if (!filters.location.toLowerCase().includes("istanbul")) {
+          // If user types specific location that doesn't match, filter out
+          // otherwise keep all Istanbul clinics
+        }
+      }
+
+      // 3. Treatments (Checkboxes)
+      const selectedTreatments = (Object.keys(filters.treatments) as TreatmentType[])
+        .filter((t) => filters.treatments[t])
+
+      if (selectedTreatments.length > 0) {
+        // If any treatment is selected, clinic must match at least one (OR logic) 
+        // OR clinic must have "Multi-specialty"
+        const matchesTreatment = selectedTreatments.some(t =>
+          clinic.specialties.some(s => s.toLowerCase().includes(t.toLowerCase()) || s === "Multi-specialty")
+        )
+        if (!matchesTreatment) return false
+      }
+
+      // 4. Budget (Mock logic since clinics don't have prices in data)
+      // In a real app, we'd check clinic.priceRange
+
+      // 5. Trust Score / AI Match
+      if (clinic.trustScore < filters.aiMatchScore) return false
+
+      return true
+    })
+  }, [filters])
+
+  const handleSearch = () => {
+    // Trigger any side effects if needed, currently filtering is reactive
+    console.log("Searching with filters:", filters)
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Banner - Zocdoc Style */}
+    <div className="min-h-screen bg-background pb-20">
+      {/* Hero Banner */}
       <div className="bg-[#FEFCF8] border-b border-border/60">
-        <div className="mx-auto max-w-7xl px-6 py-12 lg:py-16">
-          <div className="space-y-8">
+        <div className="mx-auto max-w-7xl px-4 py-8 lg:py-12">
+          <div className="space-y-6">
             {/* Headline */}
-            <div>
+            <div className="text-center lg:text-left">
               <h1
-                className="text-4xl font-bold leading-tight text-[#0D1E32] lg:text-5xl"
+                className="text-3xl font-bold leading-tight text-[#0D1E32] lg:text-5xl"
                 style={{ fontFamily: "var(--im-font-heading), serif" }}
               >
-                Find trusted clinics
-                <br />
-                in Istanbul
+                Connect with a Trusted Hair Transplant Clinic
               </h1>
+              <p className="mt-4 text-lg text-muted-foreground max-w-3xl">
+                We know how overwhelming it can be to choose the right clinic for your hair transplant. That’s why we’re here to take the stress away—connecting you with qualified clinics in seconds, completely free and with no obligations.
+              </p>
             </div>
 
-            {/* Search Form - Full Width (12 columns) */}
-            <div className="bg-white rounded-xl border border-border/60 shadow-sm p-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
-                {/* Treatment Search */}
-                <div className="sm:col-span-4">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    Search
-                  </label>
-                  <Input
-                    value={treatmentSearch}
-                    onChange={(e) => setTreatmentSearch(e.target.value)}
-                    placeholder="Treatment or clinic name"
-                    className="h-11"
-                    aria-label="Search for treatment or clinic"
-                  />
-                </div>
-
-                {/* Location */}
-                <div className="sm:col-span-3">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    Location
-                  </label>
-                  <Input
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="h-11 font-semibold"
-                    aria-label="Location"
-                  />
-                </div>
-
-                {/* Insurance/Budget */}
-                <div className="sm:col-span-3">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    Budget
-                  </label>
-                  <Input
-                    value={insurance}
-                    onChange={(e) => setInsurance(e.target.value)}
-                    placeholder="Optional"
-                    className="h-11"
-                    aria-label="Budget range"
-                  />
-                </div>
-
-                {/* Find Button */}
-                <div className="sm:col-span-2 flex items-end">
-                  <Button
-                    onClick={handleFindClinics}
-                    className="h-11 w-full bg-[#FFD700] hover:bg-[#FFC700] text-[#0D1E32] font-semibold rounded-lg shadow-sm"
-                    aria-label="Find clinics"
-                  >
-                    <Search className="h-4 w-4" />
-                    Find
-                  </Button>
-                </div>
-              </div>
+            {/* Unified Filter Bar */}
+            <div className="mt-8">
+              <UnifiedFilterBar
+                filters={filters}
+                onFilterChange={setFilters}
+                onSearch={handleSearch}
+              />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Below-hero: Title + Filters (12-col) */}
-      <div className="border-b bg-background">
-        <div className="mx-auto max-w-7xl px-6 py-8">
-          <h2 className="text-2xl font-bold text-foreground">
-            Explore Clinics in Istanbul
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            Browse verified clinics evaluated using transparency and trust
-            signals. All facilities are vetted for quality, safety, and patient
-            satisfaction.
-          </p>
-
-          <div className="mt-6">
-            <FilterPanel />
-          </div>
-        </div>
-      </div>
-
-      {/* Results */}
-      <div className="mx-auto max-w-7xl px-6 py-8">
-        {/* Search */}
-        <div className="mb-6 rounded-xl border border-border/60 bg-card p-4 text-card-foreground shadow-sm">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search clinics by name..."
-              className="h-11 pl-10"
-              aria-label="Search clinics by name"
-            />
-          </div>
-        </div>
+      {/* Results Section */}
+      <div className="mx-auto max-w-7xl px-4 py-8">
 
         {/* Toolbar */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/60 bg-card p-4 text-card-foreground shadow-sm">
-          <div className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">
-              {filteredClinics.length}
-            </span>{" "}
-            clinics found
-          </div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <h2 className="text-xl font-bold text-foreground">
+            {filteredClinics.length} clinics available
+          </h2>
 
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Sort by:</span>
             <div className="relative">
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[200px]" aria-label="Sort clinics">
+                <SelectTrigger className="w-[180px] h-9 bg-white" aria-label="Sort clinics">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -253,13 +225,12 @@ export const ExploreClinicsPage = ({ onSelectClinic }: ExploreClinicsPageProps) 
                   <SelectItem value="Price: High to Low">Price: High to Low</SelectItem>
                 </SelectContent>
               </Select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
           </div>
         </div>
 
         {/* Clinic Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredClinics.length > 0 ? (
             filteredClinics.map((clinic) => (
               <ClinicCard
@@ -269,32 +240,40 @@ export const ExploreClinicsPage = ({ onSelectClinic }: ExploreClinicsPageProps) 
               />
             ))
           ) : (
-            <div className="col-span-2 rounded-xl border border-border/60 bg-card p-12 text-center text-card-foreground shadow-sm">
-              <Search className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
+            <div className="col-span-full py-16 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
               <h3 className="text-lg font-medium">No clinics found</h3>
               <p className="mt-2 text-muted-foreground">
-                We couldn&apos;t find any clinics matching &quot;{searchQuery}&quot;
+                Try adjusting your filters or search terms.
               </p>
               <Button
                 variant="link"
-                onClick={() => setSearchQuery("")}
-                aria-label="Clear search"
-                className="mt-4"
+                onClick={() => setFilters({
+                  ...filters,
+                  searchQuery: "",
+                  treatments: {
+                    "Hair Transplant": false, "Dental": false, "Cosmetic Surgery": false, "Eye Surgery": false, "Bariatric Surgery": false
+                  }
+                })}
+                className="mt-2"
               >
-                Clear search
+                Clear all filters
               </Button>
             </div>
           )}
         </div>
 
         {/* Load More */}
-        <div className="mt-8 text-center">
-          <Button variant="outline" onClick={() => {}} aria-label="Load more clinics">
-            Load More Clinics
-          </Button>
-        </div>
+        {filteredClinics.length > 0 && (
+          <div className="mt-12 text-center">
+            <Button variant="outline" size="lg" className="min-w-[200px]" onClick={() => { }}>
+              Load More Clinics
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
 }
-

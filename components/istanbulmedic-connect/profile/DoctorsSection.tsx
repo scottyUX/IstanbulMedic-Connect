@@ -21,7 +21,7 @@ interface DoctorsSectionProps {
 
 export const DoctorsSection = ({ doctors }: DoctorsSectionProps) => {
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="border-border/60 shadow-none">
       <CardHeader className="pb-3">
         <h2 className="text-lg font-semibold text-foreground">Doctors</h2>
         <p className="text-sm text-muted-foreground">
@@ -31,8 +31,8 @@ export const DoctorsSection = ({ doctors }: DoctorsSectionProps) => {
       <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {doctors.map((doctor) => (
           <div key={doctor.name} className="rounded-xl border border-border/60 bg-card p-4">
-            <div className="flex items-start gap-3">
-              <div className="relative h-14 w-14 overflow-hidden rounded-full border border-border/60">
+            <div className="flex items-start gap-4">
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-border/60">
                 <Image src={doctor.photo} alt={doctor.name} fill className="object-cover" />
               </div>
               <div className="min-w-0">

@@ -198,6 +198,8 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
       address: "Halaskargazi Cad. No: 124, Şişli, Istanbul 34371, Turkey",
       mapImageUrl:
         "https://images.unsplash.com/photo-1687325599804-b770b48dfc5b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpc3RhbmJ1bCUyMG1hcCUyMHN0cmVldCUyMGNpdHl8ZW58MXx8fHwxNzcwMzM2OTcxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      lat: 41.0528,
+      lng: 28.9859,
       openingHours: [
         { day: "Monday - Friday", hours: "9:00 AM - 6:00 PM" },
         { day: "Saturday", hours: "9:00 AM - 3:00 PM" },
@@ -213,23 +215,7 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Breadcrumb / Back Button */}
-      <div className="border-b bg-background">
-        <div className="mx-auto max-w-7xl px-6 py-4">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onBack}
-            className="gap-2 px-0 text-muted-foreground hover:text-primary"
-            aria-label="Back to Explore Clinics"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Explore Clinics
-          </Button>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-background text-base antialiased">
       {/* Hero Section */}
       <HeroSection
         clinicName={clinicData.name}
@@ -262,27 +248,6 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
             />
 
             <AIInsightsSection insights={clinicData.aiInsights} />
-
-            <ReviewsSection
-              averageRating={clinicData.reviews.averageRating}
-              totalReviews={clinicData.reviews.totalReviews}
-              reviews={clinicData.reviews.recentReviews}
-              communityTags={clinicData.reviews.communityTags}
-            />
-
-            <CommunitySignalsSection
-              posts={clinicData.communitySignals.posts}
-              summary={clinicData.communitySignals.summary}
-            />
-
-            <LocationInfoSection
-              address={clinicData.location.address}
-              mapImageUrl={clinicData.location.mapImageUrl}
-              openingHours={clinicData.location.openingHours}
-              languages={clinicData.location.languages}
-              paymentMethods={clinicData.location.paymentMethods}
-              services={clinicData.location.services}
-            />
           </div>
 
           {/* Sidebar */}
@@ -290,8 +255,37 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
             <SummarySidebar
               transparencyScore={clinicData.transparencyScore}
               topSpecialties={clinicData.overview.specialties.slice(0, 3)}
+              rating={clinicData.rating}
+              reviewCount={clinicData.reviewCount}
             />
           </div>
+        </div>
+
+        {/* Full Width Sections (Reviews, Community, Location) */}
+        {/* The sidebar will stop being sticky relative to these sections because they are outside the grid container */}
+        <div className="mt-12 space-y-12 w-full">
+          <ReviewsSection
+            averageRating={clinicData.reviews.averageRating}
+            totalReviews={clinicData.reviews.totalReviews}
+            reviews={clinicData.reviews.recentReviews}
+            communityTags={clinicData.reviews.communityTags}
+          />
+
+          <CommunitySignalsSection
+            posts={clinicData.communitySignals.posts}
+            summary={clinicData.communitySignals.summary}
+          />
+
+          <LocationInfoSection
+            address={clinicData.location.address}
+            mapImageUrl={clinicData.location.mapImageUrl}
+            lat={clinicData.location.lat}
+            lng={clinicData.location.lng}
+            openingHours={clinicData.location.openingHours}
+            languages={clinicData.location.languages}
+            paymentMethods={clinicData.location.paymentMethods}
+            services={clinicData.location.services}
+          />
         </div>
       </div>
     </div>
