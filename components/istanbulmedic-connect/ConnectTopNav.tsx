@@ -11,9 +11,9 @@ import Logo from "@/components/istanbulmedic-connect/Logo"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
-  { label: "How It Works", href: "/connect#how-it-works" },
-  { label: "Treatments", href: "/connect#treatments" },
-  { label: "Clinics", href: "/connect" },
+  { label: "How It Works", href: "/clinics#how-it-works" },
+  { label: "Treatments", href: "/clinics#treatments" },
+  { label: "Clinics", href: "/clinics" },
 ] as const
 
 const CONSULTATION_LINK = "https://cal.com/team/istanbul-medic/istanbul-medic-15-minutes-consultation"
@@ -124,7 +124,7 @@ export const ConnectTopNav = () => {
         <nav className="hidden items-center gap-1 md:flex">
           {navItems.map((item) => {
             const isActive =
-              pathname === item.href || (item.href !== "/connect" && pathname?.startsWith(item.href))
+              pathname === item.href || (item.href !== "/clinics" && pathname?.startsWith(String(item.href)))
 
             return (
               <Link
@@ -152,7 +152,7 @@ export const ConnectTopNav = () => {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Book consultation"
-            className="inline-flex items-center gap-2 rounded-full bg-[#FFD700] px-5 py-2 text-center text-sm font-semibold text-black transition hover:bg-[#D4B200] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4B200]"
+            className="inline-flex items-center gap-2 rounded-full bg-[#3EBBB7] px-5 py-2 text-center text-sm font-semibold text-white transition hover:bg-[#28A49A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#28A49A]"
           >
             Book Consultation
           </a>
@@ -209,7 +209,7 @@ export const ConnectTopNav = () => {
                       {navItems.map((item) => {
                         const isActive =
                           pathname === item.href ||
-                          (item.href !== "/connect" && pathname?.startsWith(item.href))
+                          (item.href !== "/clinics" && pathname?.startsWith(String(item.href)))
 
                         return (
                           <Link
@@ -232,7 +232,7 @@ export const ConnectTopNav = () => {
 
                       <a
                         href={CONSULTATION_LINK}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#FFD700] px-5 py-3 text-sm font-semibold text-black shadow-[0_12px_30px_rgba(255,215,0,0.35)] transition hover:bg-[#D4B200]"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#3EBBB7] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(62,187,183,0.35)] transition hover:bg-[#28A49A]"
                         onClick={() => setOpen(false)}
                         target="_blank"
                         rel="noopener noreferrer"

@@ -12,7 +12,7 @@ interface LogoProps {
 export default function Logo({ className = "", onClick }: LogoProps) {
   return (
     <Link
-      href="/connect"
+      href="/"
       className={cn("flex items-center gap-2", className)}
       onClick={onClick}
     >
@@ -25,7 +25,7 @@ export default function Logo({ className = "", onClick }: LogoProps) {
         className="w-40 h-auto sm:w-52 md:w-60"
       />
       <span
-        className="text-[#FFD700] font-bold text-xl sm:text-2xl md:text-3xl"
+        className="text-[#17375B] font-bold text-xl sm:text-2xl md:text-3xl"
         style={{ fontFamily: "var(--im-font-script), cursive" }}
       >
         Connect

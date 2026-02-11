@@ -53,7 +53,7 @@ export const LocationInfoSection = ({
       <CardContent className="space-y-5">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 text-lg text-foreground font-medium">
-            <MapPin className="h-5 w-5 text-[#FFD700] shrink-0" />
+            <MapPin className="h-5 w-5 text-[#17375B] shrink-0" />
             <span>{address}</span>
           </div>
 
@@ -77,7 +77,7 @@ export const LocationInfoSection = ({
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-[#FFD700]" />
+              <Clock className="h-5 w-5 text-[#17375B]" />
               <div className="text-base font-semibold text-foreground">Opening hours</div>
             </div>
             <div className="space-y-2">
@@ -93,7 +93,7 @@ export const LocationInfoSection = ({
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Languages className="h-5 w-5 text-[#FFD700]" />
+                <Languages className="h-5 w-5 text-[#17375B]" />
                 <div className="text-base font-semibold text-foreground">Languages</div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -107,7 +107,7 @@ export const LocationInfoSection = ({
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-[#FFD700]" />
+                <CreditCard className="h-5 w-5 text-[#17375B]" />
                 <div className="text-base font-semibold text-foreground">Payment methods</div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -128,14 +128,14 @@ export const LocationInfoSection = ({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex items-center gap-2 rounded-lg bg-muted/5 px-3 py-2">
               {services.accommodation ? (
-                <CheckCircle2 className="h-4 w-4 text-[#FFD700]" />
+                <CheckCircle2 className="h-4 w-4 text-[#17375B]" />
               ) : (
                 <CheckCircle2 className="h-4 w-4 text-muted-foreground/40" />
               )}
               <span className="text-base text-muted-foreground">Accommodation support</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-muted/5 px-3 py-2">
-              <Plane className={services.airportTransfer ? "h-4 w-4 text-[#FFD700]" : "h-4 w-4 text-muted-foreground/40"} />
+              <Plane className={services.airportTransfer ? "h-4 w-4 text-[#17375B]" : "h-4 w-4 text-muted-foreground/40"} />
               <span className="text-base text-muted-foreground">Airport transfer</span>
             </div>
           </div>

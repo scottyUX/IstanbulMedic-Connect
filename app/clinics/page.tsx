@@ -8,7 +8,7 @@ export default function ConnectExplorePage() {
   const router = useRouter()
 
   const handleSelectClinic = (clinicId: number) => {
-    router.push(`/connect/clinics/${clinicId}`)
+    router.push(`/clinics/${clinicId}`)
   }
 
   return <ExploreClinicsPage onSelectClinic={handleSelectClinic} />

@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 
 import { Dancing_Script, Merriweather, Poppins } from "next/font/google"
 
-import { ConnectTopNav } from "@/components/istanbulmedic-connect/ConnectTopNav"
+
 
 const connectHeadingFont = Merriweather({
   subsets: ["latin"],
@@ -30,7 +30,6 @@ export default function ConnectLayout({ children }: { children: ReactNode }) {
     <div
       className={`${connectHeadingFont.variable} ${connectBodyFont.variable} ${connectScriptFont.variable} imConnectTheme`}
     >
-      <ConnectTopNav />
       <main style={{ marginTop: "var(--im-header-height, 80px)" }}>{children}</main>
     </div>
   )

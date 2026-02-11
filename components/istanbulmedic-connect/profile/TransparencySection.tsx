@@ -29,7 +29,7 @@ export const TransparencySection = ({ transparencyScore, items }: TransparencySe
           </div>
           <div className="shrink-0 rounded-lg bg-muted/10 px-4 py-3 text-center">
             <div className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Score</div>
-            <div className="text-4xl font-bold text-[#FFD700]">{transparencyScore}</div>
+            <div className="text-4xl font-bold text-[#17375B]">{transparencyScore}</div>
           </div>
         </div>
       </CardHeader>
@@ -39,7 +39,7 @@ export const TransparencySection = ({ transparencyScore, items }: TransparencySe
           {items.map((item) => (
             <div key={item.title} className="flex flex-col gap-3 rounded-xl bg-muted/5 p-4 h-full">
               <div className="flex items-start justify-between">
-                <CheckCircle2 className="h-6 w-6 text-[#FFD700]" aria-label="Verified" />
+                <CheckCircle2 className="h-6 w-6 text-[#17375B]" aria-label="Verified" />
               </div>
               <div>
                 <div className="text-base font-semibold text-foreground leading-tight mb-1">{item.title}</div>

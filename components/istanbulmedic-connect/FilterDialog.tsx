@@ -147,8 +147,8 @@ export function FilterDialog({
                                             key={type}
                                             onClick={() => updateArrayFilter("treatments", type, !isSelected)}
                                             className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${isSelected
-                                                ? "bg-[#FFD700] text-black border-[#FFD700] hover:opacity-90"
-                                                : "bg-white text-foreground border-border hover:border-[#FFD700] hover:text-[#FFD700]"
+                                                ? "bg-[#17375B] text-white border-[#17375B] hover:opacity-90"
+                                                : "bg-white text-foreground border-border hover:border-[#17375B] hover:text-[#17375B]"
                                                 }`}
                                         >
                                             {type}
@@ -164,7 +164,7 @@ export function FilterDialog({
                         <section>
                             <div className="flex items-center justify-between mb-2">
                                 <h3 className="text-lg font-semibold">AI Match Score</h3>
-                                <span className="text-sm font-medium text-[#FFD700]">{localFilters.aiMatchScore}%+</span>
+                                <span className="text-sm font-medium text-[#17375B]">{localFilters.aiMatchScore}%+</span>
                             </div>
                             <p className="text-sm text-muted-foreground mb-6">
                                 Show clinics that match your profile and preferences.
@@ -176,7 +176,7 @@ export function FilterDialog({
                                     max={100}
                                     step={5}
                                     onValueChange={(val) => setLocalFilters({ ...localFilters, aiMatchScore: val[0] })}
-                                    className="w-full text-[#FFD700]"
+                                    className="w-full text-[#17375B]"
                                 />
                             </div>
                         </section>
@@ -194,8 +194,8 @@ export function FilterDialog({
                                             key={lang}
                                             onClick={() => updateArrayFilter("languages", lang, !isSelected)}
                                             className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${isSelected
-                                                ? "bg-[#FFD700] text-black border-[#FFD700] hover:opacity-90"
-                                                : "bg-white text-foreground border-border hover:border-[#FFD700] hover:text-[#FFD700]"
+                                                ? "bg-[#17375B] text-white border-[#17375B] hover:opacity-90"
+                                                : "bg-white text-foreground border-border hover:border-[#17375B] hover:text-[#17375B]"
                                                 }`}
                                         >
                                             {lang}
@@ -217,7 +217,7 @@ export function FilterDialog({
                                             id={`d-${acc}`}
                                             checked={localFilters.accreditations[acc]}
                                             onCheckedChange={(checked) => updateArrayFilter("accreditations", acc, checked as boolean)}
-                                            className="h-5 w-5 border-2 border-input data-[state=checked]:border-[#FFD700] data-[state=checked]:bg-[#FFD700] data-[state=checked]:text-black"
+                                            className="h-5 w-5 border-2 border-input data-[state=checked]:border-[#17375B] data-[state=checked]:bg-[#17375B] data-[state=checked]:text-white"
                                         />
                                         <label
                                             htmlFor={`d-${acc}`}
@@ -243,7 +243,7 @@ export function FilterDialog({
                     <Button
                         onClick={handleApply}
                         size="lg"
-                        className="bg-[#FFD700] hover:bg-[#D4B200] text-black font-semibold rounded-lg px-8"
+                        className="bg-[#17375B] hover:bg-[#17375B]/90 text-white font-semibold rounded-lg px-8"
                     >
                         Show results
                     </Button>

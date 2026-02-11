@@ -59,7 +59,7 @@ const LOGO_MAP: Record<PostSource, React.ReactNode> = {
   youtube: <Youtube className="h-5 w-5 text-[#FF0000]" />, // YouTube Brand Color
   reddit: <RedditIcon className="h-5 w-5 text-[#FF4500]" />, // Reddit Brand Color
   google: <GoogleIcon className="h-5 w-5 text-[#4285F4]" />, // Google Brand Color
-  forums: <MessageSquare className="h-5 w-5 text-[#FFD700]" />, // Gold for generic/forums
+  forums: <MessageSquare className="h-5 w-5 text-[#17375B]" />, // Primary Navy for generic/forums
   other: <Globe className="h-5 w-5 text-muted-foreground" />,
 }
 
@@ -110,7 +110,7 @@ export const CommunitySignalsSection = ({ posts, summary }: CommunitySignalsSect
       <CardContent className="space-y-4">
         {/* Sentiment Badges */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <Badge className="bg-[#FFD700] text-black hover:bg-[#FFD700]/90">
+          <Badge className="bg-[#17375B] text-white hover:bg-[#17375B]/90">
             Sentiment: <span className="ml-1 font-bold">{summary.sentiment}</span>
           </Badge>
           {summary.commonThemes.map((theme) => (
@@ -131,8 +131,8 @@ export const CommunitySignalsSection = ({ posts, summary }: CommunitySignalsSect
             className={cn(
               "rounded-full border transition-all shadow-none",
               activeFilter === "all"
-                ? "bg-[#FFD700] border-[#FFD700] text-black hover:bg-[#FFD700]/90"
-                : "bg-transparent border-input hover:border-[#FFD700] hover:text-[#FFD700]"
+                ? "bg-[#17375B] border-[#17375B] text-white hover:bg-[#17375B]/90"
+                : "bg-transparent border-input hover:border-[#17375B] hover:text-[#17375B]"
             )}
           >
             All
@@ -146,8 +146,8 @@ export const CommunitySignalsSection = ({ posts, summary }: CommunitySignalsSect
               className={cn(
                 "rounded-full border transition-all gap-1.5 shadow-none",
                 activeFilter === source
-                  ? "bg-[#FFD700] border-[#FFD700] text-black hover:bg-[#FFD700]/90"
-                  : "bg-transparent border-input hover:border-[#FFD700] hover:text-[#FFD700]"
+                  ? "bg-[#17375B] border-[#17375B] text-white hover:bg-[#17375B]/90"
+                  : "bg-transparent border-input hover:border-[#17375B] hover:text-[#17375B]"
               )}
             >
               {activeFilter === source ? LOGO_MAP[source] : (

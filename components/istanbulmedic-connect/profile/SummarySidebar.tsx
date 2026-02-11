@@ -27,7 +27,7 @@ export const SummarySidebar = ({ transparencyScore, topSpecialties, rating, revi
         </div>
 
         <div className="grid gap-3">
-          <Button size="lg" className="w-full bg-[#E51D53] hover:bg-[#D41B4D] font-medium text-xl py-7">
+          <Button size="lg" className="w-full bg-[#3EBBB7] hover:bg-[#28A49A] font-medium text-xl py-7">
             Book Consultation
           </Button>
           <div className="text-center text-sm text-muted-foreground mt-2 mb-4">

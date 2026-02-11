@@ -106,12 +106,12 @@ body {
   --font-sans: var(--im-font-body), var(--font-sans);
   --font-heading: var(--im-font-heading), var(--font-sans);
 
-  /* brand (gold) + softer surfaces */
-  --primary: 51 100% 50%;
-  /* #FFD700 */
-  --primary-foreground: 0 0% 0%;
-  /* Black text on gold */
-  --ring: 51 100% 50%;
+  /* brand (navy) + softer surfaces */
+  --primary: 212 60% 22%;
+  /* #17375B */
+  --primary-foreground: 0 0% 100%;
+  /* White text on navy */
+  --ring: 212 60% 22%;
 
   --background: 0 0% 100%;
   --foreground: 220 18% 14%;
