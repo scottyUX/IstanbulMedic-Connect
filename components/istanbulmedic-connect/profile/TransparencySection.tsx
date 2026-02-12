@@ -4,6 +4,7 @@ import { CheckCircle2 } from "lucide-react"
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { StatBlock } from "@/components/ui/stat-block"
 
 interface TransparencyItem {
   title: string
@@ -18,19 +19,23 @@ interface TransparencySectionProps {
 
 export const TransparencySection = ({ transparencyScore, items }: TransparencySectionProps) => {
   return (
-    <Card className="border-border/60 shadow-none">
+    <Card id="transparency" variant="profile" className="scroll-mt-32">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold text-foreground">Transparency &amp; Safety</h2>
+            <h2 className="im-heading-2 text-foreground">Transparency &amp; Safety</h2>
             <p className="text-base text-muted-foreground">
               Verified signals used to evaluate clinic trust.
             </p>
           </div>
-          <div className="shrink-0 rounded-lg bg-muted/10 px-4 py-3 text-center">
-            <div className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Score</div>
-            <div className="text-4xl font-bold text-[#17375B]">{transparencyScore}</div>
-          </div>
+          <StatBlock
+            label="Score"
+            value={transparencyScore}
+            variant="centered"
+            className="shrink-0 px-4 py-3"
+            labelClassName="font-medium uppercase tracking-wider"
+            valueClassName="text-4xl font-bold text-[#17375B]"
+          />
         </div>
       </CardHeader>
 

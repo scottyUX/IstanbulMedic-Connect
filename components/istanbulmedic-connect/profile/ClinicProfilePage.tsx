@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { HeroSection } from "./HeroSection"
+import { SectionNav } from "./SectionNav"
 import { OverviewSection } from "./OverviewSection"
 import { DoctorsSection } from "./DoctorsSection"
 import { TransparencySection } from "./TransparencySection"
@@ -141,6 +142,13 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
           text: "Great experience overall. The clinic is well-organized and the medical team is highly skilled. Would recommend for anyone considering hair restoration in Istanbul.",
           verified: true,
         },
+        {
+          author: "Maria Rodriguez",
+          rating: 5,
+          date: "January 20, 2026",
+          text: "Outstanding results and exceptional care throughout my journey. The staff was incredibly supportive, and Dr. Yilmaz took time to explain every step. The facilities are top-notch and the recovery process was smooth. Highly recommend this clinic!",
+          verified: true,
+        },
       ],
     },
     communitySignals: {
@@ -232,6 +240,9 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
         reviewCount={clinicData.reviewCount}
         specialties={clinicData.overview.specialties}
       />
+
+      {/* Section Navigation */}
+      <SectionNav />
 
       {/* Main Content */}
       <div className="mx-auto max-w-7xl px-6 py-8">

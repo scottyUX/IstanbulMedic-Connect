@@ -16,14 +16,14 @@ const benefits = [
 
 export default function PersonalMedicalConcierge() {
     return (
-        <Section className="bg-[#F8F1EB] py-16 sm:py-24">
+        <Section className="bg-[var(--im-color-accent)]/15 py-16 sm:py-24">
             <Container>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                     <FadeInUp className="order-2 lg:order-1">
                         <div className="relative h-[400px] w-full rounded-3xl overflow-hidden shadow-xl">
                             {/* Placeholder until we have a real team image, using a solid color block with text for now if image missing, 
                    but let's try to use one of the result images as a fallback or just a colored dive */}
-                            <div className="absolute inset-0 bg-[#17375B] flex items-center justify-center text-white/20 text-9xl font-bold">
+                            <div className="absolute inset-0 bg-im-primary flex items-center justify-center text-white/20 text-9xl font-bold">
                                 TEAM
                             </div>
                             {/* 
@@ -44,8 +44,8 @@ export default function PersonalMedicalConcierge() {
 
                             <ul className="space-y-4">
                                 {benefits.map((item, i) => (
-                                    <li key={i} className="flex items-center gap-3 text-[#0D1E32] font-medium">
-                                        <CheckCircle2 className="text-[#31C2B5] shrink-0" />
+                                    <li key={i} className="flex items-center gap-3 im-text-body im-text-emphasis">
+                                        <CheckCircle2 className="text-im-secondary shrink-0" />
                                         {item}
                                     </li>
                                 ))}

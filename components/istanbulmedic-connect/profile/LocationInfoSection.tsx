@@ -42,9 +42,9 @@ export const LocationInfoSection = ({
   const apiKey = "AIzaSyBFw0Qbyq9zTFTd-tUY6dgsWUxO4kzJjzY"
 
   return (
-    <Card className="border-border/60 shadow-none">
+    <Card id="location" variant="profile" className="scroll-mt-32">
       <CardHeader className="pb-3">
-        <h2 className="text-2xl font-semibold text-foreground">Location &amp; Practical Info</h2>
+        <h2 className="im-heading-2 text-foreground">Location &amp; Practical Info</h2>
         <p className="text-base text-muted-foreground">
           Address, opening hours, supported languages, and services.
         </p>

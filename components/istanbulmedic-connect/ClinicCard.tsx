@@ -7,6 +7,11 @@ import { Merriweather } from "next/font/google"
 
 
 import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  SpecialtyTag,
+  TAG_VARIANT_SEQUENCE,
+} from "@/components/ui/specialty-tag"
 import { cn } from "@/lib/utils"
 
 const merriweather = Merriweather({
@@ -26,27 +31,6 @@ interface ClinicCardProps {
   onViewProfile: () => void
 }
 
-// Tag color variants matching ArticleCard design
-const TAG_VARIANT_STYLES = {
-  teal: "bg-[#FFF9E5] text-[#857500]",
-  blue: "bg-[#E8EBEF] text-[#102741]",
-  green: "bg-[#FFF9E5] text-[#857500]",
-  peach: "bg-[#F6EEF1] text-[#723B54]",
-  purple: "bg-[#F6EEF1] text-[#723B54]",
-  orange: "bg-[#F8F1EB] text-[#835224]",
-} as const
-
-type TagVariant = keyof typeof TAG_VARIANT_STYLES
-
-const TAG_VARIANT_SEQUENCE: TagVariant[] = ["teal", "blue", "purple", "orange", "green", "peach"]
-
-const formatTagLabel = (label: string) => {
-  const trimmed = label.trim()
-  if (!trimmed) return ""
-  const lower = trimmed.toLocaleLowerCase()
-  return lower.charAt(0).toLocaleUpperCase() + lower.slice(1)
-}
-
 export const ClinicCard = ({
   name,
   location,
@@ -62,12 +46,15 @@ export const ClinicCard = ({
   const [isCompared, setIsCompared] = useState(false)
 
   return (
-    <div
-      className="group flex h-full flex-col overflow-hidden rounded-[28px] border border-border/60 bg-background p-6 hover:border-primary/20 transition-all duration-300 cursor-pointer"
+    <Card
+      variant="interactive"
+      radius="xl"
+      className="group flex h-full flex-col overflow-hidden cursor-pointer"
       onClick={onViewProfile}
     >
-      {/* Image Section */}
-      <div className="relative w-full overflow-hidden rounded-[16px] aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9]">
+      <CardContent className="p-6">
+        {/* Image Section */}
+        <div className="relative w-full overflow-hidden rounded-[16px] aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9]">
         <Image
           src={image}
           alt={`${name} clinic photo`}
@@ -80,21 +67,13 @@ export const ClinicCard = ({
       {/* Tags Section */}
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {specialties.slice(0, 4).map((specialty, index) => {
-          const formattedLabel = formatTagLabel(specialty)
-          if (!formattedLabel) return null
-
           const variant = TAG_VARIANT_SEQUENCE[index % TAG_VARIANT_SEQUENCE.length]
-
           return (
-            <span
+            <SpecialtyTag
               key={`${specialty}-${index}`}
-              className={cn(
-                "inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-colors duration-150",
-                TAG_VARIANT_STYLES[variant]
-              )}
-            >
-              {formattedLabel}
-            </span>
+              label={specialty}
+              variant={variant}
+            />
           )
         })}
       </div>
@@ -161,7 +140,8 @@ export const ClinicCard = ({
           </div>
         </div>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 

@@ -26,15 +26,9 @@ export default function PageTitle<T extends keyof JSX.IntrinsicElements = 'h2'>(
             reveal={reveal}
             className={cn(
                 `
-         font-bold
-         leading-[140%]
-         /* MOBILE - unchanged */
-         text-[28px] 
-         sm:text-[32px]
-         xl:text-[40px] 
-         tracking-[0.02em]
+         im-heading-1
          text-center
-         text-[#0D1E32]
+         text-im-text-primary
         `,
                 className,
             )}

@@ -149,7 +149,7 @@ export default function RealPeopleSection() {
 
     return (
         <Section>
-            <Container className="bg-[#ECF8F8] py-10">
+            <Container className="bg-[var(--im-color-secondary)]/10 py-10">
                 {header}
 
                 <div className="touch-pan-y">
@@ -191,7 +191,7 @@ export default function RealPeopleSection() {
                                                                         draggable={false}
                                                                     />
                                                                 </div>
-                                                                <p className="mt-4 text-base font-semibold text-[#0D1E32]">
+                                                                <p className="mt-4 im-text-body im-text-emphasis">
                                                                     {label}
                                                                 </p>
                                                             </div>
@@ -199,17 +199,17 @@ export default function RealPeopleSection() {
                                                     })}
                                                 </div>
 
-                                                <div className="pointer-events-auto flex w-full flex-col rounded-[16px] bg-[#F7FCFC] p-6 sm:p-8 min-h-[320px] sm:h-[360px] sm:max-h-[360px] md:h-[400px] md:max-h-[400px] lg:h-auto lg:w-[40%] lg:flex-none lg:min-h-[420px] lg:max-h-none lg:self-stretch xl:w-auto xl:max-w-[489px] xl:min-h-[520px]">
+                                                <div className="pointer-events-auto flex w-full flex-col rounded-[16px] bg-[var(--im-color-secondary)]/5 p-6 sm:p-8 min-h-[320px] sm:h-[360px] sm:max-h-[360px] md:h-[400px] md:max-h-[400px] lg:h-auto lg:w-[40%] lg:flex-none lg:min-h-[420px] lg:max-h-none lg:self-stretch xl:w-auto xl:max-w-[489px] xl:min-h-[520px]">
                                                     <div className="flex items-baseline gap-4">
                                                         <div className="flex-1">
                                                             <QuoteIcon />
                                                         </div>
                                                         <div>
-                                                            <h3 className="mt-4 text-2xl font-semibold leading-tight text-[#0D1E32] sm:text-3xl">
+                                                            <h3 className="mt-4 im-heading-2 text-im-text-primary leading-tight">
                                                                 {preventOrphans(slide.quote.title)}
                                                             </h3>
                                                             <div
-                                                                className="quote-scroll mt-4 max-h-[180px] overflow-y-auto pr-1 text-base leading-relaxed text-[#0D1E32] italic lg:max-h-none lg:overflow-visible lg:pr-0"
+                                                                className="quote-scroll mt-4 max-h-[180px] overflow-y-auto pr-1 im-text-body leading-relaxed text-im-text-primary italic lg:max-h-none lg:overflow-visible lg:pr-0"
                                                             >
                                                                 {slide.quote.body
                                                                     .split('\n')
@@ -243,7 +243,7 @@ export default function RealPeopleSection() {
                                 aria-label={`${ariaPrefix ?? 'Go to slide'} ${i + 1}`}
                                 aria-current={i === activeIndex}
                                 onClick={() => goTo(i)}
-                                className={`h-3 w-3 rounded-full transition ${i === activeIndex ? 'bg-[#A05377]' : 'bg-[#D9D9D9]'}`}
+                                className={`h-3 w-3 rounded-full transition ${i === activeIndex ? 'bg-im-tertiary' : 'bg-muted-foreground/30'}`}
                             />
                         ))}
                     </div>

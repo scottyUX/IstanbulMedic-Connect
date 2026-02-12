@@ -22,7 +22,8 @@ export function SectionNav() {
   const [activeSection, setActiveSection] = useState<string>("overview")
 
   // Determine which section is active based on scroll position.
-  // Account for header height (80px) + section nav height (~48px) + buffer = ~140px offset
+  // We find the last section whose top edge has scrolled past the
+  // sticky header area (navbar 80px + section nav ~48px + 16px buffer = ~140px offset).
   const updateActiveSection = useCallback(() => {
     const scrollY = window.scrollY
     const offset = 140

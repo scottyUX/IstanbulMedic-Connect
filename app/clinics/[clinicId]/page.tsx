@@ -1,11 +1,12 @@
 import ClinicProfilePageClient from "./ClinicProfilePageClient"
 
 interface ClinicProfilePageProps {
-  params: { clinicId: string }
+  params: Promise<{ clinicId: string }>
 }
 
-export default function ClinicProfilePage({ params }: ClinicProfilePageProps) {
-  const clinicId = Number(params.clinicId)
+export default async function ClinicProfilePage({ params }: ClinicProfilePageProps) {
+  const { clinicId: clinicIdParam } = await params
+  const clinicId = Number(clinicIdParam)
   return <ClinicProfilePageClient clinicId={Number.isFinite(clinicId) ? clinicId : 0} />
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Container from '@/components/ui/container';
 import Logo from '@/components/common/Logo';
+import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { CONSULTATION_LINK } from '@/lib/constants';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -107,14 +108,14 @@ export default function Header({ forceMobileNav = false }: HeaderProps) {
 
                 <div className={`hidden items-center gap-4 ${forceMobileNav ? '' : 'md:flex'}`}>
                     <LanguageSelector />
-                    <a
+                    <Button
+                        variant="teal-primary"
                         href={CONSULTATION_LINK}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center text-center gap-2 rounded-full bg-[#3EBBB7] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#28A49A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#28A49A]"
                     >
                         {t('common.ctas.bookConsultation')}
-                    </a>
+                    </Button>
                 </div>
 
                 {/* Mobile toggle + panel */}
@@ -168,7 +169,7 @@ export default function Header({ forceMobileNav = false }: HeaderProps) {
                                                     <Link
                                                         key={item.href}
                                                         href={item.href}
-                                                        className={`block rounded-2xl px-4 py-3 text-[18px] leading-6 tracking-tight transition-transform duration-200 transform origin-left ${isActive
+                                                        className={`block rounded-2xl px-4 py-3 im-text-body-lg leading-6 transition-transform duration-200 transform origin-left ${isActive
                                                             ? 'scale-[1.03] font-extrabold text-[#0D1E32]'
                                                             : 'font-semibold text-[#0F2446] hover:text-[#0D1E32]'
                                                             }`}
@@ -179,15 +180,16 @@ export default function Header({ forceMobileNav = false }: HeaderProps) {
                                                 );
                                             })}
 
-                                            <a
+                                            <Button
+                                                variant="teal-secondary"
                                                 href={CONSULTATION_LINK}
-                                                className="inline-flex w-full  items-center justify-center gap-2 rounded-full bg-[#31C2B5] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(49,194,181,0.35)] transition hover:bg-[#28A49A]"
                                                 onClick={() => setOpen(false)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
+                                                className="w-full shadow-[0_12px_30px_rgba(49,194,181,0.35)]"
                                             >
                                                 {t('common.ctas.bookConsultation')}
-                                            </a>
+                                            </Button>
                                         </nav>
                                     </motion.div>
                                 </>

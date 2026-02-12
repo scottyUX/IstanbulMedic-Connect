@@ -66,15 +66,15 @@ export const HeroSection = ({
           {/* Header Section */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-start justify-between">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+              <h1 className="im-heading-1 text-foreground">
                 {clinicName}
               </h1>
               <div className="hidden sm:flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="gap-2 text-base font-medium underline underline-offset-2 hover:bg-transparent">
+                <Button variant="link" size="sm" className="gap-2 text-base font-medium text-foreground hover:text-[#3EBBB7] underline-offset-4">
                   <Share className="h-4 w-4" />
                   Share
                 </Button>
-                <Button variant="ghost" size="sm" className="gap-2 text-base font-medium underline underline-offset-2 hover:bg-transparent">
+                <Button variant="link" size="sm" className="gap-2 text-base font-medium text-foreground hover:text-[#3EBBB7] underline-offset-4">
                   <Heart className="h-4 w-4" />
                   Save
                 </Button>
@@ -83,20 +83,48 @@ export const HeroSection = ({
 
             {/* Sub-header Stats */}
             <div className="flex flex-wrap items-center gap-4 text-base text-foreground">
-              <div className="flex items-center gap-1 font-medium">
+              <Button
+                variant="link"
+                className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1"
+                onClick={() => {
+                  const reviewsSection = document.getElementById("reviews")
+                  if (reviewsSection) {
+                    reviewsSection.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                }}
+              >
                 <Star className="h-4 w-4 fill-[#FFD700] text-[#FFD700]" />
                 <span>{rating.toFixed(2)}</span>
-                <span className="text-muted-foreground font-normal">({reviewCount} reviews)</span>
-              </div>
+                <span className="text-muted-foreground font-normal">·</span>
+                <span className="text-muted-foreground font-normal">{reviewCount} reviews</span>
+              </Button>
               <span className="hidden sm:inline text-muted-foreground">•</span>
-              <div className="flex items-center gap-1 font-medium underline underline-offset-2">
-                <ShieldCheck className="h-4 w-4 text-[#FFD700]" />
+              <Button
+                variant="link"
+                className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4"
+                onClick={() => {
+                  const transparencySection = document.getElementById("transparency")
+                  if (transparencySection) {
+                    transparencySection.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                }}
+              >
+                <ShieldCheck className="h-4 w-4 text-[#FFD700] mr-1" />
                 <span>Transparency {transparencyScore}</span>
-              </div>
+              </Button>
               <span className="hidden sm:inline text-muted-foreground">•</span>
-              <div className="font-medium underline underline-offset-2 text-muted-foreground">
+              <Button
+                variant="link"
+                className="h-auto p-0 text-muted-foreground hover:text-[#3EBBB7] font-medium underline-offset-4"
+                onClick={() => {
+                  const locationSection = document.getElementById("location")
+                  if (locationSection) {
+                    locationSection.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                }}
+              >
                 {location}
-              </div>
+              </Button>
             </div>
           </div>
 
@@ -110,14 +138,14 @@ export const HeroSection = ({
                 <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-[#FFD700] fill-[#FFD700] animate-pulse" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold tracking-tight text-foreground leading-none">Patient</span>
-                <span className="text-xl font-bold tracking-tight text-foreground leading-none">favorite</span>
+                <span className="im-heading-4 text-foreground">Patient</span>
+                <span className="im-heading-4 text-foreground">favorite</span>
               </div>
             </div>
 
             {/* Middle: Text */}
             <div className="flex-1 text-center md:text-left px-4">
-              <p className="text-lg font-medium text-foreground">
+              <p className="im-text-body-lg font-medium text-foreground">
                 One of the most loved clinics on Istanbul Medic Connect
               </p>
               <p className="text-muted-foreground">
@@ -128,7 +156,7 @@ export const HeroSection = ({
             {/* Right: Stats */}
             <div className="flex items-center gap-6 shrink-0 md:border-l md:pl-6 border-border/60">
               <div className="text-center">
-                <div className="text-2xl font-bold text-foreground leading-none">{rating.toFixed(2)}</div>
+                <div className="im-heading-3 text-foreground">{rating.toFixed(2)}</div>
                 <div className="flex gap-0.5 mt-1 justify-center">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />
@@ -137,8 +165,19 @@ export const HeroSection = ({
               </div>
               <div className="h-10 w-px bg-border/60 hidden md:block"></div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-foreground leading-none">{reviewCount}</div>
-                <div className="text-sm text-foreground underline decoration-1 underline-offset-2 mt-1">Reviews</div>
+                <div className="im-heading-3 text-foreground">{reviewCount}</div>
+                <Button
+                  variant="link"
+                  className="h-auto p-0 text-sm text-foreground hover:text-[#3EBBB7] underline-offset-4 mt-1"
+                  onClick={() => {
+                    const reviewsSection = document.getElementById("reviews")
+                    if (reviewsSection) {
+                      reviewsSection.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }
+                  }}
+                >
+                  Reviews
+                </Button>
               </div>
             </div>
 

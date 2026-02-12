@@ -30,7 +30,7 @@ export const ReviewsSection = ({
   reviews,
 }: ReviewsSectionProps) => {
   return (
-    <div className="py-8 border-t border-border/60">
+    <div id="reviews" className="py-8 border-t border-border/60 scroll-mt-32">
       <div className="flex flex-col items-center justify-center text-center mb-16 pt-4">
         <div className="flex items-center justify-center mb-4 relative">
           {/* Laurel decoration placeholder - using text scale for impact as per design */}

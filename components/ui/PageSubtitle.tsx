@@ -16,21 +16,7 @@ export default function PageSubtitle({ children, className, reveal = false, ...p
     return (
         <FadeInUp
             as="p"
-            className={cn(
-                `
-          font-normal
-          text-[16px]
-          tracking-[0.01em]
-          text-[#3E4758]
-          leading-[140%]
-          sm:text-[20px]
-          /* iPad breakpoint */
-          md:text-[18px]
-          /* optional: keep same on lg so it doesn’t jump too big */
-          lg:text-[20px]
-        `,
-                className,
-            )}
+            className={cn("im-text-body-lg im-text-muted text-center leading-[140%]", className)}
             {...(props as MotionProps)}
             reveal={reveal}
         >

@@ -211,7 +211,7 @@ export const ExploreClinicsPage = ({ onSelectClinic }: ExploreClinicsPageProps) 
           </h2>
 
           <div className="flex items-center gap-2">
-            <span className="text-base text-muted-foreground">Sort by:</span>
+            <span className="im-text-body im-text-muted">Sort by:</span>
             <div className="relative">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-[180px] h-9 bg-white" aria-label="Sort clinics">

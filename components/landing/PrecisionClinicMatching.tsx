@@ -1,11 +1,8 @@
 'use client';
 
 import { Activity, ShieldCheck, UserCheck } from 'lucide-react';
-import Section from '@/components/ui/section';
-import Container from '@/components/ui/container';
-import PageTitle from '@/components/ui/PageTitle';
-import PageSubtitle from '@/components/ui/PageSubtitle';
-import { FadeInUp } from '@/components/ui/motionPrimitives';
+import { FeatureCard } from '@/components/landing/FeatureCard';
+import { LandingSection } from '@/components/landing/LandingSection';
 
 const features = [
     {
@@ -30,35 +27,23 @@ const features = [
 
 export default function PrecisionClinicMatching() {
     return (
-        <Section className="bg-white py-16 sm:py-24">
-            <Container>
-                <div className="text-center max-w-3xl mx-auto mb-16">
-                    <PageTitle>Precision Clinic Matching</PageTitle>
-                    <PageSubtitle className="mt-4">
-                        We don&apos;t just list clinics; we curate them. Your health deserves more than a directory.
-                    </PageSubtitle>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {features.map((feature, i) => (
-                        <FadeInUp
-                            key={feature.title}
-                            className="flex flex-col items-center text-center p-6 rounded-2xl bg-gray-50 hover:bg-[#ECF8F8] transition-colors duration-300"
-                            transition={{ delay: i * 0.1 }}
-                        >
-                            <div className="w-16 h-16 rounded-full bg-[#17375B] flex items-center justify-center mb-6 text-white">
-                                <feature.icon size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold text-[#0D1E32] mb-3">
-                                {feature.title}
-                            </h3>
-                            <p className="text-[#3E4758] leading-relaxed">
-                                {feature.description}
-                            </p>
-                        </FadeInUp>
-                    ))}
-                </div>
-            </Container>
-        </Section>
+        <LandingSection
+            title="Precision Clinic Matching"
+            subtitle="We don't just list clinics; we curate them. Your health deserves more than a directory."
+            bgClassName="bg-white py-16 sm:py-24"
+            contentClassName="mb-16"
+        >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {features.map((feature, i) => (
+                    <FeatureCard
+                        key={feature.title}
+                        icon={feature.icon}
+                        title={feature.title}
+                        description={feature.description}
+                        delay={i * 0.1}
+                    />
+                ))}
+            </div>
+        </LandingSection>
     );
 }

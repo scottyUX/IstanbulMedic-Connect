@@ -106,6 +106,26 @@ body {
   --font-sans: var(--im-font-body), var(--font-sans);
   --font-heading: var(--im-font-heading), var(--font-sans);
 
+  /* Design System Colors */
+  --im-color-primary: #17375B;
+  --im-color-secondary: #3EBBB7;
+  --im-color-tertiary: #A05377;
+  --im-color-accent: #B87333;
+  
+  /* Text Colors */
+  --im-color-text-primary: #0D1E32;
+  --im-color-text-secondary: #3E4758;
+  --im-color-text-light: #5F6C80;
+  
+  /* Color Variants */
+  --im-color-teal-hover: #28A49A;
+  --im-color-navy-hover: #102741;
+  --im-color-navy-outline-hover: #B7C1CC;
+  
+  /* Special Colors (for specific use cases like stars) */
+  --im-color-gold: #FFD700;
+  --im-color-gold-light: #FFF9E5;
+
   /* brand (navy) + softer surfaces */
   --primary: 212 60% 22%;
   /* #17375B */
@@ -131,9 +151,228 @@ body {
   --radius: 0.875rem;
 }
 
+/* Design System Color Utility Classes */
+.imConnectTheme {
+  /* Background Colors */
+  .bg-im-primary { background-color: var(--im-color-primary); }
+  .bg-im-secondary { background-color: var(--im-color-secondary); }
+  .bg-im-tertiary { background-color: var(--im-color-tertiary); }
+  .bg-im-accent { background-color: var(--im-color-accent); }
+  
+  /* Text Colors */
+  .text-im-primary { color: var(--im-color-primary); }
+  .text-im-secondary { color: var(--im-color-secondary); }
+  .text-im-tertiary { color: var(--im-color-tertiary); }
+  .text-im-accent { color: var(--im-color-accent); }
+  .text-im-text-primary { color: var(--im-color-text-primary); }
+  .text-im-text-secondary { color: var(--im-color-text-secondary); }
+  .text-im-text-light { color: var(--im-color-text-light); }
+  
+  /* Border Colors */
+  .border-im-primary { border-color: var(--im-color-primary); }
+  .border-im-secondary { border-color: var(--im-color-secondary); }
+  
+  /* Hover States */
+  .hover\:bg-im-primary:hover { background-color: var(--im-color-primary); }
+  .hover\:bg-im-secondary:hover { background-color: var(--im-color-secondary); }
+  .hover\:bg-im-navy-hover:hover { background-color: var(--im-color-navy-hover); }
+  .hover\:bg-im-teal-hover:hover { background-color: var(--im-color-teal-hover); }
+  .hover\:text-im-primary:hover { color: var(--im-color-primary); }
+  .hover\:text-im-secondary:hover { color: var(--im-color-secondary); }
+  .hover\:border-im-primary:hover { border-color: var(--im-color-primary); }
+  .hover\:border-im-secondary:hover { border-color: var(--im-color-secondary); }
+}
+
 .imConnectTheme h1,
 .imConnectTheme h2 {
   font-family: var(--font-heading);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Typography System - IstanbulMedic Connect                                  */
+/* -------------------------------------------------------------------------- */
+
+/* Typography Tokens - Font families set by Next.js font loader (layout.tsx) */
+.imConnectTheme {
+  /* Font Sizes - Heading Scale */
+  --im-text-h1-mobile: 1.875rem; /* 30px */
+  --im-text-h1-desktop: 2.25rem; /* 36px */
+  --im-text-h2-mobile: 1.5rem; /* 24px */
+  --im-text-h2-desktop: 1.875rem; /* 30px */
+  --im-text-h3: 1.5rem; /* 24px */
+  --im-text-h4: 1.25rem; /* 20px */
+  --im-text-h5: 1.125rem; /* 18px */
+  --im-text-h6: 1rem; /* 16px */
+
+  /* Font Sizes - Body Scale */
+  --im-text-body-lg: 1.125rem; /* 18px */
+  --im-text-body-base: 1rem; /* 16px */
+  --im-text-body-sm: 0.875rem; /* 14px */
+  --im-text-body-xs: 0.75rem; /* 12px */
+
+  /* Line Heights */
+  --im-leading-tight: 1.25;
+  --im-leading-snug: 1.375;
+  --im-leading-normal: 1.5;
+  --im-leading-relaxed: 1.625;
+
+  /* Letter Spacing */
+  --im-tracking-tighter: -0.02em;
+  --im-tracking-tight: -0.01em;
+  --im-tracking-normal: 0;
+  --im-tracking-wide: 0.01em;
+}
+
+/* Heading Utility Classes */
+.imConnectTheme .im-heading-1 {
+  font-family: var(--im-font-heading);
+  font-size: var(--im-text-h1-mobile);
+  font-weight: 700;
+  line-height: var(--im-leading-tight);
+  letter-spacing: var(--im-tracking-tight);
+}
+
+@media (min-width: 768px) {
+  .imConnectTheme .im-heading-1 {
+    font-size: var(--im-text-h1-desktop);
+  }
+}
+
+.imConnectTheme .im-heading-2 {
+  font-family: var(--im-font-heading);
+  font-size: var(--im-text-h2-mobile);
+  font-weight: 700;
+  line-height: var(--im-leading-tight);
+  letter-spacing: var(--im-tracking-tight);
+}
+
+@media (min-width: 768px) {
+  .imConnectTheme .im-heading-2 {
+    font-size: var(--im-text-h2-desktop);
+  }
+}
+
+.imConnectTheme .im-heading-3 {
+  font-family: var(--im-font-heading);
+  font-size: var(--im-text-h3);
+  font-weight: 600;
+  line-height: var(--im-leading-snug);
+  letter-spacing: var(--im-tracking-normal);
+}
+
+.imConnectTheme .im-heading-4 {
+  font-family: var(--im-font-heading);
+  font-size: var(--im-text-h4);
+  font-weight: 600;
+  line-height: var(--im-leading-normal);
+  letter-spacing: var(--im-tracking-normal);
+}
+
+.imConnectTheme .im-heading-5 {
+  font-family: var(--im-font-body);
+  font-size: var(--im-text-h5);
+  font-weight: 600;
+  line-height: var(--im-leading-normal);
+  letter-spacing: var(--im-tracking-normal);
+}
+
+.imConnectTheme .im-heading-6 {
+  font-family: var(--im-font-body);
+  font-size: var(--im-text-h6);
+  font-weight: 600;
+  line-height: var(--im-leading-normal);
+  letter-spacing: var(--im-tracking-normal);
+}
+
+/* Display/Hero Heading */
+.imConnectTheme .im-heading-display {
+  font-family: var(--im-font-heading);
+  font-size: 2.25rem; /* 36px */
+  font-weight: 700;
+  line-height: var(--im-leading-tight);
+  letter-spacing: var(--im-tracking-tight);
+}
+
+@media (min-width: 768px) {
+  .imConnectTheme .im-heading-display {
+    font-size: 3rem; /* 48px */
+  }
+}
+
+@media (min-width: 1280px) {
+  .imConnectTheme .im-heading-display {
+    font-size: 3.75rem; /* 60px */
+  }
+}
+
+/* Sans-serif variant for hero/display headlines */
+.imConnectTheme .im-heading-display-sans {
+  font-family: var(--im-font-body);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: var(--im-leading-tight);
+  letter-spacing: var(--im-tracking-tight);
+}
+@media (min-width: 768px) {
+  .imConnectTheme .im-heading-display-sans {
+    font-size: 3rem;
+  }
+}
+@media (min-width: 1280px) {
+  .imConnectTheme .im-heading-display-sans {
+    font-size: 3.75rem;
+  }
+}
+
+/* Body Text Utility Classes */
+.imConnectTheme .im-text-body-lg {
+  font-family: var(--im-font-body);
+  font-size: var(--im-text-body-lg);
+  font-weight: 400;
+  line-height: var(--im-leading-relaxed);
+}
+
+.imConnectTheme .im-text-body {
+  font-family: var(--im-font-body);
+  font-size: var(--im-text-body-base);
+  font-weight: 400;
+  line-height: var(--im-leading-normal);
+}
+
+.imConnectTheme .im-text-body-sm {
+  font-family: var(--im-font-body);
+  font-size: var(--im-text-body-sm);
+  font-weight: 400;
+  line-height: var(--im-leading-normal);
+}
+
+.imConnectTheme .im-text-body-xs {
+  font-family: var(--im-font-body);
+  font-size: var(--im-text-body-xs);
+  font-weight: 400;
+  line-height: var(--im-leading-tight);
+}
+
+/* Text Variants */
+.imConnectTheme .im-text-muted {
+  color: hsl(var(--muted-foreground));
+}
+
+.imConnectTheme .im-text-emphasis {
+  font-weight: 600;
+}
+
+.imConnectTheme .im-text-label {
+  font-family: var(--im-font-body);
+  font-size: var(--im-text-body-sm);
+  font-weight: 500;
+}
+
+.imConnectTheme .im-text-caption {
+  font-family: var(--im-font-body);
+  font-size: var(--im-text-body-xs);
+  font-weight: 400;
+  color: hsl(var(--muted-foreground));
 }
 
 /* Gemini-style Chat Styling - Exact Match */
