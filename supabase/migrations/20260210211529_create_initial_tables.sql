@@ -6,6 +6,8 @@ CREATE TYPE clinic_roles AS ENUM ('medical_director', 'surgeon', 'coordinator', 
 CREATE TYPE doctor_involvement_levels AS ENUM ('high', 'medium', 'low');
 CREATE TYPE clinic_credential_types AS ENUM ('license', 'accreditation', 'membership', 'registry_id', 'other');
 CREATE TYPE clinic_language_support_types AS ENUM ('staff', 'translator', 'on_request');
+CREATE TYPE clinic_languages AS ENUM ('English', 'Arabic', 'Spanish', 'Russian', 'French', 'Portuguese', 'Hungarian', 'Italian', 'German', 'Polish', 'Ukranian', 'Dutch', 'Romanian', 'Hindi', 'Mandarin Chinese', 'Urdu', 'Bengali');
+
 
 
 create table public.clinics (
@@ -101,17 +103,17 @@ create table public.clinic_credentials (
 create table public.clinic_languages (
   id uuid not null default gen_random_uuid (),
   clinic_id uuid not null,
-  language character varying not null,
+  language clinic_languages not null,
   support_type clinic_language_support_types not null,
   constraint clinic_languages_pkey primary key (id),
   constraint clinic_languages_clinic_id_fkey foreign KEY (clinic_id) references clinics (id) on delete CASCADE
 ) TABLESPACE pg_default;
 
-ALTER TABLE clinics ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clinic_team ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clinic_pricing ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clinic_packages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clinic_locations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clinic_languages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clinic_services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clinic_credentials ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE clinics ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE clinic_team ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE clinic_pricing ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE clinic_packages ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE clinic_locations ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE clinic_languages ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE clinic_services ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE clinic_credentials ENABLE ROW LEVEL SECURITY;
