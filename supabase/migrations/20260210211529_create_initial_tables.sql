@@ -6,7 +6,7 @@ CREATE TYPE clinic_roles AS ENUM ('medical_director', 'surgeon', 'coordinator', 
 CREATE TYPE doctor_involvement_levels AS ENUM ('high', 'medium', 'low');
 CREATE TYPE clinic_credential_types AS ENUM ('license', 'accreditation', 'membership', 'registry_id', 'other');
 CREATE TYPE clinic_language_support_types AS ENUM ('staff', 'translator', 'on_request');
-CREATE TYPE clinic_languages AS ENUM ('English', 'Arabic', 'Spanish', 'Russian', 'French', 'Portuguese', 'Hungarian', 'Italian', 'German', 'Polish', 'Ukranian', 'Dutch', 'Romanian', 'Hindi', 'Mandarin Chinese', 'Urdu', 'Bengali');
+CREATE TYPE clinic_language_types AS ENUM ('English', 'Arabic', 'Spanish', 'Russian', 'French', 'Portuguese', 'Hungarian', 'Italian', 'German', 'Polish', 'Ukranian', 'Dutch', 'Romanian', 'Hindi', 'Mandarin Chinese', 'Urdu', 'Bengali');
 
 
 
