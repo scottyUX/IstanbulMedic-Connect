@@ -103,7 +103,7 @@ create table public.clinic_credentials (
 create table public.clinic_languages (
   id uuid not null default gen_random_uuid (),
   clinic_id uuid not null,
-  language clinic_languages not null,
+  language clinic_language_types not null,
   support_type clinic_language_support_types not null,
   constraint clinic_languages_pkey primary key (id),
   constraint clinic_languages_clinic_id_fkey foreign KEY (clinic_id) references clinics (id) on delete CASCADE
