@@ -38,9 +38,6 @@ export const LocationInfoSection = ({
   paymentMethods,
   services,
 }: LocationInfoSectionProps) => {
-  // Use the key found in the source repo
-  const apiKey = "AIzaSyBFw0Qbyq9zTFTd-tUY6dgsWUxO4kzJjzY"
-
   return (
     <Card id="location" variant="profile" className="scroll-mt-32">
       <CardHeader className="pb-3">
