@@ -1,0 +1,231 @@
+-- Seed data for IstanbulMedic-Connect
+-- Run automatically when you execute: supabase db reset
+
+-- ============================================
+-- CLINICS
+-- ============================================
+
+INSERT INTO clinics (id, display_name, legal_name, status, primary_city, primary_country, website_url, whatsapp_contact, email_contact, phone_contact)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'Istanbul Hair Masters', 'Istanbul Hair Masters Medical Tourism Ltd', 'active', 'Istanbul', 'Turkey', 'https://istanbulhairmasters.com', '+905551234567', 'info@istanbulhairmasters.com', '+902121234567'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Ankara Smile Dental Clinic', 'Ankara Smile Dental Center Inc', 'active', 'Ankara', 'Turkey', 'https://ankarasmiledental.com', '+905552345678', 'contact@ankarasmiledental.com', '+903121234567'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'Bodrum Aesthetic Surgery', 'Bodrum Aesthetic Medical Ltd', 'under_review', 'Bodrum', 'Turkey', 'https://bodrumaesthetic.com', '+905553456789', 'hello@bodrumaesthetic.com', '+902521234567'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'Izmir Cosmetic Center', 'Izmir Cosmetic Healthcare Inc', 'active', 'Izmir', 'Turkey', NULL, '+905554567890', 'info@izmircosmetic.com', '+902321234567');
+
+-- ============================================
+-- CLINIC LOCATIONS
+-- ============================================
+
+INSERT INTO clinic_locations (clinic_id, location_name, address_line, latitude, longitude, is_primary)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'Istanbul Hair Masters Main Facility', 'Nisantasi, Vali Konagi Cad. No:42, Sisli, Istanbul', 41.0482, 28.9940, true),
+  ('550e8400-e29b-41d4-a716-446655440001', 'Istanbul Hair Masters Airport Branch', 'Istanbul Airport, Terminal 1, Gate A15', 41.2619, 28.7419, false),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Ankara Smile Main Clinic', 'Cankaya, Kizilirmak Mah. Dumlupinar Blv. No:3, Ankara', 39.9042, 32.8597, true),
+  ('550e8400-e29b-41d4-a716-446655440003', 'Bodrum Aesthetic Center', 'Gumbet Mah. Adnan Menderes Cad. No:89, Bodrum', 37.0242, 27.4307, true),
+  ('550e8400-e29b-41d4-a716-446655440004', 'Izmir Cosmetic Main Office', 'Alsancak, Kibris Sehitleri Cad. No:140, Konak, Izmir', 38.4382, 27.1393, true);
+
+-- ============================================
+-- CLINIC SERVICES
+-- ============================================
+
+INSERT INTO clinic_services (clinic_id, service_category, service_name, is_primary_service)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'Medical Tourism', 'Hair Transplant', true),
+  ('550e8400-e29b-41d4-a716-446655440001', 'Cosmetic', 'Other', false),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Dental', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Cosmetic', 'Other', false),
+  ('550e8400-e29b-41d4-a716-446655440003', 'Cosmetic', 'Rhinoplasty', true),
+  ('550e8400-e29b-41d4-a716-446655440003', 'Cosmetic', 'Other', false),
+  ('550e8400-e29b-41d4-a716-446655440004', 'Cosmetic', 'Other', true);
+
+-- ============================================
+-- CLINIC TEAM
+-- ============================================
+
+INSERT INTO clinic_team (clinic_id, role, name, credentials, years_experience, doctor_involvement_level)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'medical_director', 'Dr. Mehmet Yilmaz', 'MD, Board Certified Hair Restoration Surgeon, ISHRS Member', 15, 'high'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'surgeon', 'Dr. Ayse Kaya', 'MD, FUE Specialist', 8, 'high'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'coordinator', 'Elif Demir', 'Medical Tourism Coordinator, Fluent in English/Arabic', 5, 'medium'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'medical_director', 'Dr. Ahmet Ozturk', 'DDS, MSc Prosthodontics', 12, 'high'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'surgeon', 'Dr. Zeynep Arslan', 'DDS, Cosmetic Dentistry Specialist', 7, 'medium'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'surgeon', 'Dr. Can Yildirim', 'MD, EBOPRAS Certified Plastic Surgeon', 10, 'high'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'coordinator', 'Sara Johnson', 'Patient Coordinator, Native English Speaker', 3, 'low'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'medical_director', 'Dr. Emre Celik', 'MD, Aesthetic Medicine Specialist', 9, 'medium');
+
+-- ============================================
+-- CLINIC PRICING
+-- ============================================
+
+INSERT INTO clinic_pricing (clinic_id, service_name, price_min, price_max, currecy, pricing_type, notes)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'FUE Hair Transplant (3000 grafts)', 1800, 2500, 'EUR', 'range', 'All-inclusive package with hotel and transfers'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'DHI Hair Transplant (4000 grafts)', 2500, 3200, 'EUR', 'range', 'Premium technique, includes PRP treatment'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'All-on-4 Dental Implants', 4500, 6000, 'EUR', 'range', 'Per arch, includes temporary teeth'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Smile Makeover Package', NULL, NULL, 'EUR', 'quote_only', 'Custom quote based on individual needs'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'Rhinoplasty', 3000, 4500, 'EUR', 'range', 'Includes pre-op consultation and 1 year follow-up'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'Liposuction (single area)', 2000, 2800, 'EUR', 'range', 'Price varies by area size');
+
+-- ============================================
+-- CLINIC PACKAGES
+-- ============================================
+
+INSERT INTO clinic_packages (clinic_id, package_name, includes, excludes, nights_included, transport_included, aftercare_duration_days)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'Premium Hair Transplant Package', 
+   '["4000 grafts FUE", "PRP treatment", "Medications", "Post-op kit", "4-star hotel", "Airport transfers", "Translator"]'::jsonb,
+   '["Flights", "Personal expenses", "Additional nights"]'::jsonb,
+   3, true, 365),
+  ('550e8400-e29b-41d4-a716-446655440001', 'Budget Hair Transplant Package', 
+   '["3000 grafts FUE", "Medications", "3-star hotel", "Airport transfers"]'::jsonb,
+   '["PRP treatment", "Flights", "Translator"]'::jsonb,
+   2, true, 180),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Dental Tourism Package', 
+   '["All-on-4 implants", "Temporary teeth", "5-star hotel", "All transfers", "Interpreter"]'::jsonb,
+   '["Flights", "Final prosthesis (done after 3 months)"]'::jsonb,
+   7, true, 90),
+  ('550e8400-e29b-41d4-a716-446655440003', 'Rhinoplasty Complete Care', 
+   '["Surgery", "Anesthesia", "Hospital stay", "Boutique hotel 5 nights", "All transfers", "Follow-up visits"]'::jsonb,
+   '["Flights", "Revision surgery if needed"]'::jsonb,
+   5, true, 365);
+
+-- ============================================
+-- CLINIC CREDENTIALS
+-- ============================================
+
+INSERT INTO clinic_credentials (clinic_id, credential_type, credential_name, credential_id, issuing_body, valid_from, valid_to)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'accreditation', 'JCI Accreditation', 12345, 'Joint Commission International', '2023-01-15', '2026-01-15'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'license', 'Turkish Ministry of Health Operating License', 98765, 'Ministry of Health Turkey', '2020-03-10', NULL),
+  ('550e8400-e29b-41d4-a716-446655440002', 'membership', 'Turkish Dental Association', 45678, 'TDA', '2018-05-20', NULL),
+  ('550e8400-e29b-41d4-a716-446655440003', 'accreditation', 'TSAPS Membership', 87654, 'Turkish Society of Aesthetic Plastic Surgeons', '2019-07-01', NULL),
+  ('550e8400-e29b-41d4-a716-446655440004', 'license', 'Turkish Ministry of Health Operating License', 11223, 'Ministry of Health Turkey', '2021-02-15', NULL);
+
+-- ============================================
+-- CLINIC LANGUAGES
+-- ============================================
+
+INSERT INTO clinic_languages (clinic_id, language, support_type)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'Arabic', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'Russian', 'translator'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'German', 'translator'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'Spanish', 'on_request'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'French', 'translator');
+
+-- ============================================
+-- SOURCES
+-- ============================================
+
+INSERT INTO sources (id, source_type, source_name, url, author_handle, content_hash)
+VALUES 
+  ('650e8400-e29b-41d4-a716-446655440001', 'clinic_website', 'Istanbul Hair Masters Official Website', 'https://istanbulhairmasters.com/about', NULL, 'hash_ihm_about_001'),
+  ('650e8400-e29b-41d4-a716-446655440002', 'review_platform', 'Trustpilot', 'https://trustpilot.com/review/istanbulhairmasters', 'patient_john_d', 'hash_tp_review_001'),
+  ('650e8400-e29b-41d4-a716-446655440003', 'reddit', 'r/hairtransplants', 'https://reddit.com/r/hairtransplants/comments/abc123', 'u/happyhairpatient', 'hash_reddit_001'),
+  ('650e8400-e29b-41d4-a716-446655440004', 'review_platform', 'WhatClinic', 'https://whatclinic.com/ankara-smile-dental', 'patient_maria_s', 'hash_wc_review_001');
+
+-- ============================================
+-- SOURCE DOCUMENTS
+-- ============================================
+
+INSERT INTO source_documents (source_id, doc_type, title, raw_text, language, published_at)
+VALUES 
+  ('650e8400-e29b-41d4-a716-446655440001', 'html', 'About Istanbul Hair Masters', 'Istanbul Hair Masters has been performing hair transplants since 2009. We have completed over 15,000 successful procedures with our team of 5 specialist surgeons. All procedures use the latest FUE and DHI techniques.', 'English', '2024-01-15 10:00:00+00'),
+  ('650e8400-e29b-41d4-a716-446655440002', 'review', 'Excellent hair transplant experience', 'I had my hair transplant at Istanbul Hair Masters in March 2024. The entire process was smooth from booking to aftercare. Dr. Mehmet was very professional and the results after 8 months are amazing! Highly recommend. Price was 2200 EUR for 3500 grafts all-inclusive.', 'English', '2024-11-20 14:30:00+00'),
+  ('650e8400-e29b-41d4-a716-446655440003', 'post', 'Just got back from Istanbul - my experience', 'Wanted to share my experience with Istanbul Hair Masters. Had 4000 grafts done last week. The clinic was modern and clean, staff spoke perfect English. Hotel was decent, transfers were on time. Still early but hairline looks natural. Will update in 6 months.', 'English', '2025-01-05 18:45:00+00'),
+  ('650e8400-e29b-41d4-a716-446655440004', 'review', 'Great dental work in Ankara', 'Got my All-on-4 implants at Ankara Smile. Dr. Ahmet and team were fantastic. Everything was explained clearly, no hidden costs. The temporary teeth look great and I can eat normally. Paid 5200 EUR total. Very happy with the choice!', 'English', '2024-12-10 09:15:00+00');
+
+-- ============================================
+-- CLINIC FACTS
+-- ============================================
+
+INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidence, computed_by, is_conflicting)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'years_in_operation', '15'::jsonb, 'number', 0.95, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440001', 'total_procedures_completed', '15000'::jsonb, 'number', 0.85, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440001', 'number_of_surgeons', '5'::jsonb, 'number', 0.90, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440001', 'techniques_offered', '["FUE", "DHI"]'::jsonb, 'json', 0.98, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440001', 'average_price_hair_transplant_eur', '2200'::jsonb, 'number', 0.75, 'model', false),
+  ('550e8400-e29b-41d4-a716-446655440002', 'specializes_in_all_on_4', 'true'::jsonb, 'bool', 0.92, 'extractor', false);
+
+-- ============================================
+-- FACT EVIDENCE
+-- ============================================
+
+INSERT INTO fact_evidence (clinic_fact_id, source_document_id, evidence_snippet, evidence_locator)
+SELECT 
+  cf.id,
+  sd.id,
+  'Istanbul Hair Masters has been performing hair transplants since 2009',
+  '{"paragraph": 1, "sentence": 1}'::jsonb
+FROM clinic_facts cf
+CROSS JOIN source_documents sd
+WHERE cf.fact_key = 'years_in_operation' 
+  AND cf.clinic_id = '550e8400-e29b-41d4-a716-446655440001'
+  AND sd.source_id = '650e8400-e29b-41d4-a716-446655440001'
+LIMIT 1;
+
+INSERT INTO fact_evidence (clinic_fact_id, source_document_id, evidence_snippet, evidence_locator)
+SELECT 
+  cf.id,
+  sd.id,
+  'We have completed over 15,000 successful procedures',
+  '{"paragraph": 1, "sentence": 2}'::jsonb
+FROM clinic_facts cf
+CROSS JOIN source_documents sd
+WHERE cf.fact_key = 'total_procedures_completed' 
+  AND cf.clinic_id = '550e8400-e29b-41d4-a716-446655440001'
+  AND sd.source_id = '650e8400-e29b-41d4-a716-446655440001'
+LIMIT 1;
+
+-- ============================================
+-- CLINIC REVIEWS
+-- ============================================
+
+INSERT INTO clinic_reviews (clinic_id, source_id, rating, review_text, review_date, language)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440002', '5/5', 'I had my hair transplant at Istanbul Hair Masters in March 2024. The entire process was smooth from booking to aftercare. Dr. Mehmet was very professional and the results after 8 months are amazing! Highly recommend.', '2024-11-20', 'English'),
+  ('550e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440004', '5/5', 'Got my All-on-4 implants at Ankara Smile. Dr. Ahmet and team were fantastic. Everything was explained clearly, no hidden costs. The temporary teeth look great and I can eat normally. Very happy with the choice!', '2024-12-10', 'English');
+
+-- ============================================
+-- CLINIC MENTIONS
+-- ============================================
+
+INSERT INTO clinic_mentions (clinic_id, source_id, mention_text, topic, sentiment)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440003', 'The clinic was modern and clean, staff spoke perfect English.', 'staff', 'positive'),
+  ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440003', 'Hotel was decent, transfers were on time.', 'logistics', 'positive'),
+  ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440002', 'Price was 2200 EUR for 3500 grafts all-inclusive.', 'pricing', 'neutral'),
+  ('550e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440004', 'Everything was explained clearly, no hidden costs.', 'pricing', 'positive');
+
+-- ============================================
+-- CLINIC SCORE COMPONENTS
+-- ============================================
+
+INSERT INTO clinic_score_components (clinic_id, component_key, score, weight, explanation)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'safety_credentials', 95, 0.30, 'JCI accredited facility with all required licenses'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'surgeon_qualifications', 88, 0.25, 'Experienced team with international certifications'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'patient_reviews', 92, 0.20, 'Consistently high ratings across multiple platforms'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'transparency', 85, 0.15, 'Clear pricing, comprehensive information available'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'aftercare_support', 90, 0.10, '1-year follow-up included in packages'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'safety_credentials', 82, 0.30, 'Licensed facility, professional association member'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'surgeon_qualifications', 85, 0.25, 'Qualified specialists with advanced training'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'patient_reviews', 90, 0.20, 'Excellent patient feedback'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'transparency', 88, 0.15, 'Clear communication and pricing'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'aftercare_support', 80, 0.10, '90-day follow-up program');
+
+-- ============================================
+-- CLINIC SCORES
+-- ============================================
+
+INSERT INTO clinic_scores (clinic_id, overall_score, band, version)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 90, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440002', 85, 'B', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440003', 72, 'C', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440004', 78, 'B', 'v1.0');
