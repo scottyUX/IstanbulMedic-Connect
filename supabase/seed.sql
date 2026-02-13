@@ -13,16 +13,16 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440004', 'Izmir Cosmetic Center', 'Izmir Cosmetic Healthcare Inc', 'active', 'Izmir', 'Turkey', NULL, '+905554567890', 'info@izmircosmetic.com', '+902321234567');
 
 -- ============================================
--- CLINIC LOCATIONS
+-- CLINIC LOCATIONS (with new city, country, postal_code fields)
 -- ============================================
 
-INSERT INTO clinic_locations (clinic_id, location_name, address_line, latitude, longitude, is_primary)
+INSERT INTO clinic_locations (clinic_id, location_name, address_line, city, country, postal_code, latitude, longitude, is_primary)
 VALUES 
-  ('550e8400-e29b-41d4-a716-446655440001', 'Istanbul Hair Masters Main Facility', 'Nisantasi, Vali Konagi Cad. No:42, Sisli, Istanbul', 41.0482, 28.9940, true),
-  ('550e8400-e29b-41d4-a716-446655440001', 'Istanbul Hair Masters Airport Branch', 'Istanbul Airport, Terminal 1, Gate A15', 41.2619, 28.7419, false),
-  ('550e8400-e29b-41d4-a716-446655440002', 'Ankara Smile Main Clinic', 'Cankaya, Kizilirmak Mah. Dumlupinar Blv. No:3, Ankara', 39.9042, 32.8597, true),
-  ('550e8400-e29b-41d4-a716-446655440003', 'Bodrum Aesthetic Center', 'Gumbet Mah. Adnan Menderes Cad. No:89, Bodrum', 37.0242, 27.4307, true),
-  ('550e8400-e29b-41d4-a716-446655440004', 'Izmir Cosmetic Main Office', 'Alsancak, Kibris Sehitleri Cad. No:140, Konak, Izmir', 38.4382, 27.1393, true);
+  ('550e8400-e29b-41d4-a716-446655440001', 'Istanbul Hair Masters Main Facility', 'Nisantasi, Vali Konagi Cad. No:42, Sisli', 'Istanbul', 'Turkey', '34360', 41.0482, 28.9940, true),
+  ('550e8400-e29b-41d4-a716-446655440001', 'Istanbul Hair Masters Airport Branch', 'Istanbul Airport, Terminal 1, Gate A15', 'Istanbul', 'Turkey', '34283', 41.2619, 28.7419, false),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Ankara Smile Main Clinic', 'Kizilirmak Mah. Dumlupinar Blv. No:3, Cankaya', 'Ankara', 'Turkey', '06510', 39.9042, 32.8597, true),
+  ('550e8400-e29b-41d4-a716-446655440003', 'Bodrum Aesthetic Center', 'Gumbet Mah. Adnan Menderes Cad. No:89', 'Bodrum', 'Turkey', '48400', 37.0242, 27.4307, true),
+  ('550e8400-e29b-41d4-a716-446655440004', 'Izmir Cosmetic Main Office', 'Kibris Sehitleri Cad. No:140, Alsancak, Konak', 'Izmir', 'Turkey', '35220', 38.4382, 27.1393, true);
 
 -- ============================================
 -- CLINIC SERVICES
@@ -54,40 +54,54 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440004', 'medical_director', 'Dr. Emre Celik', 'MD, Aesthetic Medicine Specialist', 9, 'medium');
 
 -- ============================================
--- CLINIC PRICING
+-- SOURCES
 -- ============================================
 
-INSERT INTO clinic_pricing (clinic_id, service_name, price_min, price_max, currecy, pricing_type, notes)
+INSERT INTO sources (id, source_type, source_name, url, author_handle, content_hash)
 VALUES 
-  ('550e8400-e29b-41d4-a716-446655440001', 'FUE Hair Transplant (3000 grafts)', 1800, 2500, 'EUR', 'range', 'All-inclusive package with hotel and transfers'),
-  ('550e8400-e29b-41d4-a716-446655440001', 'DHI Hair Transplant (4000 grafts)', 2500, 3200, 'EUR', 'range', 'Premium technique, includes PRP treatment'),
-  ('550e8400-e29b-41d4-a716-446655440002', 'All-on-4 Dental Implants', 4500, 6000, 'EUR', 'range', 'Per arch, includes temporary teeth'),
-  ('550e8400-e29b-41d4-a716-446655440002', 'Smile Makeover Package', NULL, NULL, 'EUR', 'quote_only', 'Custom quote based on individual needs'),
-  ('550e8400-e29b-41d4-a716-446655440003', 'Rhinoplasty', 3000, 4500, 'EUR', 'range', 'Includes pre-op consultation and 1 year follow-up'),
-  ('550e8400-e29b-41d4-a716-446655440004', 'Liposuction (single area)', 2000, 2800, 'EUR', 'range', 'Price varies by area size');
+  ('650e8400-e29b-41d4-a716-446655440001', 'clinic_website', 'Istanbul Hair Masters Official Website', 'https://istanbulhairmasters.com/about', NULL, 'hash_ihm_about_001'),
+  ('650e8400-e29b-41d4-a716-446655440002', 'review_platform', 'Trustpilot', 'https://trustpilot.com/review/istanbulhairmasters', 'patient_john_d', 'hash_tp_review_001'),
+  ('650e8400-e29b-41d4-a716-446655440003', 'reddit', 'r/hairtransplants', 'https://reddit.com/r/hairtransplants/comments/abc123', 'u/happyhairpatient', 'hash_reddit_001'),
+  ('650e8400-e29b-41d4-a716-446655440004', 'review_platform', 'WhatClinic', 'https://whatclinic.com/ankara-smile-dental', 'patient_maria_s', 'hash_wc_review_001'),
+  ('650e8400-e29b-41d4-a716-446655440005', 'clinic_website', 'Ankara Smile Pricing Page', 'https://ankarasmiledental.com/pricing', NULL, 'hash_asd_pricing_001'),
+  ('650e8400-e29b-41d4-a716-446655440006', 'mystery_inquiry', 'Mystery Email Inquiry - Istanbul Hair Masters', NULL, 'mystery_shopper_1', 'hash_mystery_ihm_001'),
+  ('650e8400-e29b-41d4-a716-446655440007', 'social_media', 'Instagram', 'https://instagram.com/istanbulhairmasters', NULL, 'hash_ig_ihm_001');
 
 -- ============================================
--- CLINIC PACKAGES
+-- CLINIC PRICING (with source tracking)
 -- ============================================
 
-INSERT INTO clinic_packages (clinic_id, package_name, includes, excludes, nights_included, transport_included, aftercare_duration_days)
+INSERT INTO clinic_pricing (clinic_id, service_name, price_min, price_max, currency, pricing_type, notes, source_id, is_verified, last_verified_at)
+VALUES 
+  ('550e8400-e29b-41d4-a716-446655440001', 'FUE Hair Transplant (3000 grafts)', 1800, 2500, 'EUR', 'range', 'All-inclusive package with hotel and transfers', '650e8400-e29b-41d4-a716-446655440001', true, '2024-12-15 10:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'DHI Hair Transplant (4000 grafts)', 2500, 3200, 'EUR', 'range', 'Premium technique, includes PRP treatment', '650e8400-e29b-41d4-a716-446655440001', true, '2024-12-15 10:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'All-on-4 Dental Implants', 4500, 6000, 'EUR', 'range', 'Per arch, includes temporary teeth', '650e8400-e29b-41d4-a716-446655440005', true, '2024-11-20 14:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'Smile Makeover Package', NULL, NULL, 'EUR', 'quote_only', 'Custom quote based on individual needs', '650e8400-e29b-41d4-a716-446655440005', false, NULL),
+  ('550e8400-e29b-41d4-a716-446655440003', 'Rhinoplasty', 3000, 4500, 'EUR', 'range', 'Includes pre-op consultation and 1 year follow-up', NULL, false, NULL),
+  ('550e8400-e29b-41d4-a716-446655440004', 'Liposuction (single area)', 2000, 2800, 'EUR', 'range', 'Price varies by area size', NULL, false, NULL);
+
+-- ============================================
+-- CLINIC PACKAGES (with pricing)
+-- ============================================
+
+INSERT INTO clinic_packages (clinic_id, package_name, includes, excludes, nights_included, transport_included, aftercare_duration_days, price_min, price_max, currency)
 VALUES 
   ('550e8400-e29b-41d4-a716-446655440001', 'Premium Hair Transplant Package', 
    '["4000 grafts FUE", "PRP treatment", "Medications", "Post-op kit", "4-star hotel", "Airport transfers", "Translator"]'::jsonb,
    '["Flights", "Personal expenses", "Additional nights"]'::jsonb,
-   3, true, 365),
+   3, true, 365, 2800, 3200, 'EUR'),
   ('550e8400-e29b-41d4-a716-446655440001', 'Budget Hair Transplant Package', 
    '["3000 grafts FUE", "Medications", "3-star hotel", "Airport transfers"]'::jsonb,
    '["PRP treatment", "Flights", "Translator"]'::jsonb,
-   2, true, 180),
+   2, true, 180, 1800, 2200, 'EUR'),
   ('550e8400-e29b-41d4-a716-446655440002', 'Dental Tourism Package', 
    '["All-on-4 implants", "Temporary teeth", "5-star hotel", "All transfers", "Interpreter"]'::jsonb,
    '["Flights", "Final prosthesis (done after 3 months)"]'::jsonb,
-   7, true, 90),
+   7, true, 90, 5200, 6000, 'EUR'),
   ('550e8400-e29b-41d4-a716-446655440003', 'Rhinoplasty Complete Care', 
    '["Surgery", "Anesthesia", "Hospital stay", "Boutique hotel 5 nights", "All transfers", "Follow-up visits"]'::jsonb,
    '["Flights", "Revision surgery if needed"]'::jsonb,
-   5, true, 365);
+   5, true, 365, 3500, 4500, 'EUR');
 
 -- ============================================
 -- CLINIC CREDENTIALS
@@ -118,17 +132,6 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440004', 'French', 'translator');
 
 -- ============================================
--- SOURCES
--- ============================================
-
-INSERT INTO sources (id, source_type, source_name, url, author_handle, content_hash)
-VALUES 
-  ('650e8400-e29b-41d4-a716-446655440001', 'clinic_website', 'Istanbul Hair Masters Official Website', 'https://istanbulhairmasters.com/about', NULL, 'hash_ihm_about_001'),
-  ('650e8400-e29b-41d4-a716-446655440002', 'review_platform', 'Trustpilot', 'https://trustpilot.com/review/istanbulhairmasters', 'patient_john_d', 'hash_tp_review_001'),
-  ('650e8400-e29b-41d4-a716-446655440003', 'reddit', 'r/hairtransplants', 'https://reddit.com/r/hairtransplants/comments/abc123', 'u/happyhairpatient', 'hash_reddit_001'),
-  ('650e8400-e29b-41d4-a716-446655440004', 'review_platform', 'WhatClinic', 'https://whatclinic.com/ankara-smile-dental', 'patient_maria_s', 'hash_wc_review_001');
-
--- ============================================
 -- SOURCE DOCUMENTS
 -- ============================================
 
@@ -137,7 +140,8 @@ VALUES
   ('650e8400-e29b-41d4-a716-446655440001', 'html', 'About Istanbul Hair Masters', 'Istanbul Hair Masters has been performing hair transplants since 2009. We have completed over 15,000 successful procedures with our team of 5 specialist surgeons. All procedures use the latest FUE and DHI techniques.', 'English', '2024-01-15 10:00:00+00'),
   ('650e8400-e29b-41d4-a716-446655440002', 'review', 'Excellent hair transplant experience', 'I had my hair transplant at Istanbul Hair Masters in March 2024. The entire process was smooth from booking to aftercare. Dr. Mehmet was very professional and the results after 8 months are amazing! Highly recommend. Price was 2200 EUR for 3500 grafts all-inclusive.', 'English', '2024-11-20 14:30:00+00'),
   ('650e8400-e29b-41d4-a716-446655440003', 'post', 'Just got back from Istanbul - my experience', 'Wanted to share my experience with Istanbul Hair Masters. Had 4000 grafts done last week. The clinic was modern and clean, staff spoke perfect English. Hotel was decent, transfers were on time. Still early but hairline looks natural. Will update in 6 months.', 'English', '2025-01-05 18:45:00+00'),
-  ('650e8400-e29b-41d4-a716-446655440004', 'review', 'Great dental work in Ankara', 'Got my All-on-4 implants at Ankara Smile. Dr. Ahmet and team were fantastic. Everything was explained clearly, no hidden costs. The temporary teeth look great and I can eat normally. Paid 5200 EUR total. Very happy with the choice!', 'English', '2024-12-10 09:15:00+00');
+  ('650e8400-e29b-41d4-a716-446655440004', 'review', 'Great dental work in Ankara', 'Got my All-on-4 implants at Ankara Smile. Dr. Ahmet and team were fantastic. Everything was explained clearly, no hidden costs. The temporary teeth look great and I can eat normally. Paid 5200 EUR total. Very happy with the choice!', 'English', '2024-12-10 09:15:00+00'),
+  ('650e8400-e29b-41d4-a716-446655440005', 'html', 'Pricing - All-on-4 Implants', 'Our All-on-4 dental implant packages range from 4500 to 6000 EUR per arch. This includes consultation, surgery, temporary teeth, and all transfers. Final prosthesis is fitted after 3 months healing period.', 'English', '2024-11-01 12:00:00+00');
 
 -- ============================================
 -- CLINIC FACTS
@@ -150,7 +154,9 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440001', 'number_of_surgeons', '5'::jsonb, 'number', 0.90, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440001', 'techniques_offered', '["FUE", "DHI"]'::jsonb, 'json', 0.98, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440001', 'average_price_hair_transplant_eur', '2200'::jsonb, 'number', 0.75, 'model', false),
-  ('550e8400-e29b-41d4-a716-446655440002', 'specializes_in_all_on_4', 'true'::jsonb, 'bool', 0.92, 'extractor', false);
+  ('550e8400-e29b-41d4-a716-446655440001', 'response_time_hours', '4'::jsonb, 'number', 0.88, 'inquiry', false),
+  ('550e8400-e29b-41d4-a716-446655440002', 'specializes_in_all_on_4', 'true'::jsonb, 'bool', 0.92, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440002', 'price_transparency', 'true'::jsonb, 'bool', 0.95, 'human', false);
 
 -- ============================================
 -- FACT EVIDENCE
@@ -182,6 +188,19 @@ WHERE cf.fact_key = 'total_procedures_completed'
   AND sd.source_id = '650e8400-e29b-41d4-a716-446655440001'
 LIMIT 1;
 
+INSERT INTO fact_evidence (clinic_fact_id, source_document_id, evidence_snippet, evidence_locator)
+SELECT 
+  cf.id,
+  sd.id,
+  'Our All-on-4 dental implant packages range from 4500 to 6000 EUR per arch',
+  '{"paragraph": 1, "sentence": 1}'::jsonb
+FROM clinic_facts cf
+CROSS JOIN source_documents sd
+WHERE cf.fact_key = 'price_transparency' 
+  AND cf.clinic_id = '550e8400-e29b-41d4-a716-446655440002'
+  AND sd.source_id = '650e8400-e29b-41d4-a716-446655440005'
+LIMIT 1;
+
 -- ============================================
 -- CLINIC REVIEWS
 -- ============================================
@@ -192,7 +211,7 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440004', '5/5', 'Got my All-on-4 implants at Ankara Smile. Dr. Ahmet and team were fantastic. Everything was explained clearly, no hidden costs. The temporary teeth look great and I can eat normally. Very happy with the choice!', '2024-12-10', 'English');
 
 -- ============================================
--- CLINIC MENTIONS
+-- CLINIC MENTIONS (with new topic types)
 -- ============================================
 
 INSERT INTO clinic_mentions (clinic_id, source_id, mention_text, topic, sentiment)
@@ -200,7 +219,9 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440003', 'The clinic was modern and clean, staff spoke perfect English.', 'staff', 'positive'),
   ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440003', 'Hotel was decent, transfers were on time.', 'logistics', 'positive'),
   ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440002', 'Price was 2200 EUR for 3500 grafts all-inclusive.', 'pricing', 'neutral'),
-  ('550e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440004', 'Everything was explained clearly, no hidden costs.', 'pricing', 'positive');
+  ('550e8400-e29b-41d4-a716-446655440001', '650e8400-e29b-41d4-a716-446655440003', 'Still early but hairline looks natural.', 'results', 'positive'),
+  ('550e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440004', 'Everything was explained clearly, no hidden costs.', 'pricing', 'positive'),
+  ('550e8400-e29b-41d4-a716-446655440002', '650e8400-e29b-41d4-a716-446655440004', 'Package price matched exactly what they quoted.', 'package_accuracy', 'positive');
 
 -- ============================================
 -- CLINIC SCORE COMPONENTS
@@ -216,7 +237,7 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440002', 'safety_credentials', 82, 0.30, 'Licensed facility, professional association member'),
   ('550e8400-e29b-41d4-a716-446655440002', 'surgeon_qualifications', 85, 0.25, 'Qualified specialists with advanced training'),
   ('550e8400-e29b-41d4-a716-446655440002', 'patient_reviews', 90, 0.20, 'Excellent patient feedback'),
-  ('550e8400-e29b-41d4-a716-446655440002', 'transparency', 88, 0.15, 'Clear communication and pricing'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'transparency', 92, 0.15, 'Outstanding price clarity and communication'),
   ('550e8400-e29b-41d4-a716-446655440002', 'aftercare_support', 80, 0.10, '90-day follow-up program');
 
 -- ============================================
@@ -226,6 +247,6 @@ VALUES
 INSERT INTO clinic_scores (clinic_id, overall_score, band, version)
 VALUES 
   ('550e8400-e29b-41d4-a716-446655440001', 90, 'A', 'v1.0'),
-  ('550e8400-e29b-41d4-a716-446655440002', 85, 'B', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440002', 86, 'B', 'v1.0'),
   ('550e8400-e29b-41d4-a716-446655440003', 72, 'C', 'v1.0'),
   ('550e8400-e29b-41d4-a716-446655440004', 78, 'B', 'v1.0');
