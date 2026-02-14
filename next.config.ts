@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         hostname: "static.doctronic.ai",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
     ],
   },
 };

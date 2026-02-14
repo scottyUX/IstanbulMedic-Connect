@@ -53,16 +53,7 @@ const LeilaInput = forwardRef<LeilaInputHandle, InputProps>(
             <button
               type="button"
               onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = "image/*";
-                input.onchange = (e) => {
-                  const file = (e.target as HTMLInputElement).files?.[0];
-                  if (file) {
-                    onUpload(file);
-                  }
-                };
-                input.click();
+                onUpload();
               }}
               className="leila-input-attach"
               disabled={inProgress || chatReady === false}

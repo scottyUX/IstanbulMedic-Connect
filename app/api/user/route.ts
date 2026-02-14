@@ -25,7 +25,7 @@ export async function GET() {
     // Transform to UserProfile format
     const profile: UserProfile = {
       id: user.id,
-      email: user.email,
+      email: user.email ?? null,
       created_at: user.created_at,
       full_name: metadata.full_name || metadata.name || null,
       avatar_url: metadata.avatar_url || metadata.picture || null,
