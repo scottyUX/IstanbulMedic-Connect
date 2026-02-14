@@ -23,8 +23,7 @@ interface ClinicProfilePageProps {
 }
 
 export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) => {
-  // This would normally fetch data based on clinicId.
-  // For now, we preserve the prototype behavior with a local data object.
+  // TODO: Fetch from API using clinicId - see docs/backend-schema-mapping.md
   void clinicId
 
   const clinicData = {

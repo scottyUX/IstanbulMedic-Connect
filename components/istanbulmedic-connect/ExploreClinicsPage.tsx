@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import type { Clinic, FilterState, TreatmentType } from "@/components/istanbulmedic-connect/types"
 
+// TODO: Replace with API call - see docs/backend-schema-mapping.md
 const CLINICS: Clinic[] = [
   {
     id: 1,
@@ -265,11 +266,11 @@ export const ExploreClinicsPage = ({ onSelectClinic }: ExploreClinicsPageProps) 
           )}
         </div>
 
-        {/* Load More */}
+        {/* Load More - TODO: implement pagination */}
         {filteredClinics.length > 0 && (
           <div className="mt-12 text-center">
-            <Button variant="outline" size="lg" className="min-w-[200px]" onClick={() => { }}>
-              Load More Clinics
+            <Button variant="outline" size="lg" disabled className="min-w-[200px]">
+              Load More Clinics (Coming Soon)
             </Button>
           </div>
         )}
