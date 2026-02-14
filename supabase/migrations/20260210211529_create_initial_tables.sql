@@ -27,6 +27,9 @@ create table public.clinics (
   whatsapp_contact text null,
   email_contact text null,
   phone_contact VARCHAR(20) null,
+  description text,
+  short_description text,
+  thumbnail_url text,
   created_at timestamp with time zone not null default (now() AT TIME ZONE 'utc'::text),
   updated_at timestamp with time zone not null default (now() AT TIME ZONE 'utc'::text),
   constraint clinics_pkey primary key (id),
@@ -240,6 +243,25 @@ create table public.clinic_scores (
   constraint clinic_scores_overall_score_check check (overall_score >= 0 AND overall_score <= 100)
 ) TABLESPACE pg_default;
 
+CREATE TABLE clinic_media (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_id UUID NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+  media_type TEXT NOT NULL CHECK (media_type IN ('image', 'video', 'before_after', 'certificate')),
+  url TEXT NOT NULL,
+  alt_text TEXT,
+  caption TEXT,
+  is_primary BOOLEAN DEFAULT false,
+  display_order INTEGER DEFAULT 0,
+  source_id UUID REFERENCES sources(id),  -- provenance
+  uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+
+CREATE INDEX idx_clinic_media_clinic_id ON clinic_media(clinic_id);
+CREATE UNIQUE INDEX idx_clinic_media_primary
+  ON clinic_media(clinic_id)
+  WHERE is_primary = true;
 
 ALTER TABLE clinic_pricing ADD CONSTRAINT clinic_pricing_source_id_fkey foreign key (source_id) references sources (id) on delete set null;
 
