@@ -1,22 +1,14 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-
 import { ClinicProfilePage } from "@/components/istanbulmedic-connect/profile/ClinicProfilePage"
+import type { ClinicDetail } from "@/lib/api/clinics"
 
 interface ClinicProfilePageClientProps {
-  clinicId: number
+  clinic: ClinicDetail
 }
 
-const ClinicProfilePageClient = ({ clinicId }: ClinicProfilePageClientProps) => {
-  const router = useRouter()
-
-  const handleBack = () => {
-    router.push("/connect")
-  }
-
-  return <ClinicProfilePage clinicId={clinicId} onBack={handleBack} />
+const ClinicProfilePageClient = ({ clinic }: ClinicProfilePageClientProps) => {
+  return <ClinicProfilePage clinic={clinic} />
 }
 
 export default ClinicProfilePageClient
-

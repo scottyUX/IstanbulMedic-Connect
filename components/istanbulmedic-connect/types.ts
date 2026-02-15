@@ -1,10 +1,13 @@
 export interface Clinic {
-  id: number
+  id: string
   name: string
   location: string
-  image: string
+  image: string | null
   specialties: string[]
+  languages: string[]
+  accreditations: string[]
   trustScore: number
+  trustBand?: 'A' | 'B' | 'C' | 'D' | null
   description: string
   rating?: number
   aiInsight?: string
@@ -23,4 +26,3 @@ export interface FilterState {
   accreditations: Record<Accreditation, boolean>
   aiMatchScore: number
 }
-

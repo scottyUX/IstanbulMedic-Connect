@@ -22,7 +22,7 @@ const merriweather = Merriweather({
 interface ClinicCardProps {
   name: string
   location: string
-  image: string
+  image: string | null
   specialties: string[]
   trustScore: number
   description: string
@@ -55,14 +55,20 @@ export const ClinicCard = ({
       <CardContent className="p-6">
         {/* Image Section */}
         <div className="relative w-full overflow-hidden rounded-[16px] aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9]">
-        <Image
-          src={image}
-          alt={`${name} clinic photo`}
-          fill
-          sizes="(min-width: 1024px) 360px, (min-width: 768px) 50vw, 100vw"
-          className="object-cover object-center rounded-[16px]"
-        />
-      </div>
+          {image ? (
+            <Image
+              src={image}
+              alt={`${name} clinic photo`}
+              fill
+              sizes="(min-width: 1024px) 360px, (min-width: 768px) 50vw, 100vw"
+              className="object-cover object-center rounded-[16px]"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center rounded-[16px] bg-muted/40 text-sm text-muted-foreground">
+              No clinic photo uploaded
+            </div>
+          )}
+        </div>
 
       {/* Tags Section */}
       <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -144,4 +150,3 @@ export const ClinicCard = ({
     </Card>
   )
 }
-
