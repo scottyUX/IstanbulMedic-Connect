@@ -172,16 +172,11 @@ function getNestedValue(language: LanguageCode, path: string): string | Record<s
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageCode] = useState<LanguageCode>(DEFAULT_LANGUAGE);
-
-  // Load persisted language on client
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const [language, setLanguageCode] = useState<LanguageCode>(() => {
+    if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored && isLanguageCode(stored) && stored !== language) {
-      setLanguageCode(stored);
-    }
-  }, []); 
+    return stored && isLanguageCode(stored) ? stored : DEFAULT_LANGUAGE;
+  });
 
   // Persist whenever language changes
   useEffect(() => {

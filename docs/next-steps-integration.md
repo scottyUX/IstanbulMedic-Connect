@@ -1,390 +1,237 @@
-# Next Steps: PR Fixes & Backend Integration
+# Backend Integration Status
 
-This document summarizes the work needed based on the PR review and backend integration planning session.
+This document tracks the progress of integrating the frontend with Supabase backend.
+
+**Last Updated:** February 15, 2026
 
 ---
 
 ## Table of Contents
 
-1. [PR Follow-up Fixes](#pr-follow-up-fixes)
-2. [Supabase Setup](#supabase-setup)
-3. [Frontend Type Updates](#frontend-type-updates)
-4. [Data Layer Creation](#data-layer-creation)
-5. [Component Refactoring](#component-refactoring)
-6. [Backend Team Coordination](#backend-team-coordination)
+1. [Completed Work](#completed-work)
+2. [Current Architecture](#current-architecture)
+3. [Data Status](#data-status)
+4. [Remaining Work](#remaining-work)
+5. [For Backend Team](#for-backend-team)
 
 ---
 
-## PR Follow-up Fixes
+## Completed Work
 
-### 🔴 High Priority (Do First)
+### Phase 1: PR Fixes ✅
 
-#### 1. Replace Hardcoded Colors with CSS Variables
+| Task | Status |
+|------|--------|
+| Replace hardcoded colors with CSS variables | ✅ Done |
+| Fix empty onClick handler | ✅ Done |
+| Add TODO comments for hardcoded data | ✅ Done (now removed - using real data) |
 
-| File | Line(s) | Current | Change To |
-|------|---------|---------|-----------|
-| `components/istanbulmedic-connect/UnifiedFilterBar.tsx` | 100 | `bg-[#17375B]` | `bg-[var(--im-color-primary)]` |
-| `components/istanbulmedic-connect/UnifiedFilterBar.tsx` | 113 | `bg-[#17375B]` | `bg-[var(--im-color-primary)]` |
-| `components/istanbulmedic-connect/UnifiedFilterBar.tsx` | 120 | `bg-[#17375B]` | `bg-[var(--im-color-primary)]` |
-| `components/common/Footer.tsx` | 47 | `bg-[#0D1E32]` | `bg-[var(--im-color-text-primary)]` |
-| `components/common/Footer.tsx` | 82, 132 | `text-[#3EBBB7]` | `text-[var(--im-color-secondary)]` |
-| `components/istanbulmedic-connect/FilterDialog.tsx` | 224 | `text-[#3EBBB7]` | `text-[var(--im-color-secondary)]` |
+### Phase 2: Supabase Setup ✅
 
-#### 2. Fix Empty onClick Handler
+| Task | Status |
+|------|--------|
+| Supabase client libraries already installed (`@supabase/ssr`) | ✅ |
+| Created `lib/supabase/client.ts` (browser client) | ✅ |
+| Created `lib/supabase/server.ts` (server client) | ✅ |
+| Generated `lib/supabase/database.types.ts` | ✅ |
+| Local Docker setup with seed data | ✅ |
+| Added `db:types` script to package.json | ✅ |
 
-**File:** `components/istanbulmedic-connect/ExploreClinicsPage.tsx:271`
+### Phase 3: Data Layer ✅
 
-Either implement pagination or remove/disable the button:
+| Task | Status |
+|------|--------|
+| Created `lib/api/clinics.ts` with reusable functions | ✅ |
+| `getClinics()` - List clinics for explore page | ✅ |
+| `getClinicById()` - Detail for profile page | ✅ |
+| `getClinicCities()` - Cities for filters | ✅ |
+| `getServiceCategories()` - Services for filters | ✅ |
 
-```tsx
-// Option A: Remove for now
-{/* Load More button - TODO: implement pagination */}
+### Phase 4: Component Refactoring ✅
 
-// Option B: Disable with message
-<Button variant="outline" size="lg" disabled className="min-w-[200px]">
-  Load More Clinics (Coming Soon)
-</Button>
-```
-
-#### 3. Add TODO Comments for Hardcoded Data
-
-**File:** `components/istanbulmedic-connect/ExploreClinicsPage.tsx:13`
-```tsx
-// TODO: Replace with API call - see docs/backend-schema-mapping.md
-const CLINICS: Clinic[] = [...]
-```
-
-**File:** `components/istanbulmedic-connect/profile/ClinicProfilePage.tsx:29`
-```tsx
-// TODO: Fetch from API using clinicId - see docs/backend-schema-mapping.md
-const clinicData = {...}
-```
-
-### 🟡 Medium Priority (Can Do Later)
-
-- [ ] Differentiate duplicate tag variants in `specialty-tag.tsx` (teal/green, peach/purple)
-- [ ] Consider using CSS variable for font in `ClinicCard.tsx` instead of re-importing Merriweather
-- [ ] Add `role="link"` or keyboard handling to clickable `ClinicCard`
+| Component | Status |
+|-----------|--------|
+| `ExploreClinicsPage` - Now uses real clinic data | ✅ |
+| `ClinicProfilePage` - Now uses real clinic data | ✅ |
+| Updated `Clinic` type to use `id: string` (UUID) | ✅ |
 
 ---
 
-## Supabase Setup
+## Current Architecture
 
-### 1. Install Supabase Client
+We chose **server components with direct function calls** instead of API routes + client hooks.
 
-```bash
-npm install @supabase/supabase-js
+### Why This Approach?
+
+See `docs/data-layer-architecture.md` for full rationale. Summary:
+
+```
+❌ API Routes (unnecessary extra hop):
+Browser → /api/clinics → Supabase → back
+
+✅ Direct Functions (what we use):
+Server Component → getClinics() → Supabase → HTML → Browser
 ```
 
-### 2. Create Environment Variables
-
-**File:** `.env.local`
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-### 3. Create Supabase Client
-
-**File:** `lib/supabase/client.ts`
-```typescript
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from './database.types'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
-```
-
-### 4. Generate Database Types
-
-After backend team creates tables, generate types:
-
-```bash
-npx supabase gen types typescript --project-id your-project-id > lib/supabase/database.types.ts
-```
-
----
-
-## Frontend Type Updates
-
-Create new types aligned with backend schema. See `docs/backend-schema-mapping.md` for full details.
-
-### New Files to Create
+### File Structure
 
 ```
 lib/
-├── types/
-│   ├── index.ts              # Re-exports all types
-│   ├── clinic.ts             # Clinic, ClinicSummary
-│   ├── location.ts           # ClinicLocation
-│   ├── service.ts            # ClinicService, ServiceCategory
-│   ├── package.ts            # ClinicPackage
-│   ├── pricing.ts            # ClinicPricing
-│   ├── team.ts               # ClinicTeamMember, TeamRole
-│   ├── credential.ts         # ClinicCredential
-│   ├── language.ts           # ClinicLanguage, Language
-│   ├── review.ts             # ClinicReview
-│   ├── mention.ts            # ClinicMention, MentionTopic
-│   ├── score.ts              # ClinicScore, ClinicScoreComponent
-│   └── evidence.ts           # Source, ClinicFact, FactEvidence
+├── api/
+│   └── clinics.ts          # Reusable query functions
+├── supabase/
+│   ├── client.ts           # Browser Supabase client
+│   ├── server.ts           # Server Supabase client
+│   └── database.types.ts   # Auto-generated types
 ```
 
-### Key Type Changes
+### How Data Flows
 
-| Current | New |
-|---------|-----|
-| `id: number` | `id: string` (uuid) |
-| `name: string` | `displayName: string` |
-| `location: string` | `locations: ClinicLocation[]` |
-| `specialties: string[]` | `services: ClinicService[]` |
-| `trustScore: number` | `score: ClinicScore` (with components) |
-| `doctors[]` (inline) | `team: ClinicTeamMember[]` |
+```tsx
+// app/clinics/page.tsx (Server Component)
+import { getClinics } from "@/lib/api/clinics"
+
+export default async function Page() {
+  const clinics = await getClinics()  // Runs on server
+  return <ExploreClinicsPage initialClinics={clinics} />
+}
+
+// components/.../ExploreClinicsPage.tsx (Client Component)
+"use client"
+export function ExploreClinicsPage({ initialClinics }) {
+  // Has the data already - no loading state needed
+  // Handles interactivity (filters, sorting)
+}
+```
 
 ---
 
-## Data Layer Creation
+## Data Status
 
-### 1. API Functions
+### ✅ Using Real Data From Database
 
-**File:** `lib/api/clinics.ts`
-```typescript
-import { supabase } from '@/lib/supabase/client'
-import type { ClinicSummary, ClinicProfileResponse } from '@/lib/types'
-import type { ClinicSearchParams } from '@/lib/types/api'
+| Data | Source Table | Notes |
+|------|--------------|-------|
+| Clinic name | `clinics.display_name` | ✅ |
+| Clinic location | `clinics.primary_city` + `primary_country` | ✅ |
+| Clinic status | `clinics.status` | ✅ Only showing `active` |
+| Trust score | `clinic_scores.overall_score` | ✅ |
+| Trust band | `clinic_scores.band` | ✅ A/B/C/D |
+| Services/Specialties | `clinic_services` | ✅ |
+| Languages | `clinic_languages` | ✅ |
+| Team/Doctors | `clinic_team` | ✅ |
+| Credentials | `clinic_credentials` | ✅ |
+| Reviews | `clinic_reviews` | ✅ |
+| Score components | `clinic_score_components` | ✅ Used for AI insights |
+| Locations | `clinic_locations` | ✅ Address, lat/lng |
+| Pricing | `clinic_pricing` | ✅ Displayed on profile |
+| Packages | `clinic_packages` | ✅ Displayed on profile |
+| Clinic media | `clinic_media` | ✅ Used for explore + profile images |
+| Community mentions | `clinic_mentions` | ✅ Used for community signals |
+| Clinic facts | `clinic_facts` | ✅ Used for overview stats |
 
-export async function getClinics(params?: ClinicSearchParams): Promise<ClinicSummary[]> {
-  let query = supabase
-    .from('clinics')
-    .select(`
-      id,
-      display_name,
-      primary_city,
-      primary_country,
-      thumbnail_url,
-      clinic_services (service_category, service_name, is_primary),
-      clinic_scores (overall_score, band)
-    `)
-    .eq('status', 'active')
+### ⚠️ Still Using Placeholder Data
 
-  if (params?.q) {
-    query = query.ilike('display_name', `%${params.q}%`)
-  }
+| Data | Current Status | What's Needed |
+|------|----------------|---------------|
+| **Clinic images** | ✅ From `clinic_media` | Seed or upload real images |
+| **Opening hours** | Hardcoded placeholder | Add to schema or `clinic_locations` |
+| **Payment methods** | Hardcoded placeholder | Add to schema |
+| **Years in operation** | ✅ From `clinic_facts` | Add if missing |
+| **Procedures performed** | ✅ From `clinic_facts` | Add if missing |
+| **Community signals** | ✅ From `clinic_mentions` | Expand sources if needed |
+| **Average rating** | Computed from reviews | Working, but few reviews in seed data |
+| **Doctor photos** | Placeholder image | Add photo URL to `clinic_team` |
 
-  if (params?.city) {
-    query = query.eq('primary_city', params.city)
-  }
+---
 
-  if (params?.minScore) {
-    query = query.gte('clinic_scores.overall_score', params.minScore)
-  }
+## Remaining Work
 
-  const { data, error } = await query
+### High Priority
 
-  if (error) throw error
-  return transformToClinicSummaries(data)
-}
+- [x] Add real clinic images to database (`clinic_media` wired)
+- [x] Display pricing info on profile page (data exists)
+- [x] Display packages on profile page (data exists)
+- [x] Add loading skeletons for better UX
+- [x] Add error handling UI
 
-export async function getClinic(id: string): Promise<ClinicProfileResponse> {
-  const { data, error } = await supabase
-    .from('clinics')
-    .select(`
-      *,
-      clinic_locations (*),
-      clinic_services (*),
-      clinic_packages (*),
-      clinic_pricing (*),
-      clinic_team (*),
-      clinic_credentials (*),
-      clinic_languages (*),
-      clinic_scores (*),
-      clinic_score_components (*),
-      clinic_reviews (*),
-      clinic_mentions (*),
-      clinic_media (*)
-    `)
-    .eq('id', id)
-    .single()
+### Medium Priority
 
-  if (error) throw error
-  return transformToClinicProfile(data)
-}
+- [x] Transform `clinic_mentions` to community signals format
+- [x] Add pagination for clinic list (server-side)
+- [x] Add server-side filtering (query params + server data layer)
+- [ ] Implement clinic comparison feature
+
+### Low Priority
+
+- [ ] Add opening hours to schema
+- [ ] Add payment methods to schema
+- [ ] Add doctor photos to `clinic_team`
+
+---
+
+## For Backend Team
+
+### Schema Is Good! ✅
+
+The current schema supports everything we need. The 16 tables cover:
+- Core clinic data
+- Locations, services, pricing, packages
+- Team members and credentials
+- Reviews and mentions
+- Trust scores with components
+- Evidence layer (sources, facts)
+
+### Data Needed
+
+To make the app fully functional with real data, please add:
+
+1. **Clinic images** - Populate `clinic_media` table with real clinic photos (seeded locally)
+2. **More seed clinics** - Currently 4 clinics (3 active, 1 under_review)
+3. **More reviews** - Currently 2 reviews total
+
+### Optional Schema Additions
+
+These fields would be nice to have but aren't blockers:
+
+```sql
+-- Add to clinics table
+ALTER TABLE clinics ADD COLUMN total_procedures integer;
+ALTER TABLE clinics ADD COLUMN founded_year integer;
+
+-- Add to clinic_team table
+ALTER TABLE clinic_team ADD COLUMN photo_url text;
+
+-- Add to clinic_locations table (or new table)
+-- opening_hours jsonb
+-- payment_methods text[]
 ```
 
-### 2. React Hooks
+### Environment Setup
 
-**File:** `lib/hooks/useClinics.ts`
-```typescript
-import useSWR from 'swr'
-import { getClinics } from '@/lib/api/clinics'
-import type { ClinicSearchParams } from '@/lib/types/api'
-
-export function useClinics(params?: ClinicSearchParams) {
-  return useSWR(
-    ['clinics', params],
-    () => getClinics(params),
-    {
-      revalidateOnFocus: false,
-    }
-  )
-}
-```
-
-**File:** `lib/hooks/useClinic.ts`
-```typescript
-import useSWR from 'swr'
-import { getClinic } from '@/lib/api/clinics'
-
-export function useClinic(id: string | null) {
-  return useSWR(
-    id ? ['clinic', id] : null,
-    () => getClinic(id!),
-    {
-      revalidateOnFocus: false,
-    }
-  )
-}
-```
-
-### 3. Install SWR
+To run locally with the seed data:
 
 ```bash
-npm install swr
+# Start local Supabase (requires Docker)
+npx supabase start
+
+# This will:
+# - Run migrations
+# - Seed the database with 4 sample clinics
+# - Start local services at http://127.0.0.1:54321
 ```
 
----
-
-## Component Refactoring
-
-### ExploreClinicsPage
-
-**Before:**
-```tsx
-const CLINICS: Clinic[] = [/* hardcoded */]
-
-export const ExploreClinicsPage = ({ onSelectClinic }) => {
-  const filteredClinics = useMemo(() => CLINICS.filter(...), [filters])
-  // ...
-}
-```
-
-**After:**
-```tsx
-export const ExploreClinicsPage = ({ onSelectClinic }) => {
-  const [filters, setFilters] = useState<ClinicSearchParams>({})
-  const { data: clinics, isLoading, error } = useClinics(filters)
-
-  if (isLoading) return <ClinicsLoadingSkeleton />
-  if (error) return <ErrorState message="Failed to load clinics" />
-
-  return (
-    // ... render clinics from API
-  )
-}
-```
-
-### ClinicProfilePage
-
-**Before:**
-```tsx
-export const ClinicProfilePage = ({ clinicId, onBack }) => {
-  void clinicId  // ignored!
-  const clinicData = {/* hardcoded */}
-  // ...
-}
-```
-
-**After:**
-```tsx
-export const ClinicProfilePage = ({ clinicId, onBack }) => {
-  const { data: clinic, isLoading, error } = useClinic(clinicId)
-
-  if (isLoading) return <ProfileLoadingSkeleton />
-  if (error) return <ErrorState message="Clinic not found" />
-
-  return (
-    // ... render clinic from API
-  )
-}
-```
-
----
-
-## Backend Team Coordination
-
-### Tables They Need to Add
-
-Per `docs/backend-frontend-integration-split.md`:
-
-1. **`clinic_media`** - For storing image URLs
-   ```sql
-   CREATE TABLE clinic_media (
-     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-     clinic_id UUID NOT NULL REFERENCES clinics(id),
-     media_type TEXT NOT NULL,
-     url TEXT NOT NULL,
-     alt_text TEXT,
-     is_primary BOOLEAN DEFAULT false,
-     display_order INTEGER DEFAULT 0,
-     created_at TIMESTAMP DEFAULT NOW()
-   );
-   ```
-
-2. **Add columns to `clinics`**
-   ```sql
-   ALTER TABLE clinics ADD COLUMN description TEXT;
-   ALTER TABLE clinics ADD COLUMN short_description TEXT;
-   ALTER TABLE clinics ADD COLUMN thumbnail_url TEXT;
-   ALTER TABLE clinics ADD COLUMN founded_year INTEGER;
-   ```
-
-### Questions to Clarify with Backend
-
-- [ ] What's the Supabase project URL and anon key?
-- [ ] Are the tables created yet? Can we generate types?
-- [ ] What's the pagination strategy (offset vs cursor)?
-- [ ] Will filtering be via query params or RPC functions?
-- [ ] How should we handle clinic images - direct URLs or signed URLs?
-
----
-
-## Implementation Order
-
-```
-Phase 1: PR Fixes (This Branch)
-├── [ ] Fix hardcoded colors
-├── [ ] Fix empty onClick
-└── [ ] Add TODO comments
-
-Phase 2: Supabase Setup
-├── [ ] Install @supabase/supabase-js
-├── [ ] Create .env.local with credentials
-├── [ ] Create lib/supabase/client.ts
-└── [ ] Test connection
-
-Phase 3: Types & Data Layer
-├── [ ] Create lib/types/ folder with all types
-├── [ ] Install swr
-├── [ ] Create lib/api/clinics.ts
-└── [ ] Create lib/hooks/useClinics.ts and useClinic.ts
-
-Phase 4: Component Refactoring
-├── [ ] Update ExploreClinicsPage to use useClinics
-├── [ ] Update ClinicProfilePage to use useClinic
-├── [ ] Add loading skeletons
-└── [ ] Add error states
-
-Phase 5: Testing
-├── [ ] Test clinic list loads from Supabase
-├── [ ] Test filters work
-├── [ ] Test clinic profile loads
-└── [ ] Test error handling
+The frontend `.env.local` is configured for local development:
+```env
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ---
 
 ## Related Documentation
 
-- `docs/backend-schema-mapping.md` - Full type mapping between backend and frontend
-- `docs/backend-frontend-integration-split.md` - What backend needs to add vs frontend changes
+- `docs/data-layer-architecture.md` - Why we use direct functions instead of API routes
+- `docs/server-vs-client-components.md` - Server vs client component explanation
+- `docs/backend-schema-mapping.md` - Full schema documentation
+- `supabase/seed.sql` - Sample data

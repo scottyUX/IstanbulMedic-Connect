@@ -7,8 +7,8 @@ import { StatBlock } from "@/components/ui/stat-block"
 
 interface OverviewSectionProps {
   specialties: string[]
-  yearsInOperation: number
-  proceduresPerformed: number
+  yearsInOperation: number | null
+  proceduresPerformed: number | null
   languages: string[]
   description: string
 }
@@ -37,12 +37,12 @@ export const OverviewSection = ({
         <Separator />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatBlock label="Years in operation" value={yearsInOperation} />
+          <StatBlock label="Years in operation" value={yearsInOperation ?? "Not available"} />
           <StatBlock
             label="Procedures performed"
-            value={proceduresPerformed.toLocaleString()}
+            value={proceduresPerformed !== null ? proceduresPerformed.toLocaleString() : "Not available"}
           />
-          <StatBlock label="Languages" value={languages.length} />
+          <StatBlock label="Languages" value={languages.length > 0 ? languages.length : "Not available"} />
         </div>
 
         <div className="text-base leading-relaxed text-muted-foreground">{description}</div>

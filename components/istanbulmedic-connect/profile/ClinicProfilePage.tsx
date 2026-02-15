@@ -1,11 +1,10 @@
 "use client"
 
-import { ArrowLeft } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
 import { HeroSection } from "./HeroSection"
 import { SectionNav } from "./SectionNav"
 import { OverviewSection } from "./OverviewSection"
+import { PricingSection } from "./PricingSection"
+import { PackagesSection } from "./PackagesSection"
 import { DoctorsSection } from "./DoctorsSection"
 import { TransparencySection } from "./TransparencySection"
 import { AIInsightsSection } from "./AIInsightsSection"
@@ -13,217 +12,187 @@ import { ReviewsSection } from "./ReviewsSection"
 import { CommunitySignalsSection } from "./CommunitySignalsSection"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
+import type { ClinicDetail } from "@/lib/api/clinics"
+import {
+  toNumber,
+  transformOpeningHours,
+  deriveServicesFromPackages,
+  deriveCommunityTags,
+  type OpeningHoursJson,
+} from "@/lib/transformers/clinic"
 
 type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
 type CommunitySentiment = "Positive" | "Neutral" | "Negative"
 
 interface ClinicProfilePageProps {
-  clinicId: number
-  onBack: () => void
+  clinic: ClinicDetail
 }
 
-export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) => {
-  // TODO: Fetch from API using clinicId - see docs/backend-schema-mapping.md
-  void clinicId
+const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
+  reddit: "reddit",
+  forum: "forums",
+  quora: "forums",
+  social_media: "other",
+  review_platform: "google",
+  clinic_website: "other",
+  registry: "other",
+  mystery_inquiry: "other",
+  internal_note: "other",
+}
 
-  const clinicData = {
-    name: "Istanbul Hair Center",
-    locationLabel: "Şişli, Istanbul",
-    transparencyScore: 96,
-    rating: 4.8,
-    reviewCount: 347,
-    images: [
-      "https://images.unsplash.com/photo-1565262353342-6e919eab5b58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBtZWRpY2FsJTIwY2xpbmljJTIwaW50ZXJpb3IlMjBsb2JieXxlbnwxfHx8fDE3NzAxNTQ5MTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "https://images.unsplash.com/photo-1758653500534-a47f6cd8abb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3NwaXRhbCUyMG9wZXJhdGluZyUyMHJvb20lMjBtb2Rlcm58ZW58MXx8fHwxNzcwMTU0OTEzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "https://images.unsplash.com/photo-1766299892549-b56b257d1ddd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZXF1aXBtZW50JTIwY2xpbmljfGVufDF8fHx8MTc3MDEzNzE2NHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "https://images.unsplash.com/photo-1720180244339-95e56d52e182?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBob3NwaXRhbCUyMGNsaW5pYyUyMGludGVyaW9yfGVufDF8fHx8MTc3MDEwMDAwN3ww&ixlib=rb-4.1.0&q=80&w=1080",
-    ],
-    overview: {
-      specialties: ["Hair Transplant", "FUE Technique", "DHI Method", "Beard Transplant"],
-      yearsInOperation: 15,
-      proceduresPerformed: 12000,
-      languages: ["English", "Turkish", "Arabic", "German"],
-      description:
-        "Istanbul Hair Center is a leading hair restoration facility specializing in advanced FUE and DHI techniques. With over 15 years of experience and more than 12,000 successful procedures, our clinic combines cutting-edge technology with personalized patient care. Our internationally trained team is committed to delivering natural-looking results while maintaining the highest standards of safety and medical excellence.",
+export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
+  // Transform database data to component format
+
+  // Get languages from clinic_languages
+  const languages = clinic.languages.map((l) => l.language)
+
+  // Get specialties from services
+  const specialties: string[] = [
+    ...clinic.services.filter((s) => s.is_primary_service).map((s) => s.service_name as string),
+    ...clinic.services.filter((s) => !s.is_primary_service).map((s) => s.service_category as string),
+  ].filter((v, i, a) => a.indexOf(v) === i)
+
+  // Transform team members to doctors format
+  const doctors = clinic.team
+    .filter((t) => ["medical_director", "surgeon", "doctor"].includes(t.role))
+    .map((t) => ({
+      name: t.name,
+      specialty: t.role.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+      photo: t.photo_url || null,
+      credentials: t.credentials ? [t.credentials] : [],
+      yearsOfExperience: t.years_experience,
+      education: null, // No fake "Medical School" - show only if we have real data
+    }))
+
+  // Transform credentials to transparency items (no fake defaults)
+  const transparencyItems = clinic.credentials.map((c) => ({
+    title: c.credential_name,
+    description: c.issuing_body || `${c.credential_type} credential`,
+    verified: true,
+  }))
+
+  // Transform reviews (no fake fallbacks)
+  const recentReviews = clinic.reviews.slice(0, 4).map((r) => {
+    const ratingMatch = r.rating?.match(/(\d+)/)
+    const ratingNum = ratingMatch ? parseInt(ratingMatch[1]) : null
+    return {
+      author: "Patient", // Anonymous but real
+      rating: ratingNum ?? 0, // Rating component requires number, 0 means unrated
+      date: r.review_date ?? "Unknown date",
+      text: r.review_text,
+      verified: true,
+    }
+  })
+
+  // Get primary location
+  const primaryLocation = clinic.locations.find((l) => l.is_primary) || clinic.locations[0]
+
+  const imageMedia = clinic.media
+    .filter((m) => m.media_type === "image")
+    .sort((a, b) => {
+      if (a.is_primary && !b.is_primary) return -1
+      if (!a.is_primary && b.is_primary) return 1
+      return (a.display_order ?? 0) - (b.display_order ?? 0)
+    })
+    .map((m) => m.url)
+  const heroImages = imageMedia
+
+  // Build AI insights from score components (no fake defaults)
+  const aiInsights = clinic.scoreComponents.map((sc) => sc.explanation)
+
+  const factsMap = clinic.facts.reduce<Record<string, unknown>>((acc, fact) => {
+    acc[fact.fact_key] = fact.fact_value
+    return acc
+  }, {})
+
+  // Use database fields first, fall back to facts, no fake fallbacks
+  const yearsInOperation = clinic.yearsInOperation ?? toNumber(factsMap.years_in_operation) ?? null
+  const proceduresPerformed = clinic.proceduresPerformed ?? toNumber(factsMap.total_procedures_completed) ?? null
+
+  // Transform opening hours from primary location
+  const openingHours = transformOpeningHours(primaryLocation?.opening_hours as OpeningHoursJson | null)
+
+  // Transform payment methods from primary location
+  const paymentMethods: string[] = Array.isArray(primaryLocation?.payment_methods)
+    ? primaryLocation.payment_methods.filter((m): m is string => typeof m === "string")
+    : []
+
+  // Derive services from packages
+  const services = deriveServicesFromPackages(clinic.packages)
+
+  // Derive community tags from positive mentions
+  const communityTags = deriveCommunityTags(clinic.mentions)
+
+  const topicLabels: Record<string, string> = {
+    pricing: "Pricing transparency",
+    results: "Results quality",
+    staff: "Staff professionalism",
+    logistics: "Logistics",
+    complaint: "Concerns",
+    praise: "Praise",
+    package_accuracy: "Package accuracy",
+  }
+
+  const posts = clinic.mentions.map((mention) => {
+    const source =
+      Array.isArray(mention.sources) ? mention.sources[0] : mention.sources
+    const sourceType = source?.source_type ?? "other"
+    const sourceName = source?.source_name ?? "Community"
+    const url = source?.url ?? "#"
+    const author = source?.author_handle ?? sourceName
+    const date = mention.created_at
+      ? new Date(mention.created_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : "Recent"
+
+    return {
+      source: SOURCE_TYPE_MAP[sourceType] ?? "other",
+      author,
+      date,
+      snippet: mention.mention_text,
+      url,
+      topic: mention.topic,
+      sentiment: mention.sentiment,
+    }
+  })
+
+  const sentimentCounts = posts.reduce(
+    (acc, post) => {
+      if (post.sentiment === "positive") acc.positive += 1
+      if (post.sentiment === "negative") acc.negative += 1
+      if (post.sentiment === "neutral") acc.neutral += 1
+      return acc
     },
-    doctors: [
-      {
-        name: "Dr. Mehmet Yilmaz",
-        specialty: "Hair Restoration Surgeon",
-        photo:
-          "https://images.unsplash.com/photo-1755189118414-14c8dacdb082?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBkb2N0b3IlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzAxMDYxMTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        credentials: ["Board Certified", "ISHRS Member"],
-        yearsOfExperience: 18,
-        education: "Istanbul University Medical School",
-      },
-      {
-        name: "Dr. Ayşe Demir",
-        specialty: "Dermatologist & Hair Specialist",
-        photo:
-          "https://images.unsplash.com/photo-1632054224477-c9cb3aae1b7e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmZW1hbGUlMjBkb2N0b3IlMjBwcm9mZXNzaW9uYWx8ZW58MXx8fHwxNzcwMDYzNzQ5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-        credentials: ["Dermatology Board Certified", "Trichology Specialist"],
-        yearsOfExperience: 12,
-        education: "Hacettepe University",
-      },
-      {
-        name: "Dr. Can Öztürk",
-        specialty: "Cosmetic & Hair Surgeon",
-        photo:
-          "https://images.unsplash.com/photo-1758206523685-6e69f80a11ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxtZWRpY2FsJTIwcHJvZmVzc2lvbmFsfTIwbWFsZXxlbnwxfHx8fDE3NzAxNTQ5MTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        credentials: ["Board Certified Surgeon", "International Training"],
-        yearsOfExperience: 10,
-        education: "Ankara University Medical School",
-      },
-    ],
-    transparency: {
-      items: [
-        {
-          title: "Verified Medical Licenses",
-          description: "All physicians licensed by Turkish Ministry of Health",
-          verified: true,
-        },
-        {
-          title: "International Accreditations",
-          description: "JCI accredited facility with ISO 9001 certification",
-          verified: true,
-        },
-        {
-          title: "Hospital Affiliations",
-          description: "Partner agreements with major Istanbul hospitals",
-          verified: true,
-        },
-        {
-          title: "Clear Procedure Documentation",
-          description: "Detailed treatment protocols and informed consent processes",
-          verified: true,
-        },
-        {
-          title: "Before/After Case Transparency",
-          description: "Extensive photo documentation with patient consent",
-          verified: true,
-        },
-        {
-          title: "Published Outcomes Data",
-          description: "Regular reporting of success rates and patient satisfaction",
-          verified: true,
-        },
-      ],
-    },
-    aiInsights: [
-      "Strong documentation of surgical procedures with comprehensive pre-operative planning and post-operative care protocols.",
-      "Well-suited for patients seeking minimally invasive hair restoration options with FUE and DHI techniques.",
-      "High patient satisfaction scores in follow-up care, with dedicated support staff for international patients.",
-      "Advanced technology integration including microscopic graft preparation and sapphire blade techniques.",
-    ],
-    reviews: {
-      averageRating: 4.8,
-      totalReviews: 347,
-      communityTags: ["Helpful staff", "Clear communication", "Natural results", "Good aftercare"],
-      recentReviews: [
-        {
-          author: "James Mitchell",
-          rating: 5,
-          date: "January 15, 2026",
-          text: "Exceptional care from start to finish. Dr. Yilmaz took the time to explain every step of the procedure and the results exceeded my expectations. The staff was incredibly helpful with travel arrangements and translation.",
-          verified: true,
-        },
-        {
-          author: "Ahmed Al-Rahman",
-          rating: 5,
-          date: "January 8, 2026",
-          text: "Very professional clinic with modern facilities. The team speaks excellent English and Arabic which made communication easy. Follow-up care has been thorough and responsive.",
-          verified: true,
-        },
-        {
-          author: "Thomas Weber",
-          rating: 4,
-          date: "December 28, 2025",
-          text: "Great experience overall. The clinic is well-organized and the medical team is highly skilled. Would recommend for anyone considering hair restoration in Istanbul.",
-          verified: true,
-        },
-        {
-          author: "Maria Rodriguez",
-          rating: 5,
-          date: "January 20, 2026",
-          text: "Outstanding results and exceptional care throughout my journey. The staff was incredibly supportive, and Dr. Yilmaz took time to explain every step. The facilities are top-notch and the recovery process was smooth. Highly recommend this clinic!",
-          verified: true,
-        },
-      ],
-    },
-    communitySignals: {
-      posts: [
-        {
-          source: "google" as CommunityPostSource,
-          author: "Sarah Jenkins",
-          date: "2 days ago",
-          snippet:
-            "Rated 5/5 stars on Google Reviews. 'The best decision I ever made. Dr. Yilmaz is a true artist.' - Verified Google User",
-          url: "#",
-        },
-        {
-          source: "reddit" as CommunityPostSource,
-          author: "HairLossGuy99",
-          date: "5 days ago",
-          snippet:
-            "Anyone hear about Istanbul Hair Center? I saw their results on IG and they look legit. Just wondering if anyone has personal experience?",
-          url: "#",
-        },
-        {
-          source: "facebook" as CommunityPostSource,
-          author: "David Chen",
-          date: "1 week ago",
-          snippet:
-            "Just joined the Istanbul Hair Transplant Support Group. Lots of positive feedback about this clinic. Someone shared their 6-month progress pics and they look amazing.",
-          url: "#",
-        },
-        {
-          source: "youtube" as CommunityPostSource,
-          author: "TravelWithTom",
-          date: "10 days ago",
-          snippet:
-            "New Vlog Report: 'My Hair Transplant Journey in Turkey'. Vlogger 'TravelWithTom' visits Istanbul Hair Center and documents the entire process.",
-          url: "#",
-        },
-        {
-          source: "forums" as CommunityPostSource,
-          author: "FUE_Veteran",
-          date: "2 weeks ago",
-          snippet:
-            "Thread on HairRestorationNetwork: 'Dr. Yilmaz - Istanbul Hair Center - 3500 Grafts FUE'. Detailed patient log with daily photos.",
-          url: "#",
-        },
-        {
-          source: "instagram" as CommunityPostSource,
-          author: "michael.t",
-          date: "3 weeks ago",
-          snippet:
-            "Amazing transformation! 8 months post-op and couldn't be happier. Thank you to the entire team @istanbulhaircenter. #hairtransplant #istanbul",
-          url: "#",
-        },
-      ],
-      summary: {
-        totalMentions: 142,
-        sentiment: "Positive" as CommunitySentiment,
-        commonThemes: ["Clear pricing", "Professional communication", "Quality aftercare"],
-      },
-    },
-    location: {
-      address: "Halaskargazi Cad. No: 124, Şişli, Istanbul 34371, Turkey",
-      mapImageUrl:
-        "https://images.unsplash.com/photo-1687325599804-b770b48dfc5b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpc3RhbmJ1bCUyMG1hcCUyMHN0cmVldCUyMGNpdHl8ZW58MXx8fHwxNzcwMzM2OTcxfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      lat: 41.0528,
-      lng: 28.9859,
-      openingHours: [
-        { day: "Monday - Friday", hours: "9:00 AM - 6:00 PM" },
-        { day: "Saturday", hours: "9:00 AM - 3:00 PM" },
-        { day: "Sunday", hours: "Closed" },
-      ],
-      languages: ["English", "Turkish", "Arabic", "German", "Russian"],
-      paymentMethods: ["Credit Card", "Bank Transfer", "Cash", "Cryptocurrency"],
-      services: {
-        accommodation: true,
-        airportTransfer: true,
-      },
+    { positive: 0, negative: 0, neutral: 0 }
+  )
+
+  const overallSentiment: CommunitySentiment =
+    sentimentCounts.positive > sentimentCounts.negative
+      ? "Positive"
+      : sentimentCounts.negative > sentimentCounts.positive
+        ? "Negative"
+        : "Neutral"
+
+  const commonThemes = posts
+    .map((post) => topicLabels[post.topic] ?? "Other")
+    .filter((value, index, self) => self.indexOf(value) === index)
+    .slice(0, 3)
+
+  const communitySignals = {
+    posts: posts.map((post) => ({
+      source: post.source,
+      author: post.author,
+      date: post.date,
+      snippet: post.snippet,
+      url: post.url,
+    })),
+    summary: {
+      totalMentions: posts.length,
+      sentiment: overallSentiment,
+      commonThemes, // No fake fallback
     },
   }
 
@@ -231,13 +200,12 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
     <div className="min-h-screen bg-background text-base antialiased">
       {/* Hero Section */}
       <HeroSection
-        clinicName={clinicData.name}
-        location={clinicData.locationLabel}
-        images={clinicData.images}
-        transparencyScore={clinicData.transparencyScore}
-        rating={clinicData.rating}
-        reviewCount={clinicData.reviewCount}
-        specialties={clinicData.overview.specialties}
+        clinicName={clinic.name}
+        location={clinic.location}
+        images={heroImages}
+        transparencyScore={clinic.trustScore}
+        rating={clinic.rating ?? null}
+        reviewCount={clinic.reviews.length}
       />
 
       {/* Section Navigation */}
@@ -249,62 +217,63 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
           {/* Main Content Column */}
           <div className="space-y-6 lg:col-span-2">
             <OverviewSection
-              specialties={clinicData.overview.specialties}
-              yearsInOperation={clinicData.overview.yearsInOperation}
-              proceduresPerformed={clinicData.overview.proceduresPerformed}
-              languages={clinicData.overview.languages}
-              description={clinicData.overview.description}
+              specialties={specialties}
+              yearsInOperation={yearsInOperation}
+              proceduresPerformed={proceduresPerformed}
+              languages={languages}
+              description={clinic.description}
             />
 
-            <DoctorsSection doctors={clinicData.doctors} />
+            <PricingSection pricing={clinic.pricing} />
+
+            <PackagesSection packages={clinic.packages} />
+
+            {doctors.length > 0 && <DoctorsSection doctors={doctors} />}
 
             <TransparencySection
-              transparencyScore={clinicData.transparencyScore}
-              items={clinicData.transparency.items}
+              transparencyScore={clinic.trustScore}
+              items={transparencyItems}
             />
 
-            <AIInsightsSection insights={clinicData.aiInsights} />
+            <AIInsightsSection insights={aiInsights} />
           </div>
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <SummarySidebar
-              transparencyScore={clinicData.transparencyScore}
-              topSpecialties={clinicData.overview.specialties.slice(0, 3)}
-              rating={clinicData.rating}
-              reviewCount={clinicData.reviewCount}
+              transparencyScore={clinic.trustScore}
+              topSpecialties={specialties.slice(0, 3)}
+              rating={clinic.rating ?? null}
+              reviewCount={clinic.reviews.length}
             />
           </div>
         </div>
 
-        {/* Full Width Sections (Reviews, Community, Location) */}
-        {/* The sidebar will stop being sticky relative to these sections because they are outside the grid container */}
+        {/* Full Width Sections */}
         <div className="mt-12 space-y-12 w-full">
           <ReviewsSection
-            averageRating={clinicData.reviews.averageRating}
-            totalReviews={clinicData.reviews.totalReviews}
-            reviews={clinicData.reviews.recentReviews}
-            communityTags={clinicData.reviews.communityTags}
+            averageRating={clinic.rating ?? null}
+            totalReviews={clinic.reviews.length}
+            reviews={recentReviews}
+            communityTags={communityTags}
           />
 
           <CommunitySignalsSection
-            posts={clinicData.communitySignals.posts}
-            summary={clinicData.communitySignals.summary}
+            posts={communitySignals.posts}
+            summary={communitySignals.summary}
           />
 
           <LocationInfoSection
-            address={clinicData.location.address}
-            mapImageUrl={clinicData.location.mapImageUrl}
-            lat={clinicData.location.lat}
-            lng={clinicData.location.lng}
-            openingHours={clinicData.location.openingHours}
-            languages={clinicData.location.languages}
-            paymentMethods={clinicData.location.paymentMethods}
-            services={clinicData.location.services}
+            address={primaryLocation?.address_line || clinic.location}
+            lat={primaryLocation?.latitude ?? null}
+            lng={primaryLocation?.longitude ?? null}
+            openingHours={openingHours}
+            languages={languages}
+            paymentMethods={paymentMethods}
+            services={services}
           />
         </div>
       </div>
     </div>
   )
 }
-

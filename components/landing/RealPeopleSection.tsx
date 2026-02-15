@@ -128,7 +128,6 @@ export default function RealPeopleSection() {
     useEffect(() => {
         if (!carouselApi) return;
         carouselApi.scrollTo(0);
-        setActiveIndex(0);
         startAutoplay();
     }, [carouselApi, startAutoplay, totalSlides]);
 

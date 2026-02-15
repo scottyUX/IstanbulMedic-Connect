@@ -2,16 +2,86 @@
 
 This document analyzes how the backend database schema aligns with the current frontend implementation and outlines the changes needed for integration.
 
+**Last Updated:** February 2026
+**Backend Branch:** `backendstart`
+**Migration File:** `supabase/migrations/20260210211529_create_initial_tables.sql`
+
 ---
 
 ## Table of Contents
 
-1. [Alignment Overview](#alignment-overview)
-2. [Detailed Field Mapping](#detailed-field-mapping)
-3. [Frontend Type Definitions](#frontend-type-definitions)
-4. [API Response Types](#api-response-types)
-5. [Filter State Alignment](#filter-state-alignment)
-6. [Summary & Recommendations](#summary--recommendations)
+1. [Actual Backend Schema](#actual-backend-schema) ✨ NEW
+2. [Alignment Overview](#alignment-overview)
+3. [Detailed Field Mapping](#detailed-field-mapping)
+4. [Frontend Type Definitions](#frontend-type-definitions)
+5. [API Response Types](#api-response-types)
+6. [Filter State Alignment](#filter-state-alignment)
+7. [Summary & Recommendations](#summary--recommendations)
+
+---
+
+## Actual Backend Schema
+
+The backend team has implemented the full schema. Here are the actual ENUMs and tables:
+
+### ENUMs Defined
+
+```sql
+-- Clinic Status
+CREATE TYPE clinic_status AS ENUM ('active', 'inactive', 'under_review');
+
+-- Services
+CREATE TYPE clinic_service_category AS ENUM ('Medical Tourism', 'Cosmetic', 'Dental', 'Other');
+CREATE TYPE clinic_service_name AS ENUM ('Hair Transplant', 'Rhinoplasty', 'Other');
+
+-- Pricing
+CREATE TYPE clinic_pricing_type AS ENUM ('range', 'fixed', 'quote_only');
+
+-- Team
+CREATE TYPE clinic_roles AS ENUM ('medical_director', 'surgeon', 'coordinator', 'translator', 'nurse', 'doctor', 'other');
+CREATE TYPE doctor_involvement_levels AS ENUM ('high', 'medium', 'low');
+
+-- Credentials
+CREATE TYPE clinic_credential_types AS ENUM ('license', 'accreditation', 'membership', 'registry_id', 'other');
+
+-- Languages
+CREATE TYPE clinic_language_support_types AS ENUM ('staff', 'translator', 'on_request');
+CREATE TYPE clinic_language_types AS ENUM (
+  'English', 'Arabic', 'Spanish', 'Russian', 'French', 'Portuguese',
+  'Hungarian', 'Italian', 'German', 'Polish', 'Ukranian', 'Dutch',
+  'Romanian', 'Hindi', 'Mandarin Chinese', 'Urdu', 'Bengali'
+);
+
+-- Evidence Layer
+CREATE TYPE source_type_enum AS ENUM (
+  'clinic_website', 'registry', 'review_platform', 'forum', 'reddit',
+  'quora', 'social_media', 'mystery_inquiry', 'internal_note'
+);
+CREATE TYPE doc_type_enum AS ENUM ('html', 'pdf', 'post', 'comment', 'review');
+CREATE TYPE value_type_enum AS ENUM ('string', 'number', 'bool', 'json');
+CREATE TYPE computed_by_enum AS ENUM ('extractor', 'human', 'inquiry', 'model');
+
+-- Mentions
+CREATE TYPE mention_topic_enum AS ENUM (
+  'pricing', 'results', 'staff', 'logistics', 'complaint', 'praise',
+  'bait_and_switch', 'coordinator_behavior', 'response_time',
+  'package_accuracy', 'before_after'
+);
+CREATE TYPE sentiment_enum AS ENUM ('negative', 'neutral', 'positive');
+
+-- Scores
+CREATE TYPE score_band_enum AS ENUM ('A', 'B', 'C', 'D');
+```
+
+### Key Schema Differences from Original Plan
+
+| Original Plan | Actual Implementation | Notes |
+|---------------|----------------------|-------|
+| `ServiceCategory` had 5 values | 4 values: `Medical Tourism`, `Cosmetic`, `Dental`, `Other` | Simpler categorization |
+| Languages had ~10 options | 17 languages supported | More comprehensive |
+| Team roles not defined | 7 roles: `medical_director`, `surgeon`, `coordinator`, etc. | Well-structured |
+| Evidence layer theoretical | Fully implemented with `sources`, `source_documents`, `clinic_facts`, `fact_evidence` | Excellent provenance tracking |
+| `clinic_media` requested | ✅ Created with `media_type` CHECK constraint | Supports `image`, `video`, `before_after`, `certificate` |
 
 ---
 
@@ -30,6 +100,7 @@ This document analyzes how the backend database schema aligns with the current f
 | `clinic_reviews` | `reviews` (inline) | ⚠️ Needs source linkage |
 | `clinic_mentions` | `communitySignals.posts` | ⚠️ Close, needs topics |
 | `clinic_scores` | `trustScore: number` | ⚠️ Needs components |
+| `clinic_media` | images in profile | ⚠️ Needs integration |
 | `sources` / `clinic_facts` / `fact_evidence` | Not present | ❌ Missing entirely |
 
 ### Legend
@@ -338,19 +409,25 @@ export interface ClinicLocation {
 ```typescript
 // types/service.ts
 
+// Matches: clinic_service_category ENUM
 export type ServiceCategory =
-  | 'Hair Transplant'
+  | 'Medical Tourism'
+  | 'Cosmetic'
   | 'Dental'
-  | 'Cosmetic Surgery'
-  | 'Eye Surgery'
-  | 'Bariatric Surgery'
+  | 'Other'
+
+// Matches: clinic_service_name ENUM
+export type ServiceName =
+  | 'Hair Transplant'
+  | 'Rhinoplasty'
+  | 'Other'
 
 export interface ClinicService {
   id: string
   clinicId: string
-  category: ServiceCategory
-  serviceName: string
-  isPrimary: boolean
+  serviceCategory: ServiceCategory
+  serviceName: ServiceName
+  isPrimaryService: boolean
 }
 ```
 
@@ -401,19 +478,27 @@ export interface ClinicPricing {
 ```typescript
 // types/team.ts
 
-export type TeamRole = 'medical_director' | 'surgeon' | 'coordinator' | 'translator'
-export type InvolvementLevel = 'high' | 'medium' | 'low' | 'unknown'
+// Matches: clinic_roles ENUM
+export type TeamRole =
+  | 'medical_director'
+  | 'surgeon'
+  | 'coordinator'
+  | 'translator'
+  | 'nurse'
+  | 'doctor'
+  | 'other'
+
+// Matches: doctor_involvement_levels ENUM
+export type InvolvementLevel = 'high' | 'medium' | 'low'
 
 export interface ClinicTeamMember {
   id: string
   clinicId: string
   role: TeamRole
   name?: string
-  credentials: string[]
+  credentials: string  // Note: backend stores as TEXT, not array
   yearsExperience?: number
-  education?: string
-  photo?: string
-  doctorInvolvementLevel: InvolvementLevel  // important comparison field
+  doctorInvolvementLevel: InvolvementLevel
 }
 ```
 
@@ -422,17 +507,23 @@ export interface ClinicTeamMember {
 ```typescript
 // types/credential.ts
 
-export type CredentialType = 'license' | 'accreditation' | 'membership' | 'registry_id'
+// Matches: clinic_credential_types ENUM
+export type CredentialType =
+  | 'license'
+  | 'accreditation'
+  | 'membership'
+  | 'registry_id'
+  | 'other'
 
 export interface ClinicCredential {
   id: string
   clinicId: string
   credentialType: CredentialType
   credentialName: string
-  credentialId?: string
+  credentialId?: number  // Note: backend uses bigint
   issuingBody?: string
-  validFrom?: string
-  validTo?: string
+  validFrom?: string  // date
+  validTo?: string    // date, nullable (some credentials don't expire)
 }
 ```
 
@@ -441,12 +532,27 @@ export interface ClinicCredential {
 ```typescript
 // types/language.ts
 
+// Matches: clinic_language_types ENUM (17 languages)
 export type Language =
-  | 'English' | 'Arabic' | 'Spanish' | 'Russian' | 'French'
-  | 'Portuguese' | 'Hungarian' | 'Italian' | 'German' | 'Polish'
-  | 'Ukrainian' | 'Dutch' | 'Romanian' | 'Hindi' | 'Mandarin Chinese'
-  | 'Urdu' | 'Bengali' | 'Turkish'
+  | 'English'
+  | 'Arabic'
+  | 'Spanish'
+  | 'Russian'
+  | 'French'
+  | 'Portuguese'
+  | 'Hungarian'
+  | 'Italian'
+  | 'German'
+  | 'Polish'
+  | 'Ukranian'  // Note: Backend spelling is "Ukranian" not "Ukrainian"
+  | 'Dutch'
+  | 'Romanian'
+  | 'Hindi'
+  | 'Mandarin Chinese'
+  | 'Urdu'
+  | 'Bengali'
 
+// Matches: clinic_language_support_types ENUM
 export type LanguageSupportType = 'staff' | 'translator' | 'on_request'
 
 export interface ClinicLanguage {
@@ -480,6 +586,7 @@ export interface ClinicReview {
 ```typescript
 // types/mention.ts
 
+// Matches: mention_topic_enum ENUM
 export type MentionTopic =
   | 'pricing'
   | 'results'
@@ -493,19 +600,18 @@ export type MentionTopic =
   | 'package_accuracy'
   | 'before_after'
 
+// Matches: sentiment_enum ENUM
 export type Sentiment = 'negative' | 'neutral' | 'positive'
 
 export interface ClinicMention {
   id: string
-  clinicId?: string
+  clinicId?: string  // nullable - mention might reference clinic without being linked
   sourceId: string
-  source?: Source  // joined for display
+  source?: Source    // joined for display
   mentionText: string
-  topic: MentionTopic  // enables filtering by topic
+  topic: MentionTopic
   sentiment?: Sentiment
-  authorHandle?: string
   createdAt: string
-  url?: string
 }
 ```
 
@@ -541,6 +647,7 @@ export interface ClinicScore {
 ```typescript
 // types/evidence.ts
 
+// Matches: source_type_enum ENUM
 export type SourceType =
   | 'clinic_website'
   | 'registry'
@@ -552,24 +659,31 @@ export type SourceType =
   | 'mystery_inquiry'
   | 'internal_note'
 
+// Matches: doc_type_enum ENUM
+export type DocType = 'html' | 'pdf' | 'post' | 'comment' | 'review'
+
+// Matches: value_type_enum ENUM
+export type ValueType = 'string' | 'number' | 'bool' | 'json'
+
+// Matches: computed_by_enum ENUM
 export type ComputedBy = 'extractor' | 'human' | 'inquiry' | 'model'
 
 export interface Source {
   id: string
   sourceType: SourceType
-  sourceName: string  // e.g., "Clinic Website", "Reddit", "Google Reviews"
+  sourceName: string
   url?: string
   capturedAt: string
   authorHandle?: string
-  contentHash?: string
+  contentHash?: string  // unique constraint for deduplication
 }
 
 export interface SourceDocument {
   id: string
   sourceId: string
-  docType: 'html' | 'pdf' | 'post' | 'comment' | 'review'
+  docType: DocType
   title?: string
-  rawText?: string
+  rawText: string
   language?: string
   publishedAt?: string
 }
@@ -581,25 +695,21 @@ export interface FactEvidence {
   sourceDocument?: SourceDocument  // joined
   source?: Source                   // joined through sourceDocument
   evidenceSnippet?: string
-  evidenceLocator?: {
-    pageNumber?: number
-    paragraphIndex?: number
-    [key: string]: unknown
-  }
+  evidenceLocator?: Record<string, unknown>  // jsonb
 }
 
 export interface ClinicFact {
   id: string
   clinicId: string
-  factKey: string       // e.g., 'pricing.hair_transplant_min', 'package.hotel_included'
-  factValue: unknown    // jsonb - string | number | boolean | object
-  valueType: 'string' | 'number' | 'boolean' | 'json'
-  confidence: number    // 0.0-1.0
+  factKey: string
+  factValue: unknown    // jsonb
+  valueType: ValueType
+  confidence: number    // 0.0-1.0 (has CHECK constraint)
   computedBy: ComputedBy
   firstSeenAt: string
   lastSeenAt: string
   isConflicting: boolean
-  evidence: FactEvidence[]
+  evidence?: FactEvidence[]  // joined
 }
 ```
 

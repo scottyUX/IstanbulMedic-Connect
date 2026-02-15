@@ -1073,7 +1073,7 @@ export default function DesignSystemPage() {
             <CardDescription>Icon button styles used in the app</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">Component: <code className="bg-muted px-2 py-1 rounded">Button</code> with <code className="bg-muted px-2 py-1 rounded">size="icon"</code></p>
+            <p className="text-sm text-muted-foreground mb-4">Component: <code className="bg-muted px-2 py-1 rounded">Button</code> with <code className="bg-muted px-2 py-1 rounded">size=&quot;icon&quot;</code></p>
             <div className="flex flex-wrap gap-4 items-center">
               <Button size="icon" className="bg-[#17375B] hover:bg-[#17375B]/90 text-white rounded-full h-10 w-10">
                 <Search className="h-4 w-4 stroke-[3px]" />
@@ -1433,8 +1433,8 @@ export default function DesignSystemPage() {
                 </div>
                 
                 <p className="im-text-body-xs im-text-muted mt-4">
-                  Note: TopNav includes "Book Consultation" as the primary CTA button (teal-primary variant) 
-                  and "Talk to Leila" as a secondary link button. Both are visible on desktop view.
+                  Note: TopNav includes &quot;Book Consultation&quot; as the primary CTA button (teal-primary variant) 
+                  and &quot;Talk to Leila&quot; as a secondary link button. Both are visible on desktop view.
                 </p>
               </div>
             </div>
@@ -1506,7 +1506,7 @@ export default function DesignSystemPage() {
                   <p style={{ fontFamily: "var(--im-font-script), cursive" }} className="text-2xl text-[#3EBBB7] font-bold">
                     Connect
                   </p>
-                  <p className="im-text-body-xs im-text-muted mt-1">Weights: 400, 500, 600, 700 - Used for "Connect" in logo</p>
+                  <p className="im-text-body-xs im-text-muted mt-1">Weights: 400, 500, 600, 700 - Used for &quot;Connect&quot; in logo</p>
                 </div>
               </div>
             </div>

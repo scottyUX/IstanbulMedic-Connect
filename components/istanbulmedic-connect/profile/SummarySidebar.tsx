@@ -22,7 +22,7 @@ import { CONSULTATION_LINK } from "@/lib/constants"
 interface SummarySidebarProps {
   transparencyScore: number
   topSpecialties: string[]
-  rating: number
+  rating: number | null
   reviewCount: number
   priceEstimate?: string
   consultationFee?: string
