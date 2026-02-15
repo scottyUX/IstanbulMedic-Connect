@@ -14,7 +14,7 @@ CREATE TYPE computed_by_enum AS ENUM ('extractor', 'human', 'inquiry', 'model');
 CREATE TYPE mention_topic_enum AS ENUM ('pricing', 'results', 'staff', 'logistics', 'complaint', 'praise', 'bait_and_switch', 'coordinator_behavior', 'response_time', 'package_accuracy', 'before_after');
 CREATE TYPE sentiment_enum AS ENUM ('negative', 'neutral', 'positive');
 CREATE TYPE score_band_enum AS ENUM ('A', 'B', 'C', 'D');
-
+CREATE TYPE social_platform_enum AS ENUM ('instagram', 'tiktok', 'x', 'reddit', 'youtube', 'facebook');
 
 create table public.clinics (
   id uuid not null default gen_random_uuid (),
@@ -173,7 +173,8 @@ create table public.clinic_facts (
   is_conflicting boolean not null,
   constraint clinic_facts_pkey primary key (id),
   constraint clinic_facts_clinic_id_fkey foreign KEY (clinic_id) references clinics (id) on delete CASCADE,
-  constraint clinic_facts_confidence_check check (confidence >= 0.0 AND confidence <= 1.0)
+  constraint clinic_facts_confidence_check check (confidence >= 0.0 AND confidence <= 1.0),
+  constraint clinic_facts_clinic_id_fact_key_unique UNIQUE (clinic_id, fact_key) --ensure upsert works
 ) TABLESPACE pg_default;
 
 
@@ -257,11 +258,31 @@ CREATE TABLE clinic_media (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE TABLE clinic_social_media (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_id uuid NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,                    -- Which clinic owns this account
+  platform social_platform_enum NOT NULL,     -- instagram, tiktok, youtube, etc.
+  account_handle varchar NOT NULL,            -- e.g., "istanbulmedic"
+  follower_count bigint,                      -- How many followers
+  verified boolean DEFAULT false,             -- Blue checkmark?
+  last_checked_at timestamp,                  -- When we last updated this
+  created_at timestamp with time zone DEFAULT (now() AT TIME ZONE 'utc'::text),
+  UNIQUE(clinic_id, platform, account_handle) -- One record per account
+);
 
 CREATE INDEX idx_clinic_media_clinic_id ON clinic_media(clinic_id);
 CREATE UNIQUE INDEX idx_clinic_media_primary
   ON clinic_media(clinic_id)
   WHERE is_primary = true;
+-- Indexes for clinic_social_media
+CREATE INDEX idx_clinic_social_media_clinic_id ON clinic_social_media(clinic_id);
+CREATE INDEX idx_clinic_social_media_platform ON clinic_social_media(platform);
+CREATE INDEX idx_clinic_social_media_follower_count ON clinic_social_media(follower_count);
+
+-- Indexes for clinic_facts (already mentioned but not in schema)
+CREATE INDEX idx_clinic_facts_clinic_id ON clinic_facts(clinic_id);
+CREATE INDEX idx_clinic_facts_fact_key ON clinic_facts(fact_key);
+CREATE INDEX idx_clinic_facts_clinic_key ON clinic_facts(clinic_id, fact_key);
 
 ALTER TABLE clinic_pricing ADD CONSTRAINT clinic_pricing_source_id_fkey foreign key (source_id) references sources (id) on delete set null;
 
@@ -273,3 +294,5 @@ ALTER TABLE clinic_pricing ADD CONSTRAINT clinic_pricing_source_id_fkey foreign 
 -- ALTER TABLE clinic_languages ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE clinic_services ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE clinic_credentials ENABLE ROW LEVEL SECURITY;
+
+
