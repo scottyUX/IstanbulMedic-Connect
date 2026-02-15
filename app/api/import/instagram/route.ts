@@ -51,6 +51,19 @@ interface InstagramClaimsData {
     }
   }
 }
+interface ClinicFact {
+  id: string
+  clinic_id: string
+  fact_key: string
+  fact_value: any
+  value_type: string
+  confidence: number
+  computed_by: string
+  is_conflicting: boolean
+  first_seen_at: string
+  last_seen_at: string
+}
+
 
 export async function POST(request: Request) {
   try {
@@ -265,13 +278,11 @@ export async function POST(request: Request) {
     }
 
     // Insert all facts
+    // Insert all facts using the function
     const { data: insertedFacts, error: factsError } = await supabase
-      .from('clinic_facts')
-      .upsert(facts, {
-        onConflict: 'clinic_id,fact_key',
-        ignoreDuplicates: false
+      .rpc('upsert_clinic_facts', {
+        facts_data: facts
       })
-      .select()
 
     if (factsError) throw factsError
     results.facts = insertedFacts
@@ -279,7 +290,7 @@ export async function POST(request: Request) {
     // ============================================
     // 5. LINK EVIDENCE TO FACTS
     // ============================================
-    const evidenceRecords = insertedFacts?.map(fact => ({
+    const evidenceRecords = insertedFacts?.map((fact: ClinicFact) => ({
       clinic_fact_id: fact.id,
       source_document_id: document.id,
       evidence_snippet: getEvidenceSnippet(fact.fact_key, instagramData),
