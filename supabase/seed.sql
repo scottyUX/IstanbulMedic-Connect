@@ -245,8 +245,78 @@ VALUES
 -- ============================================
 
 INSERT INTO clinic_scores (clinic_id, overall_score, band, version)
-VALUES 
+VALUES
   ('550e8400-e29b-41d4-a716-446655440001', 90, 'A', 'v1.0'),
   ('550e8400-e29b-41d4-a716-446655440002', 86, 'B', 'v1.0'),
   ('550e8400-e29b-41d4-a716-446655440003', 72, 'C', 'v1.0'),
   ('550e8400-e29b-41d4-a716-446655440004', 78, 'B', 'v1.0');
+
+-- ============================================
+-- ADDITIONAL SOURCES FOR MEDIA TRACKING
+-- ============================================
+
+INSERT INTO sources (id, source_type, source_name, url, author_handle, content_hash)
+VALUES
+  ('650e8400-e29b-41d4-a716-446655440008', 'clinic_website', 'Bodrum Aesthetic Media Gallery', 'https://bodrumaesthetic.com/gallery', NULL, 'hash_ba_gallery_001'),
+  ('650e8400-e29b-41d4-a716-446655440009', 'clinic_website', 'Izmir Cosmetic Instagram Bio Link', 'https://linktr.ee/izmircosmetic', NULL, 'hash_ic_linktree_001'),
+  ('650e8400-e29b-41d4-a716-446655440010', 'social_media', 'YouTube', 'https://youtube.com/@IstanbulHairMastersTurkey', 'IstanbulHairMastersTurkey', 'hash_yt_ihm_001');
+
+-- ============================================
+-- CLINIC SOCIAL MEDIA
+-- ============================================
+
+INSERT INTO clinic_social_media (clinic_id, platform, account_handle, follower_count, verified, last_checked_at)
+VALUES
+  -- Istanbul Hair Masters (550e8400-e29b-41d4-a716-446655440001)
+  ('550e8400-e29b-41d4-a716-446655440001', 'instagram', 'istanbulhairmasters', 45000, true, '2025-02-10 15:30:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'youtube', 'IstanbulHairMastersTurkey', 12000, false, '2025-02-10 15:30:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'facebook', 'istanbulhairmasters', 8500, false, '2025-02-10 15:30:00+00'),
+
+  -- Ankara Smile Dental Clinic (550e8400-e29b-41d4-a716-446655440002)
+  ('550e8400-e29b-41d4-a716-446655440002', 'instagram', 'ankarasmiledental', 28000, false, '2025-02-09 10:15:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'youtube', 'AnkaraSmileDentalClinic', 6800, false, '2025-02-09 10:15:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'tiktok', 'ankarasmiledental', 15000, false, '2025-02-09 10:15:00+00'),
+
+  -- Bodrum Aesthetic Surgery (550e8400-e29b-41d4-a716-446655440003)
+  ('550e8400-e29b-41d4-a716-446655440003', 'instagram', 'bodrumaesthetic', 38000, true, '2025-02-08 14:20:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'tiktok', 'bodrumaesthetic', 22000, false, '2025-02-08 14:20:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'youtube', 'BodrumAestheticSurgery', 4200, false, '2025-02-08 14:20:00+00'),
+
+  -- Izmir Cosmetic Center (550e8400-e29b-41d4-a716-446655440004)
+  ('550e8400-e29b-41d4-a716-446655440004', 'instagram', 'izmircosmetic', 19000, false, '2025-02-07 09:45:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'facebook', 'izmircosmetic', 5300, false, '2025-02-07 09:45:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'youtube', 'IzmirCosmeticCenter', 2100, false, '2025-02-07 09:45:00+00');
+
+-- ============================================
+-- CLINIC MEDIA
+-- ============================================
+
+INSERT INTO clinic_media (clinic_id, media_type, url, alt_text, caption, is_primary, display_order, source_id, uploaded_at)
+VALUES
+  -- Istanbul Hair Masters (550e8400-e29b-41d4-a716-446655440001) - 6 items
+  ('550e8400-e29b-41d4-a716-446655440001', 'image', 'https://images.istanbulhairmasters.com/facility-exterior.jpg', 'Istanbul Hair Masters clinic exterior in Nisantasi district', 'Our state-of-the-art facility in the heart of Istanbul', true, 1, '650e8400-e29b-41d4-a716-446655440001', '2024-11-15 10:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'before_after', 'https://images.istanbulhairmasters.com/results/fue-3500-grafts-ba.jpg', 'Before and after FUE hair transplant 3500 grafts', '8 months post-procedure - 3500 grafts FUE technique', false, 2, '650e8400-e29b-41d4-a716-446655440007', '2024-12-01 14:30:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'before_after', 'https://images.istanbulhairmasters.com/results/dhi-4000-grafts-ba.jpg', 'Before and after DHI hair transplant 4000 grafts', '12 months post-procedure - DHI premium technique', false, 3, '650e8400-e29b-41d4-a716-446655440007', '2025-01-10 09:15:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'certificate', 'https://images.istanbulhairmasters.com/certificates/jci-accreditation.pdf', 'JCI Accreditation Certificate 2023-2026', 'Joint Commission International Accreditation', false, 4, '650e8400-e29b-41d4-a716-446655440001', '2023-01-20 08:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'video', 'https://videos.istanbulhairmasters.com/facility-tour.mp4', 'Virtual tour of Istanbul Hair Masters facility', 'Take a virtual tour of our clinic and meet our team', false, 5, '650e8400-e29b-41d4-a716-446655440001', '2024-10-05 12:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'image', 'https://images.istanbulhairmasters.com/team/dr-mehmet-yilmaz.jpg', 'Dr. Mehmet Yilmaz, Medical Director', 'Our Medical Director, Dr. Mehmet Yilmaz - 15 years experience', false, 6, '650e8400-e29b-41d4-a716-446655440001', '2024-09-12 11:00:00+00'),
+
+  -- Ankara Smile Dental Clinic (550e8400-e29b-41d4-a716-446655440002) - 5 items
+  ('550e8400-e29b-41d4-a716-446655440002', 'image', 'https://images.ankarasmiledental.com/clinic-reception.jpg', 'Modern reception area at Ankara Smile Dental Clinic', 'Welcome to Ankara Smile - your dental tourism destination', true, 1, '650e8400-e29b-41d4-a716-446655440005', '2024-10-20 09:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'before_after', 'https://images.ankarasmiledental.com/results/all-on-4-patient-1.jpg', 'Before and after All-on-4 dental implants', 'Complete smile transformation with All-on-4 implants', false, 2, '650e8400-e29b-41d4-a716-446655440004', '2024-12-15 13:20:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'before_after', 'https://images.ankarasmiledental.com/results/veneers-smile-makeover.jpg', 'Before and after porcelain veneers smile makeover', 'Hollywood smile makeover with premium veneers', false, 3, '650e8400-e29b-41d4-a716-446655440004', '2025-01-08 10:45:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'image', 'https://images.ankarasmiledental.com/equipment/digital-scanner.jpg', 'State-of-the-art digital dental scanner', 'Latest technology for precise dental work', false, 4, '650e8400-e29b-41d4-a716-446655440005', '2024-11-03 14:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'certificate', 'https://images.ankarasmiledental.com/certificates/tda-membership.pdf', 'Turkish Dental Association Membership Certificate', 'Member of Turkish Dental Association since 2018', false, 5, '650e8400-e29b-41d4-a716-446655440005', '2018-05-25 08:00:00+00'),
+
+  -- Bodrum Aesthetic Surgery (550e8400-e29b-41d4-a716-446655440003) - 5 items
+  ('550e8400-e29b-41d4-a716-446655440003', 'image', 'https://images.bodrumaesthetic.com/clinic-exterior-beach.jpg', 'Bodrum Aesthetic Surgery clinic near the beach', 'Combine your aesthetic journey with a beautiful vacation', true, 1, '650e8400-e29b-41d4-a716-446655440008', '2024-09-15 11:30:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'before_after', 'https://images.bodrumaesthetic.com/results/rhinoplasty-patient-3.jpg', 'Before and after rhinoplasty procedure', 'Natural-looking rhinoplasty results by Dr. Can Yildirim', false, 2, '650e8400-e29b-41d4-a716-446655440008', '2024-11-28 15:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'before_after', 'https://images.bodrumaesthetic.com/results/breast-augmentation-1.jpg', 'Before and after breast augmentation', 'Breast augmentation with natural results', false, 3, '650e8400-e29b-41d4-a716-446655440008', '2024-12-20 09:30:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'video', 'https://videos.bodrumaesthetic.com/patient-testimonial-en.mp4', 'Patient testimonial video - English speaking patient', 'Hear from our satisfied international patients', false, 4, '650e8400-e29b-41d4-a716-446655440008', '2025-01-05 12:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'certificate', 'https://images.bodrumaesthetic.com/certificates/tsaps-membership.pdf', 'TSAPS Membership Certificate', 'Turkish Society of Aesthetic Plastic Surgeons member', false, 5, '650e8400-e29b-41d4-a716-446655440008', '2019-07-10 08:00:00+00'),
+
+  -- Izmir Cosmetic Center (550e8400-e29b-41d4-a716-446655440004) - 4 items
+  ('550e8400-e29b-41d4-a716-446655440004', 'image', 'https://images.izmircosmetic.com/clinic-treatment-room.jpg', 'Modern treatment room at Izmir Cosmetic Center', 'Advanced cosmetic procedures in a comfortable setting', true, 1, '650e8400-e29b-41d4-a716-446655440009', '2024-10-01 10:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'before_after', 'https://images.izmircosmetic.com/results/liposuction-abdomen.jpg', 'Before and after liposuction abdomen area', 'Effective body contouring with liposuction', false, 2, '650e8400-e29b-41d4-a716-446655440009', '2024-12-05 14:15:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'image', 'https://images.izmircosmetic.com/team-photo.jpg', 'Izmir Cosmetic Center medical team', 'Our experienced team of aesthetic specialists', false, 3, '650e8400-e29b-41d4-a716-446655440009', '2024-11-10 09:00:00+00'),
+  ('550e8400-e29b-41d4-a716-446655440004', 'image', 'https://images.izmircosmetic.com/recovery-lounge.jpg', 'Comfortable recovery lounge area', 'Relax in our post-procedure recovery area', false, 4, '650e8400-e29b-41d4-a716-446655440009', '2024-10-18 11:30:00+00');
