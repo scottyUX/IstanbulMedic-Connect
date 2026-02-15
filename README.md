@@ -103,7 +103,7 @@ gen-ui-playground/
   - SUPABASE_SERVICE_ROLE_KEY=sb_secret_....
   - DATABASE_URL=postgresql://postgres:postgres@...
 - Login to supabase using - supabase login
-- Link to the DB Scott made for us using - supabase link --project-ref ioofmlovhjvnnqvczeri
+- apply migrations(basis for schemas) and seed.sql(mock data) - supabase db reset
 
 
 
