@@ -138,7 +138,7 @@ type Translations = typeof translationsData;
 type LanguageCode = keyof Translations;
 
 // Simplified type for deep nested access
-type TranslateFn = (path: string) => string;
+type TranslateFn = (path: string) => string | Record<string, unknown>;
 
 type LanguageContextValue = {
   language: LanguageCode;
