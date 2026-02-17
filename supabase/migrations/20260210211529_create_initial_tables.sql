@@ -26,7 +26,7 @@ create table public.clinics (
   website_url text null,
   whatsapp_contact text null,
   email_contact text null,
-  phone_contact VARCHAR(20) null,
+  phone_contact VARCHAR(50) null,
   description text,
   short_description text,
   thumbnail_url text,
@@ -270,6 +270,21 @@ CREATE TABLE clinic_social_media (
   UNIQUE(clinic_id, platform, account_handle) -- One record per account
 );
 
+CREATE TABLE clinic_google_places (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_id uuid NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
+  place_id varchar NOT NULL,                      -- Google's unique place ID
+  rating numeric,                                 -- Current rating
+  user_ratings_total bigint,                      -- Total review count
+  last_checked_at timestamp with time zone,       -- When we last synced
+  created_at timestamp with time zone DEFAULT (now() AT TIME ZONE 'utc'::text),
+  updated_at timestamp with time zone DEFAULT (now() AT TIME ZONE 'utc'::text),
+  UNIQUE(clinic_id, place_id)                     -- One record per place
+);
+
+CREATE INDEX idx_clinic_google_places_clinic_id ON clinic_google_places(clinic_id);
+CREATE INDEX idx_clinic_google_places_place_id ON clinic_google_places(place_id);
+
 CREATE INDEX idx_clinic_media_clinic_id ON clinic_media(clinic_id);
 CREATE UNIQUE INDEX idx_clinic_media_primary
   ON clinic_media(clinic_id)
@@ -285,6 +300,16 @@ CREATE INDEX idx_clinic_facts_fact_key ON clinic_facts(fact_key);
 CREATE INDEX idx_clinic_facts_clinic_key ON clinic_facts(clinic_id, fact_key);
 
 ALTER TABLE clinic_pricing ADD CONSTRAINT clinic_pricing_source_id_fkey foreign key (source_id) references sources (id) on delete set null;
+
+-- Add unique constraint to prevent duplicate reviews
+ALTER TABLE clinic_reviews 
+ADD CONSTRAINT clinic_reviews_unique_review 
+UNIQUE (clinic_id, source_id, review_text, review_date);
+
+-- Add unique constraint to prevent duplicate media
+ALTER TABLE clinic_media 
+ADD CONSTRAINT clinic_media_unique_url 
+UNIQUE (clinic_id, url);
 
 -- ALTER TABLE clinics ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE clinic_team ENABLE ROW LEVEL SECURITY;
