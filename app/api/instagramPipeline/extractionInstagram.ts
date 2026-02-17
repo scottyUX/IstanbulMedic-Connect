@@ -177,6 +177,23 @@ export function extractInstagramClaims(rawData: InstagramProfileData[]) {
     }
   }
 
+  // Last 3 posts
+  const latestPosts = (profile.latestPosts ?? []).slice(0, 3).map((post: any) => ({
+    id: post.id ?? "",
+    type: post.type ?? "",
+    shortCode: post.shortCode ?? "",
+    url: post.url ?? "",
+    caption: post.caption ?? "",
+    hashtags: post.hashtags ?? [],
+    mentions: post.mentions ?? [],
+    likesCount: post.likesCount ?? 0,
+    commentsCount: post.commentsCount ?? 0,
+    timestamp: post.timestamp ?? "",
+    displayUrl: post.displayUrl ?? "",
+    alt: post.alt ?? "",
+    isCommentsDisabled: post.isCommentsDisabled ?? false,
+  }));
+
   return {
     instagram: {
       inputUrl: safeProfile.url,
@@ -236,6 +253,9 @@ export function extractInstagramClaims(rawData: InstagramProfileData[]) {
       geography: {
         claimed: geographyClaimed,
       },
+
+      // Latest 3 posts
+      latest_posts: latestPosts,
     },
   };
 }
