@@ -23,7 +23,10 @@ export default function Footer() {
   const t = useTranslations();
   const { language, setLanguage } = useLanguage();
 
-  const navLabels = t('footer.navigation') as unknown as Record<(typeof navLinks)[number]['labelKey'], string>;
+  const navLabels = t('footer.navigation') as unknown as Record<
+    (typeof navLinks)[number]['labelKey'],
+    string
+  >;
   const contact = t('footer.contact') as unknown as {
     heading: string;
     phone: string;

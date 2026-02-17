@@ -47,9 +47,19 @@ const weightClasses: Record<TextWeight, string> = {
   bold: "font-bold",
 }
 
+const headingTagMap = {
+  h1: "h1",
+  h2: "h2",
+  h3: "h3",
+  h4: "h4",
+  h5: "h5",
+  h6: "h6",
+  display: "h1",
+} as const
+
 export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
   ({ className, variant = "h2", as, weight, ...props }, ref) => {
-    const Component = as || variant
+    const Component = as || headingTagMap[variant]
     const baseClass = headingVariants[variant]
     
     const weightClass = weight === "normal" ? "font-normal" : 

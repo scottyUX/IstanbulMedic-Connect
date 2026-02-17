@@ -1,0 +1,51 @@
+---
+description: Clean code, atomic design, and component reusability standards
+globs: "**/*.tsx, **/components/**/*.ts"
+alwaysApply: false
+---
+
+# Code Quality Standards
+
+## 1. Clean Code
+
+- **Single responsibility** – One component/function per concern. Split large components into focused subcomponents.
+- **Small units** – Functions under ~30 lines; components under ~150 lines.
+- **Naming** – Descriptive names; avoid abbreviations.
+- **Avoid duplication** – Extract repeated logic into shared utils or hooks.
+
+```tsx
+// BAD: 300-line component doing layout + charts + metrics + engagement
+function InstagramSection({ data }) { /* ... */ }
+
+// GOOD: Split into focused subcomponents
+function InstagramSection({ data }) {
+  return (
+    <>
+      <KeyInsightsRow data={data} />
+      <ReportSection title="Audience"><InstagramMetricsRow data={data} /></ReportSection>
+      <EngagementSection data={data} />
+    </>
+  );
+}
+```
+
+## 2. Atomic Design
+
+See `components/ui/README.md` for taxonomy.
+
+| Level | Location | Examples |
+|-------|----------|----------|
+| Atoms | `ui/` | Button, Input, Badge, Typography |
+| Molecules | `ui/` | StatBlock, FeeLineItem, LineChartCard, ComparisonMetricBlock |
+| Organisms | `landing/`, `istanbulmedic-connect/`, `common/` | HeroBanner, ClinicCard, Footer |
+
+- Put reusable building blocks in `ui/` as atoms or molecules.
+- Put feature-specific compositions in `landing/`, `istanbulmedic-connect/`, or `common/`.
+- Compose organisms from `ui/` primitives; do not inline markup that could be a molecule.
+
+## 3. Component Reusability
+
+- **Before adding** – Check if `ui/` already has a suitable component.
+- **Generic over specific** – Use props like `title`, `data`, `formatValue` instead of feature-specific strings.
+- **Extract when reused** – If a block appears in two or more places, extract to `ui/` or a shared subfolder.
+- **Feature subfolders** – Large organisms (e.g. InstagramIntelligenceSection) use subfolders like `profile/instagram/` for focused subcomponents.
