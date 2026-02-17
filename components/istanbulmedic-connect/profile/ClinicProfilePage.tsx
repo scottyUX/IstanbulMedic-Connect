@@ -11,6 +11,7 @@ import { TransparencySection } from "./TransparencySection"
 import { AIInsightsSection } from "./AIInsightsSection"
 import { ReviewsSection } from "./ReviewsSection"
 import { CommunitySignalsSection } from "./CommunitySignalsSection"
+import { InstagramIntelligenceSection } from "./InstagramIntelligenceSection"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
 
@@ -226,6 +227,41 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
         airportTransfer: true,
       },
     },
+    instagramIntelligence: {
+      profileUrl: "https://instagram.com/istanbulhaircenter",
+      username: "istanbulhaircenter",
+      fullName: "Istanbul Hair Center",
+      biography:
+        "Leading hair transplant clinic in Istanbul. Premium FUE & DHI specialists with 15+ years experience. Natural results. International patients welcome.",
+      followersCount: 12500,
+      postsCount: 342,
+      verified: true,
+      isBusinessAccount: true,
+      businessCategoryName: "Medical & Health",
+      externalUrls: [
+        "https://linktr.ee/istanbulhaircenter",
+        "https://istanbulhaircenter.com",
+      ],
+      extracted: {
+        positioningClaims: [
+          "Premium FUE",
+          "DHI specialists",
+          "15+ years experience",
+        ],
+        servicesClaimed: [
+          "Hair transplant",
+          "Beard transplant",
+          "PRP therapy",
+        ],
+        geographyClaimed: ["Istanbul", "Turkey", "Europe"],
+        languagesClaimed: ["English", "Turkish", "Arabic", "German"],
+        addressText: "Halaskargazi Cad. No: 124, Şişli",
+        websiteCandidates: ["https://istanbulhaircenter.com"],
+        linkAggregatorDetected: "linktr.ee",
+      },
+      firstSeenAt: "2025-01-15T00:00:00Z",
+      lastSeenAt: "2026-02-01T00:00:00Z",
+    },
   }
 
   return (
@@ -291,6 +327,10 @@ export const ClinicProfilePage = ({ clinicId, onBack }: ClinicProfilePageProps) 
           <CommunitySignalsSection
             posts={clinicData.communitySignals.posts}
             summary={clinicData.communitySignals.summary}
+          />
+
+          <InstagramIntelligenceSection
+            data={clinicData.instagramIntelligence}
           />
 
           <LocationInfoSection

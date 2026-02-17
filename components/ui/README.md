@@ -45,13 +45,20 @@ Simple groups of atoms functioning together as a unit.
 | `card.tsx` | Card, CardHeader, CardContent, CardFooter | Layout composition |
 | `dialog.tsx` | Dialog and parts | Modal composition |
 | `carousel.tsx` | Carousel | Slider + navigation |
+| `chart.tsx` | ChartContainer, ChartTooltip, ChartTooltipContent | Recharts integration |
+| `empty-state.tsx` | EmptyState | Placeholder for missing data |
+| `platform-pill-tabs.tsx` | PlatformPillTabs | Platform-switching tabs (e.g. Instagram, TikTok) |
+| `report-section.tsx` | ReportSection | Title + description + children section |
+| `comparison-metric-block.tsx` | ComparisonMetricBlock | Primary vs benchmark value with bar visualization |
+| `line-chart-card.tsx` | LineChartCard | Bordered card + line chart (e.g. follower growth) |
+| `bar-chart-card.tsx` | BarChartCard | Bordered card + bar chart (e.g. posting activity) |
 
 ## Organisms
 
 Organisms live outside this directory:
 
 - **Landing:** `components/landing/` – HeroBanner, FeatureCard, LandingSection, PrecisionClinicMatching, etc.
-- **Connect:** `components/istanbulmedic-connect/` – ClinicCard, FilterDialog, SummarySidebar, TopNav, profile sections
+- **Connect:** `components/istanbulmedic-connect/` – ClinicCard, FilterDialog, SummarySidebar, TopNav, profile sections (including `profile/instagram/` subcomponents for InstagramIntelligenceSection)
 - **Common:** `components/common/` – Header, Logo, LanguageSelector
 
 ## Templates

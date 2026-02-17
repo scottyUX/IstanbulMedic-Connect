@@ -15,6 +15,7 @@ const SECTIONS: Section[] = [
   { id: "transparency", label: "Safety" },
   { id: "ai-insights", label: "AI Insights" },
   { id: "reviews", label: "Reviews" },
+  { id: "instagram-intel", label: "Social" },
   { id: "location", label: "Location" },
 ]
 
