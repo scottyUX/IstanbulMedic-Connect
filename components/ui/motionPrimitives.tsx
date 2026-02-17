@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import type { MotionProps, MotionStyle } from 'framer-motion';
 import type { PropsWithChildren } from 'react';
 
-const ease = [0.22, 1, 0.36, 1];
+const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const fadeInUp = {
     hidden: { opacity: 0, y: 24 },

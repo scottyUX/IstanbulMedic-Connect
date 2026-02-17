@@ -529,7 +529,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
       if (!a.is_primary && b.is_primary) return 1;
       return (a.display_order ?? 0) - (b.display_order ?? 0);
     });
-  const imageUrl = imageMedia[0]?.url ?? DEFAULT_CLINIC_IMAGE;
+  const imageUrl = imageMedia[0]?.url ?? null;
 
   return {
     id: clinic.id,

@@ -14,6 +14,7 @@ import { InstagramIntelligenceSection } from "./InstagramIntelligenceSection"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
 import type { ClinicDetail } from "@/lib/api/clinics"
+import type { InstagramIntelligenceVM } from "@/components/istanbulmedic-connect/types"
 import {
   toNumber,
   transformOpeningHours,
@@ -39,6 +40,60 @@ const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
   registry: "other",
   mystery_inquiry: "other",
   internal_note: "other",
+}
+
+// TODO: Replace with real data from Supabase once clinic_social_profiles table is created
+// This is MOCK DATA for UI development purposes only
+const MOCK_INSTAGRAM_DATA: InstagramIntelligenceVM = {
+  profileUrl: "https://instagram.com/istanbulhaircenter",
+  username: "istanbulhaircenter",
+  fullName: "Istanbul Hair Center",
+  biography: "🏥 Premium Hair Transplant Clinic\n📍 Istanbul, Turkey\n✨ 15+ Years Experience\n📞 WhatsApp: +90 555 123 4567",
+  followersCount: 47800,
+  postsCount: 892,
+  verified: false,
+  isBusinessAccount: true,
+  businessCategoryName: "Medical & Health",
+  externalUrls: ["https://istanbulhaircenter.com"],
+  extracted: {
+    positioningClaims: ["Premium clinic", "15+ years experience", "Natural results"],
+    servicesClaimed: ["FUE Hair Transplant", "DHI Technique", "Beard Transplant"],
+    languagesClaimed: ["English", "Turkish", "Arabic"],
+    geographyClaimed: ["Istanbul", "Turkey"],
+    addressText: "Şişli, Istanbul",
+    websiteCandidates: ["istanbulhaircenter.com"],
+  },
+  followerHistory: [
+    { month: "2025-01", followers: 42000 },
+    { month: "2025-02", followers: 43500 },
+    { month: "2025-03", followers: 44800 },
+    { month: "2025-04", followers: 45900 },
+    { month: "2025-05", followers: 47800 },
+  ],
+  postActivityHistory: [
+    { month: "2025-01", posts: 18 },
+    { month: "2025-02", posts: 22 },
+    { month: "2025-03", posts: 15 },
+    { month: "2025-04", posts: 20 },
+    { month: "2025-05", posts: 17 },
+  ],
+  engagement: {
+    engagementTotalPerPost: 1250,
+    engagementRate: 2.6,
+    commentsPerPost: 45,
+    benchmark: {
+      engagementTotalPerPost: 800,
+      engagementRate: 1.8,
+      commentsPerPost: 25,
+    },
+  },
+  confidence: {
+    positioning: 85,
+    services: 90,
+    languages: 75,
+    geography: 95,
+    contact: 80,
+  },
 }
 
 export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
@@ -299,9 +354,8 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
             summary={communitySignals.summary}
           />
 
-          <InstagramIntelligenceSection
-            data={clinicData.instagramIntelligence}
-          />
+          {/* TODO: Replace MOCK_INSTAGRAM_DATA with real Supabase data */}
+          <InstagramIntelligenceSection data={MOCK_INSTAGRAM_DATA} />
 
           <LocationInfoSection
             address={primaryLocation?.address_line || clinic.location}
