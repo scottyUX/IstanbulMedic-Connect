@@ -10,6 +10,7 @@ interface StatBlockProps {
   labelClassName?: string
   valueClassName?: string
   icon?: ReactNode
+  iconPosition?: "top" | "bottom"
   variant?: "default" | "centered"
 }
 
@@ -20,19 +21,27 @@ export const StatBlock = ({
   labelClassName,
   valueClassName,
   icon,
+  iconPosition = "top",
   variant = "default",
 }: StatBlockProps) => {
   return (
     <div
       className={cn(
-        "rounded-lg bg-muted/10 p-3",
-        variant === "centered" && "text-center",
+        "rounded-lg bg-muted/10 p-3 flex flex-col",
+        variant === "centered" && "text-center items-center",
         className
       )}
     >
-      {icon && <div className="mb-2">{icon}</div>}
-      <div className={cn("text-sm text-muted-foreground", labelClassName)}>{label}</div>
-      <div className={cn("mt-1 text-lg font-semibold", valueClassName)}>{value}</div>
+      {icon && iconPosition === "top" && <div className="mb-2">{icon}</div>}
+      <div className={cn("text-sm text-muted-foreground", labelClassName)}>
+        {label}
+      </div>
+      <div className={cn("mt-1 text-lg font-semibold", valueClassName)}>
+        {value}
+      </div>
+      {icon && iconPosition === "bottom" && (
+        <div className="mt-2 text-muted-foreground">{icon}</div>
+      )}
     </div>
   )
 }
