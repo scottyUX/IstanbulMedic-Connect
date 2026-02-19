@@ -10,6 +10,7 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { id: "overview", label: "Overview" },
+  { id: "location", label: "Location" },
   { id: "pricing", label: "Pricing" },
   { id: "packages", label: "Packages" },
   { id: "doctors", label: "Doctors" },
@@ -18,7 +19,6 @@ const SECTIONS: Section[] = [
   { id: "reviews", label: "Reviews" },
   { id: "community", label: "Community" },
   { id: "instagram-intel", label: "Social" },
-  { id: "location", label: "Location" },
 ]
 
 export function SectionNav() {

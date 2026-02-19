@@ -315,6 +315,16 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
               description={clinic.description}
             />
 
+            <LocationInfoSection
+              address={primaryLocation?.address_line || clinic.location}
+              lat={primaryLocation?.latitude ?? null}
+              lng={primaryLocation?.longitude ?? null}
+              openingHours={openingHours}
+              languages={languages}
+              paymentMethods={paymentMethods}
+              services={services}
+            />
+
             <PricingSection pricing={clinic.pricing} />
 
             <PackagesSection packages={clinic.packages} />
@@ -356,16 +366,6 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
 
           {/* TODO: Replace MOCK_INSTAGRAM_DATA with real Supabase data */}
           <InstagramIntelligenceSection data={MOCK_INSTAGRAM_DATA} />
-
-          <LocationInfoSection
-            address={primaryLocation?.address_line || clinic.location}
-            lat={primaryLocation?.latitude ?? null}
-            lng={primaryLocation?.longitude ?? null}
-            openingHours={openingHours}
-            languages={languages}
-            paymentMethods={paymentMethods}
-            services={services}
-          />
         </div>
       </div>
     </div>
