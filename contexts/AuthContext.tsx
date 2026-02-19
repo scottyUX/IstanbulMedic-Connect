@@ -19,7 +19,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const SUPABASE_NOT_CONFIGURED_MESSAGE =
-  'Authentication is currently unavailable because Supabase is not configured. Please contact support.';
+  'Authentication is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local. Get them from https://app.supabase.com → Project Settings → API.';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -185,13 +185,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAuthenticated(false);
       setUser(null);
       setProfile(null);
-      router.push('/leila');
+      router.push('/');
     } catch (error) {
       // Still clear local state even if signOut fails
       setIsAuthenticated(false);
       setUser(null);
       setProfile(null);
-      router.push('/leila');
+      router.push('/');
     }
   };
 
