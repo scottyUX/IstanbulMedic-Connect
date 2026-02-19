@@ -143,6 +143,34 @@ To reset to a clean state with seed data:
 supabase db reset
 ```
 
+## Deployment (Vercel + Production Supabase)
+
+### 1. Set Vercel environment variables
+
+In your Vercel project settings → Environment Variables, add:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
+OPENAI_API_KEY=your-openai-key
+```
+
+Get these from your Supabase dashboard: Project Settings → API
+
+### 2. Apply migrations to production database
+
+Link your local CLI to the production project and push migrations:
+
+```bash
+# Link to your production Supabase project
+supabase link --project-ref your-project-ref
+
+# Push migrations to production
+supabase db push
+```
+
+**Note:** Without these steps, the app will deploy but show "No clinics found" (empty database) or error if tables don't exist.
+
 ## Documentation
 
 See the `docs/` folder for detailed documentation:
