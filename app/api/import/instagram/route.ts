@@ -11,6 +11,20 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+interface InstagramPost {
+  id: string
+  type: string
+  shortCode: string
+  url: string
+  caption: string
+  hashtags: string[]
+  mentions: string[]
+  likesCount: number
+  commentsCount: number
+  timestamp: string
+  displayUrl: string
+}
+
 interface InstagramClaimsData {
   instagram: {
     inputUrl: string
@@ -26,31 +40,21 @@ interface InstagramClaimsData {
     businessCategoryName: string
   }
   extracted_claims: {
-    identity?: {
-      display_name_variants?: string[]
-    }
-    social?: {
-      instagram?: any
-    }
+    identity?: { display_name_variants?: string[] }
+    social?: { instagram?: any }
     contact?: {
       website_candidates?: string[]
       link_aggregator_detected?: string
       address_text?: string
     }
-    services?: {
-      claimed?: string[]
-    }
-    positioning?: {
-      claims?: string[]
-    }
-    languages?: {
-      claimed?: string[]
-    }
-    geography?: {
-      claimed?: string[]
-    }
+    services?: { claimed?: string[] }
+    positioning?: { claims?: string[] }
+    languages?: { claimed?: string[] }
+    geography?: { claimed?: string[] }
   }
+  posts?: InstagramPost[]
 }
+
 interface ClinicFact {
   id: string
   clinic_id: string
@@ -62,6 +66,168 @@ interface ClinicFact {
   is_conflicting: boolean
   first_seen_at: string
   last_seen_at: string
+}
+
+// ============================================
+// POST ANALYSIS HELPERS
+// ============================================
+
+function derivePostFacts(posts: InstagramPost[], clinicId: string) {
+  if (!posts?.length) return []
+
+  const facts = []
+  const now = new Date().toISOString()
+
+  // --- Engagement stats ---
+  const totalLikes = posts.reduce((s, p) => s + (p.likesCount || 0), 0)
+  const totalComments = posts.reduce((s, p) => s + (p.commentsCount || 0), 0)
+  const avgLikes = Math.round(totalLikes / posts.length)
+  const avgComments = Math.round(totalComments / posts.length)
+
+  facts.push({
+    clinic_id: clinicId,
+    fact_key: 'instagram_avg_likes_per_post',
+    fact_value: avgLikes,
+    value_type: 'number',
+    confidence: 1.0,
+    computed_by: 'extractor',
+    is_conflicting: false,
+    first_seen_at: now,
+    last_seen_at: now,
+  })
+
+  facts.push({
+    clinic_id: clinicId,
+    fact_key: 'instagram_avg_comments_per_post',
+    fact_value: avgComments,
+    value_type: 'number',
+    confidence: 1.0,
+    computed_by: 'extractor',
+    is_conflicting: false,
+    first_seen_at: now,
+    last_seen_at: now,
+  })
+
+  // --- Top hashtags (frequency across all posts) ---
+  const hashtagFreq: Record<string, number> = {}
+  for (const post of posts) {
+    for (const tag of post.hashtags ?? []) {
+      const t = tag.toLowerCase()
+      hashtagFreq[t] = (hashtagFreq[t] || 0) + 1
+    }
+  }
+  const topHashtags = Object.entries(hashtagFreq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([tag, count]) => ({ tag, count }))
+
+  if (topHashtags.length) {
+    facts.push({
+      clinic_id: clinicId,
+      fact_key: 'instagram_top_hashtags',
+      fact_value: JSON.stringify(topHashtags),
+      value_type: 'json',
+      confidence: 0.9,
+      computed_by: 'extractor',
+      is_conflicting: false,
+      first_seen_at: now,
+      last_seen_at: now,
+    })
+  }
+
+  // --- Inferred services from hashtags / captions ---
+  const serviceKeywords: Record<string, string[]> = {
+    hair_transplant: ['hairtransplant', 'hairtransplantation', 'fuemethod', 'fuetechnique', 'hairclinic'],
+    rhinoplasty: ['rhinoplasty', 'nosesurgery', 'nosereconstruction'],
+    dental: ['dentistry', 'dentalimplants', 'hollywoodsmile', 'fastandfixed'],
+    bariatric: ['bariatricsurgery', 'gastricbypass', 'sleevegastrectomy'],
+    eye_surgery: ['lasiksurgery', 'lasereyesurgery', 'cataractsurgery'],
+    plastic_surgery: ['plasticsurgery', 'blepharoplasty', 'eyelidsurgery', 'rhinoplasty', 'breastlift'],
+  }
+
+  const allTags = new Set(Object.keys(hashtagFreq))
+  const inferredServices: string[] = []
+  for (const [service, keywords] of Object.entries(serviceKeywords)) {
+    if (keywords.some(k => allTags.has(k))) inferredServices.push(service)
+  }
+
+  if (inferredServices.length) {
+    facts.push({
+      clinic_id: clinicId,
+      fact_key: 'instagram_inferred_services',
+      fact_value: JSON.stringify(inferredServices),
+      value_type: 'json',
+      confidence: 0.7,
+      computed_by: 'extractor',
+      is_conflicting: false,
+      first_seen_at: now,
+      last_seen_at: now,
+    })
+  }
+
+  // --- Most recent post date ---
+  const sortedDates = posts
+    .map(p => p.timestamp)
+    .filter(Boolean)
+    .sort()
+    .reverse()
+
+  if (sortedDates[0]) {
+    facts.push({
+      clinic_id: clinicId,
+      fact_key: 'instagram_last_post_at',
+      fact_value: JSON.stringify(sortedDates[0]),
+      value_type: 'string',
+      confidence: 1.0,
+      computed_by: 'extractor',
+      is_conflicting: false,
+      first_seen_at: now,
+      last_seen_at: now,
+    })
+  }
+
+  // --- Website mentioned in captions (cross-check externalUrls) ---
+  const websitePattern = /(?:https?:\/\/)?(?:www\.)?([\w-]+\.(?:com|net|org|co\.[a-z]{2})(?:\/\S*)?)/gi
+  const captionUrls = new Set<string>()
+  for (const post of posts) {
+    const matches = post.caption?.matchAll(websitePattern) ?? []
+    for (const m of matches) captionUrls.add(m[0])
+  }
+  if (captionUrls.size) {
+    facts.push({
+      clinic_id: clinicId,
+      fact_key: 'instagram_website_mentions_in_posts',
+      fact_value: JSON.stringify([...captionUrls]),
+      value_type: 'json',
+      confidence: 0.75,
+      computed_by: 'extractor',
+      is_conflicting: false,
+      first_seen_at: now,
+      last_seen_at: now,
+    })
+  }
+
+  // --- Post content samples (top 5 by likes for later LLM analysis) ---
+  const topPosts = [...posts]
+    .sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0))
+    .slice(0, 5)
+    .map(p => ({ url: p.url, caption: p.caption?.slice(0, 300), likes: p.likesCount }))
+
+  if (topPosts.length) {
+    facts.push({
+      clinic_id: clinicId,
+      fact_key: 'instagram_top_posts_sample',
+      fact_value: JSON.stringify(topPosts),
+      value_type: 'json',
+      confidence: 1.0,
+      computed_by: 'extractor',
+      is_conflicting: false,
+      first_seen_at: now,
+      last_seen_at: now,
+    })
+  }
+
+  return facts
 }
 
 
@@ -94,9 +260,7 @@ export async function POST(request: Request) {
         captured_at: new Date().toISOString(),
         author_handle: instagramData.instagram.username,
         content_hash: `ig_${instagramData.instagram.username}_${instagramData.instagram.id}`
-      }, {
-        onConflict: 'content_hash'
-      })
+      }, { onConflict: 'content_hash' })
       .select()
       .single()
 
@@ -125,6 +289,7 @@ export async function POST(request: Request) {
     // ============================================
     // 3. UPSERT CLINIC_SOCIAL_MEDIA
     // ============================================
+    const igProfile = instagramData.extracted_claims.social?.instagram
     const { data: socialMedia, error: socialMediaError } = await supabase
       .from('clinic_social_media')
       .upsert({
@@ -133,156 +298,105 @@ export async function POST(request: Request) {
         account_handle: instagramData.instagram.username,
         follower_count: instagramData.instagram.followersCount,
         verified: instagramData.instagram.verified,
-        last_checked_at: new Date().toISOString()
-      }, {
-        onConflict: 'clinic_id,platform,account_handle'
-      })
+        last_checked_at: new Date().toISOString(),
+        // New columns from migration
+        follows_count: igProfile?.follows_count ?? null,
+        posts_count: igProfile?.posts_count ?? instagramData.instagram.postsCount,
+        highlights_count: igProfile?.highlights_count ?? null,
+        is_private: igProfile?.is_private ?? false,
+        business_category: instagramData.instagram.businessCategoryName ?? null,
+      }, { onConflict: 'clinic_id,platform,account_handle' })
       .select()
       .single()
 
     if (socialMediaError) throw socialMediaError
     results.socialMedia = socialMedia
 
-
     // ============================================
     // 4. EXTRACT AND INSERT CLINIC FACTS
     // ============================================
-    const facts = []
-
-    // Instagram followers count
-    facts.push({
+    const now = new Date().toISOString()
+    const baseFact = (key: string, value: any, type: string, confidence: number) => ({
       clinic_id: clinicId,
-      fact_key: 'instagram_followers_count',
-      fact_value: instagramData.instagram.followersCount,
-      value_type: 'number',
-      confidence: 1.0,
+      fact_key: key,
+      fact_value: value,
+      value_type: type,
+      confidence,
       computed_by: 'extractor',
       is_conflicting: false,
-      first_seen_at: new Date().toISOString(),
-      last_seen_at: new Date().toISOString()
+      first_seen_at: now,
+      last_seen_at: now,
     })
 
-    // Instagram posts count
-    facts.push({
-      clinic_id: clinicId,
-      fact_key: 'instagram_posts_count',
-      fact_value: instagramData.instagram.postsCount,
-      value_type: 'number',
-      confidence: 1.0,
-      computed_by: 'extractor',
-      is_conflicting: false,
-      first_seen_at: new Date().toISOString(),
-      last_seen_at: new Date().toISOString()
-    })
+    const facts: any[] = [
+      baseFact('instagram_followers_count', instagramData.instagram.followersCount, 'number', 1.0),
+      baseFact('instagram_posts_count', instagramData.instagram.postsCount, 'number', 1.0),
+      baseFact('instagram_verified', instagramData.instagram.verified, 'bool', 1.0),
+      baseFact('instagram_is_business', instagramData.instagram.isBusinessAccount, 'bool', 1.0),
+    ]
 
-    // Instagram verification status
-    facts.push({
-      clinic_id: clinicId,
-      fact_key: 'instagram_verified',
-      fact_value: instagramData.instagram.verified,
-      value_type: 'bool',
-      confidence: 1.0,
-      computed_by: 'extractor',
-      is_conflicting: false,
-      first_seen_at: new Date().toISOString(),
-      last_seen_at: new Date().toISOString()
-    })
-
-    // Business account status
-    facts.push({
-      clinic_id: clinicId,
-      fact_key: 'instagram_is_business',
-      fact_value: instagramData.instagram.isBusinessAccount,
-      value_type: 'bool',
-      confidence: 1.0,
-      computed_by: 'extractor',
-      is_conflicting: false,
-      first_seen_at: new Date().toISOString(),
-      last_seen_at: new Date().toISOString()
-    })
-
-    // Biography/positioning claims
     if (instagramData.extracted_claims.positioning?.claims) {
-      facts.push({
-        clinic_id: clinicId,
-        fact_key: 'instagram_positioning_claims',
-        fact_value: JSON.stringify(instagramData.extracted_claims.positioning.claims),
-        value_type: 'json',
-        confidence: 0.85,
-        computed_by: 'extractor',
-        is_conflicting: false,
-        first_seen_at: new Date().toISOString(),
-        last_seen_at: new Date().toISOString()
-      })
+      facts.push(baseFact(
+        'instagram_positioning_claims',
+        JSON.stringify(instagramData.extracted_claims.positioning.claims),
+        'json', 0.85
+      ))
     }
 
-    // Website URL from external links
-    if (instagramData.instagram.externalUrls && instagramData.instagram.externalUrls.length > 0) {
-      const cleanUrl = instagramData.instagram.externalUrls[0]
-      facts.push({
-        clinic_id: clinicId,
-        fact_key: 'website_url_from_instagram',
-        fact_value: JSON.stringify(cleanUrl),
-        value_type: 'string',
-        confidence: 0.90,
-        computed_by: 'extractor',
-        is_conflicting: false,
-        first_seen_at: new Date().toISOString(),
-        last_seen_at: new Date().toISOString()
-      })
+    if (instagramData.instagram.externalUrls?.length) {
+      facts.push(baseFact(
+        'website_url_from_instagram',
+        JSON.stringify(instagramData.instagram.externalUrls[0]),
+        'string', 0.90
+      ))
     }
 
-    // Services claimed
     if (instagramData.extracted_claims.services?.claimed) {
-      facts.push({
-        clinic_id: clinicId,
-        fact_key: 'services_claimed_instagram',
-        fact_value: JSON.stringify(instagramData.extracted_claims.services.claimed),
-        value_type: 'json',
-        confidence: 0.80,
-        computed_by: 'extractor',
-        is_conflicting: false,
-        first_seen_at: new Date().toISOString(),
-        last_seen_at: new Date().toISOString()
-      })
+      facts.push(baseFact(
+        'services_claimed_instagram',
+        JSON.stringify(instagramData.extracted_claims.services.claimed),
+        'json', 0.80
+      ))
     }
 
-    // Geographic location
     if (instagramData.extracted_claims.geography?.claimed) {
-      facts.push({
-        clinic_id: clinicId,
-        fact_key: 'geographic_location_instagram',
-        fact_value: JSON.stringify(instagramData.extracted_claims.geography.claimed),
-        value_type: 'json',
-        confidence: 0.75,
-        computed_by: 'extractor',
-        is_conflicting: false,
-        first_seen_at: new Date().toISOString(),
-        last_seen_at: new Date().toISOString()
-      })
+      facts.push(baseFact(
+        'geographic_location_instagram',
+        JSON.stringify(instagramData.extracted_claims.geography.claimed),
+        'json', 0.75
+      ))
     }
 
-    // Address text
     if (instagramData.extracted_claims.contact?.address_text) {
-      facts.push({
-        clinic_id: clinicId,
-        fact_key: 'address_from_instagram',
-        fact_value: JSON.stringify(instagramData.extracted_claims.contact.address_text),
-        value_type: 'string',
-        confidence: 0.85,
-        computed_by: 'extractor',
-        is_conflicting: false,
-        first_seen_at: new Date().toISOString(),
-        last_seen_at: new Date().toISOString()
-      })
+      facts.push(baseFact(
+        'address_from_instagram',
+        JSON.stringify(instagramData.extracted_claims.contact.address_text),
+        'string', 0.85
+      ))
     }
 
-    // Insert all facts
-    // Insert all facts using the function
+    if (instagramData.extracted_claims.contact?.link_aggregator_detected) {
+      facts.push(baseFact(
+        'link_aggregator_detected_instagram',
+        JSON.stringify(instagramData.extracted_claims.contact.link_aggregator_detected),
+        'string', 1.0
+      ))
+    }
+
+    if (instagramData.extracted_claims.identity?.display_name_variants?.length) {
+      facts.push(baseFact(
+        'display_name_variants_instagram',
+        JSON.stringify(instagramData.extracted_claims.identity.display_name_variants),
+        'json', 0.9
+      ))
+    }
+
+    // Post-derived facts (new)
+    const postFacts = derivePostFacts(instagramData.posts ?? [], clinicId)
+    facts.push(...postFacts)
+
     const { data: insertedFacts, error: factsError } = await supabase
-      .rpc('upsert_clinic_facts', {
-        facts_data: facts
-      })
+      .rpc('upsert_clinic_facts', { facts_data: facts })
 
     if (factsError) throw factsError
     results.facts = insertedFacts
@@ -297,7 +411,7 @@ export async function POST(request: Request) {
       evidence_locator: getEvidenceLocator(fact.fact_key)
     })) || []
 
-    if (evidenceRecords.length > 0) {
+    if (evidenceRecords.length) {
       const { data: evidence, error: evidenceError } = await supabase
         .from('fact_evidence')
         .insert(evidenceRecords)
@@ -310,10 +424,8 @@ export async function POST(request: Request) {
     // ============================================
     // 6. UPDATE CLINIC RECORD (if website found)
     // ============================================
-    if (instagramData.instagram.externalUrls && instagramData.instagram.externalUrls.length > 0) {
+    if (instagramData.instagram.externalUrls?.length) {
       const websiteUrl = instagramData.instagram.externalUrls[0]
-      
-      // Only update if clinic doesn't already have a website
       const { data: existingClinic } = await supabase
         .from('clinics')
         .select('website_url')
@@ -328,13 +440,9 @@ export async function POST(request: Request) {
           .select()
           .single()
 
-        if (!clinicError) {
-          results.clinicUpdated = updatedClinic
-        }
+        if (!clinicError) results.clinicUpdated = updatedClinic
       }
     }
-
-   
 
     return NextResponse.json({
       success: true,
@@ -344,6 +452,7 @@ export async function POST(request: Request) {
         documentCreated: !!document,
         socialMediaUpdated: !!socialMedia,
         factsCreated: insertedFacts?.length || 0,
+        postFactsCreated: postFacts.length,
         evidenceLinked: evidenceRecords.length
       },
       results
@@ -351,13 +460,7 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Instagram import error:', error)
-    return NextResponse.json(
-      { 
-        error: error.message,
-        details: error 
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error.message, details: error }, { status: 500 })
   }
 }
 
@@ -366,33 +469,52 @@ export async function POST(request: Request) {
 // ============================================
 
 function getEvidenceSnippet(factKey: string, data: InstagramClaimsData): string {
+  const posts = data.posts ?? []
   const snippets: Record<string, string> = {
-    'instagram_followers_count': `Followers: ${data.instagram.followersCount}`,
-    'instagram_posts_count': `Posts: ${data.instagram.postsCount}`,
-    'instagram_verified': `Verified: ${data.instagram.verified}`,
-    'instagram_is_business': `Business Account: ${data.instagram.isBusinessAccount}`,
-    'instagram_positioning_claims': `Claims: ${data.extracted_claims.positioning?.claims?.join(', ') || 'none'}`,
-    'website_url_from_instagram': `External URL: ${data.instagram.externalUrls?.[0] || 'none'}`,
-    'services_claimed_instagram': `Services: ${data.extracted_claims.services?.claimed?.join(', ') || 'none'}`,
-    'geographic_location_instagram': `Location: ${data.extracted_claims.geography?.claimed?.join(', ') || 'none'}`,
-    'address_from_instagram': `Address: ${data.extracted_claims.contact?.address_text || 'none'}`
+    instagram_followers_count: `Followers: ${data.instagram.followersCount}`,
+    instagram_posts_count: `Posts: ${data.instagram.postsCount}`,
+    instagram_verified: `Verified: ${data.instagram.verified}`,
+    instagram_is_business: `Business Account: ${data.instagram.isBusinessAccount}`,
+    instagram_positioning_claims: `Claims: ${data.extracted_claims.positioning?.claims?.join(', ') || 'none'}`,
+    website_url_from_instagram: `External URL: ${data.instagram.externalUrls?.[0] || 'none'}`,
+    services_claimed_instagram: `Services: ${data.extracted_claims.services?.claimed?.join(', ') || 'none'}`,
+    geographic_location_instagram: `Location: ${data.extracted_claims.geography?.claimed?.join(', ') || 'none'}`,
+    address_from_instagram: `Address: ${data.extracted_claims.contact?.address_text || 'none'}`,
+    link_aggregator_detected_instagram: `Link aggregator: ${data.extracted_claims.contact?.link_aggregator_detected || 'none'}`,
+    display_name_variants_instagram: `Name variants: ${data.extracted_claims.identity?.display_name_variants?.join(', ') || 'none'}`,
+    instagram_avg_likes_per_post: `Computed from ${posts.length} posts`,
+    instagram_avg_comments_per_post: `Computed from ${posts.length} posts`,
+    instagram_top_hashtags: `Aggregated from ${posts.length} post captions`,
+    instagram_inferred_services: `Inferred from hashtag frequency across ${posts.length} posts`,
+    instagram_last_post_at: `Most recent of ${posts.length} posts`,
+    instagram_website_mentions_in_posts: `Extracted from post captions`,
+    instagram_top_posts_sample: `Top 5 posts by likes from profile`,
   }
 
-  return snippets[factKey] || `Data from Instagram profile @${data.instagram.username}`
+  return snippets[factKey] ?? `Data from Instagram profile @${data.instagram.username}`
 }
 
 function getEvidenceLocator(factKey: string): any {
   const locators: Record<string, any> = {
-    'instagram_followers_count': { field: 'instagram.followersCount' },
-    'instagram_posts_count': { field: 'instagram.postsCount' },
-    'instagram_verified': { field: 'instagram.verified' },
-    'instagram_is_business': { field: 'instagram.isBusinessAccount' },
-    'instagram_positioning_claims': { field: 'extracted_claims.positioning.claims' },
-    'website_url_from_instagram': { field: 'instagram.externalUrls[0]' },
-    'services_claimed_instagram': { field: 'extracted_claims.services.claimed' },
-    'geographic_location_instagram': { field: 'extracted_claims.geography.claimed' },
-    'address_from_instagram': { field: 'extracted_claims.contact.address_text' }
+    instagram_followers_count: { field: 'instagram.followersCount' },
+    instagram_posts_count: { field: 'instagram.postsCount' },
+    instagram_verified: { field: 'instagram.verified' },
+    instagram_is_business: { field: 'instagram.isBusinessAccount' },
+    instagram_positioning_claims: { field: 'extracted_claims.positioning.claims' },
+    website_url_from_instagram: { field: 'instagram.externalUrls[0]' },
+    services_claimed_instagram: { field: 'extracted_claims.services.claimed' },
+    geographic_location_instagram: { field: 'extracted_claims.geography.claimed' },
+    address_from_instagram: { field: 'extracted_claims.contact.address_text' },
+    link_aggregator_detected_instagram: { field: 'extracted_claims.contact.link_aggregator_detected' },
+    display_name_variants_instagram: { field: 'extracted_claims.identity.display_name_variants' },
+    instagram_avg_likes_per_post: { field: 'posts[*].likesCount', derived: true },
+    instagram_avg_comments_per_post: { field: 'posts[*].commentsCount', derived: true },
+    instagram_top_hashtags: { field: 'posts[*].hashtags', derived: true },
+    instagram_inferred_services: { field: 'posts[*].hashtags', derived: true },
+    instagram_last_post_at: { field: 'posts[*].timestamp', derived: true },
+    instagram_website_mentions_in_posts: { field: 'posts[*].caption', derived: true },
+    instagram_top_posts_sample: { field: 'posts[*]', derived: true },
   }
 
-  return locators[factKey] || { field: 'unknown' }
+  return locators[factKey] ?? { field: 'unknown' }
 }
