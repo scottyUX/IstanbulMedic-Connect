@@ -39,6 +39,43 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440004', 'Cosmetic', 'Other', true);
 
 -- ============================================
+-- CLINIC MEDIA
+-- ============================================
+
+INSERT INTO clinic_media (clinic_id, media_type, url, alt_text, caption, is_primary, display_order)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440001', 'image',
+   'https://images.unsplash.com/photo-1565262353342-6e919eab5b58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600',
+   'Clinic lobby', 'Main lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440001', 'image',
+   'https://images.unsplash.com/photo-1758653500534-a47f6cd8abb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600',
+   'Operating room', 'Modern operating room', false, 1),
+  ('550e8400-e29b-41d4-a716-446655440001', 'image',
+   'https://images.unsplash.com/photo-1766299892549-b56b257d1ddd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600',
+   'Clinic equipment', 'State of the art equipment', false, 2),
+
+  ('550e8400-e29b-41d4-a716-446655440002', 'image',
+   'https://images.unsplash.com/photo-1504439468489-c8920d796a29?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600',
+   'Dental clinic interior', 'Dental clinic interior', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440002', 'image',
+   'https://images.unsplash.com/photo-1521791136064-7986c2920216?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600',
+   'Dental chair', 'Patient treatment chair', false, 1),
+
+  ('550e8400-e29b-41d4-a716-446655440003', 'image',
+   'https://images.unsplash.com/photo-1526256262350-7da7584cf5eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600',
+   'Aesthetic clinic room', 'Private consultation room', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440003', 'image',
+   'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600',
+   'Recovery area', 'Comfortable recovery area', false, 1),
+
+  ('550e8400-e29b-41d4-a716-446655440004', 'image',
+   'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600',
+   'Clinic waiting area', 'Waiting lounge', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440004', 'image',
+   'https://images.unsplash.com/photo-1504439468489-c8920d796a29?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600',
+   'Procedure room', 'Procedure room', false, 1);
+
+-- ============================================
 -- CLINIC TEAM
 -- ============================================
 
@@ -245,7 +282,7 @@ VALUES
 -- ============================================
 
 INSERT INTO clinic_scores (clinic_id, overall_score, band, version)
-VALUES
+VALUES 
   ('550e8400-e29b-41d4-a716-446655440001', 90, 'A', 'v1.0'),
   ('550e8400-e29b-41d4-a716-446655440002', 86, 'B', 'v1.0'),
   ('550e8400-e29b-41d4-a716-446655440003', 72, 'C', 'v1.0'),
@@ -320,3 +357,401 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440004', 'before_after', 'https://images.izmircosmetic.com/results/liposuction-abdomen.jpg', 'Before and after liposuction abdomen area', 'Effective body contouring with liposuction', false, 2, '650e8400-e29b-41d4-a716-446655440009', '2024-12-05 14:15:00+00'),
   ('550e8400-e29b-41d4-a716-446655440004', 'image', 'https://images.izmircosmetic.com/team-photo.jpg', 'Izmir Cosmetic Center medical team', 'Our experienced team of aesthetic specialists', false, 3, '650e8400-e29b-41d4-a716-446655440009', '2024-11-10 09:00:00+00'),
   ('550e8400-e29b-41d4-a716-446655440004', 'image', 'https://images.izmircosmetic.com/recovery-lounge.jpg', 'Comfortable recovery lounge area', 'Relax in our post-procedure recovery area', false, 4, '650e8400-e29b-41d4-a716-446655440009', '2024-10-18 11:30:00+00');
+-- ADDITIONAL SEED CLINICS (for pagination testing)
+-- ============================================
+
+INSERT INTO clinics (id, display_name, legal_name, status, primary_city, primary_country, website_url, whatsapp_contact, email_contact, phone_contact)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440100', 'Istanbul Specialty Clinic 1', 'Istanbul Specialty Clinic 1 Health Services Ltd', 'active', 'Istanbul', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440101', 'Ankara Specialty Clinic 2', 'Ankara Specialty Clinic 2 Health Services Ltd', 'active', 'Ankara', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440102', 'Izmir Specialty Clinic 3', 'Izmir Specialty Clinic 3 Health Services Ltd', 'active', 'Izmir', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440103', 'Antalya Specialty Clinic 4', 'Antalya Specialty Clinic 4 Health Services Ltd', 'active', 'Antalya', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440104', 'Bursa Specialty Clinic 5', 'Bursa Specialty Clinic 5 Health Services Ltd', 'active', 'Bursa', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440105', 'Adana Specialty Clinic 6', 'Adana Specialty Clinic 6 Health Services Ltd', 'active', 'Adana', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440106', 'Konya Specialty Clinic 7', 'Konya Specialty Clinic 7 Health Services Ltd', 'active', 'Konya', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440107', 'Gaziantep Specialty Clinic 8', 'Gaziantep Specialty Clinic 8 Health Services Ltd', 'active', 'Gaziantep', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440108', 'Mersin Specialty Clinic 9', 'Mersin Specialty Clinic 9 Health Services Ltd', 'active', 'Mersin', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440109', 'Kayseri Specialty Clinic 10', 'Kayseri Specialty Clinic 10 Health Services Ltd', 'active', 'Kayseri', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440110', 'Istanbul Specialty Clinic 11', 'Istanbul Specialty Clinic 11 Health Services Ltd', 'active', 'Istanbul', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440111', 'Ankara Specialty Clinic 12', 'Ankara Specialty Clinic 12 Health Services Ltd', 'active', 'Ankara', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440112', 'Izmir Specialty Clinic 13', 'Izmir Specialty Clinic 13 Health Services Ltd', 'active', 'Izmir', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440113', 'Antalya Specialty Clinic 14', 'Antalya Specialty Clinic 14 Health Services Ltd', 'active', 'Antalya', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440114', 'Bursa Specialty Clinic 15', 'Bursa Specialty Clinic 15 Health Services Ltd', 'active', 'Bursa', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440115', 'Adana Specialty Clinic 16', 'Adana Specialty Clinic 16 Health Services Ltd', 'active', 'Adana', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440116', 'Konya Specialty Clinic 17', 'Konya Specialty Clinic 17 Health Services Ltd', 'active', 'Konya', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440117', 'Gaziantep Specialty Clinic 18', 'Gaziantep Specialty Clinic 18 Health Services Ltd', 'active', 'Gaziantep', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440118', 'Mersin Specialty Clinic 19', 'Mersin Specialty Clinic 19 Health Services Ltd', 'active', 'Mersin', 'Turkey', NULL, NULL, NULL, NULL),
+  ('550e8400-e29b-41d4-a716-446655440119', 'Kayseri Specialty Clinic 20', 'Kayseri Specialty Clinic 20 Health Services Ltd', 'active', 'Kayseri', 'Turkey', NULL, NULL, NULL, NULL);
+
+INSERT INTO clinic_services (clinic_id, service_category, service_name, is_primary_service)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440100', 'Medical Tourism', 'Hair Transplant', true),
+  ('550e8400-e29b-41d4-a716-446655440101', 'Dental', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440102', 'Cosmetic', 'Rhinoplasty', true),
+  ('550e8400-e29b-41d4-a716-446655440103', 'Other', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440104', 'Medical Tourism', 'Hair Transplant', true),
+  ('550e8400-e29b-41d4-a716-446655440105', 'Dental', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440106', 'Cosmetic', 'Rhinoplasty', true),
+  ('550e8400-e29b-41d4-a716-446655440107', 'Other', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440108', 'Medical Tourism', 'Hair Transplant', true),
+  ('550e8400-e29b-41d4-a716-446655440109', 'Dental', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440110', 'Cosmetic', 'Rhinoplasty', true),
+  ('550e8400-e29b-41d4-a716-446655440111', 'Other', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440112', 'Medical Tourism', 'Hair Transplant', true),
+  ('550e8400-e29b-41d4-a716-446655440113', 'Dental', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440114', 'Cosmetic', 'Rhinoplasty', true),
+  ('550e8400-e29b-41d4-a716-446655440115', 'Other', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440116', 'Medical Tourism', 'Hair Transplant', true),
+  ('550e8400-e29b-41d4-a716-446655440117', 'Dental', 'Other', true),
+  ('550e8400-e29b-41d4-a716-446655440118', 'Cosmetic', 'Rhinoplasty', true),
+  ('550e8400-e29b-41d4-a716-446655440119', 'Other', 'Other', true);
+
+INSERT INTO clinic_languages (clinic_id, language, support_type)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440100', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440100', 'German', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440101', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440102', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440103', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440103', 'German', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440104', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440105', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440106', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440106', 'German', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440107', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440108', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440109', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440109', 'German', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440110', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440111', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440112', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440112', 'German', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440113', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440114', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440115', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440115', 'German', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440116', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440117', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440118', 'English', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440118', 'German', 'staff'),
+  ('550e8400-e29b-41d4-a716-446655440119', 'English', 'staff');
+
+INSERT INTO clinic_scores (clinic_id, overall_score, band, version)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440100', 70, 'C', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440101', 75, 'B', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440102', 80, 'B', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440103', 85, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440104', 90, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440105', 95, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440106', 70, 'C', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440107', 75, 'B', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440108', 80, 'B', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440109', 85, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440110', 90, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440111', 95, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440112', 70, 'C', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440113', 75, 'B', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440114', 80, 'B', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440115', 85, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440116', 90, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440117', 95, 'A', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440118', 70, 'C', 'v1.0'),
+  ('550e8400-e29b-41d4-a716-446655440119', 75, 'B', 'v1.0');
+
+INSERT INTO clinic_media (clinic_id, media_type, url, alt_text, caption, is_primary, display_order)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440100', 'image', 'https://images.unsplash.com/photo-1565262353342-6e919eab5b58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440101', 'image', 'https://images.unsplash.com/photo-1758653500534-a47f6cd8abb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440102', 'image', 'https://images.unsplash.com/photo-1766299892549-b56b257d1ddd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440103', 'image', 'https://images.unsplash.com/photo-1526256262350-7da7584cf5eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440104', 'image', 'https://images.unsplash.com/photo-1504439468489-c8920d796a29?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440105', 'image', 'https://images.unsplash.com/photo-1565262353342-6e919eab5b58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440106', 'image', 'https://images.unsplash.com/photo-1758653500534-a47f6cd8abb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440107', 'image', 'https://images.unsplash.com/photo-1766299892549-b56b257d1ddd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440108', 'image', 'https://images.unsplash.com/photo-1526256262350-7da7584cf5eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440109', 'image', 'https://images.unsplash.com/photo-1504439468489-c8920d796a29?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440110', 'image', 'https://images.unsplash.com/photo-1565262353342-6e919eab5b58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440111', 'image', 'https://images.unsplash.com/photo-1758653500534-a47f6cd8abb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440112', 'image', 'https://images.unsplash.com/photo-1766299892549-b56b257d1ddd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440113', 'image', 'https://images.unsplash.com/photo-1526256262350-7da7584cf5eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440114', 'image', 'https://images.unsplash.com/photo-1504439468489-c8920d796a29?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440115', 'image', 'https://images.unsplash.com/photo-1565262353342-6e919eab5b58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440116', 'image', 'https://images.unsplash.com/photo-1758653500534-a47f6cd8abb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440117', 'image', 'https://images.unsplash.com/photo-1766299892549-b56b257d1ddd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440118', 'image', 'https://images.unsplash.com/photo-1526256262350-7da7584cf5eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0),
+  ('550e8400-e29b-41d4-a716-446655440119', 'image', 'https://images.unsplash.com/photo-1504439468489-c8920d796a29?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1600', 'Clinic interior', 'Lobby', true, 0);
+
+-- ============================================
+-- SCHEMA ENHANCEMENTS - Opening Hours, Payment Methods, Photos, Statistics
+-- ============================================
+
+-- Update clinic_locations with opening hours and payment methods
+UPDATE clinic_locations SET
+  opening_hours = '{
+    "monday": {"open": "09:00", "close": "18:00"},
+    "tuesday": {"open": "09:00", "close": "18:00"},
+    "wednesday": {"open": "09:00", "close": "18:00"},
+    "thursday": {"open": "09:00", "close": "18:00"},
+    "friday": {"open": "09:00", "close": "17:00"},
+    "saturday": {"open": "10:00", "close": "14:00"},
+    "sunday": null
+  }'::jsonb,
+  payment_methods = ARRAY['Cash', 'Credit Card', 'Bank Transfer', 'Insurance']
+WHERE clinic_id = '550e8400-e29b-41d4-a716-446655440001';
+
+UPDATE clinic_locations SET
+  opening_hours = '{
+    "monday": {"open": "08:30", "close": "19:00"},
+    "tuesday": {"open": "08:30", "close": "19:00"},
+    "wednesday": {"open": "08:30", "close": "19:00"},
+    "thursday": {"open": "08:30", "close": "19:00"},
+    "friday": {"open": "08:30", "close": "18:00"},
+    "saturday": {"open": "09:00", "close": "15:00"},
+    "sunday": null
+  }'::jsonb,
+  payment_methods = ARRAY['Cash', 'Credit Card', 'Bank Transfer']
+WHERE clinic_id = '550e8400-e29b-41d4-a716-446655440002';
+
+UPDATE clinic_locations SET
+  opening_hours = '{
+    "monday": {"open": "10:00", "close": "18:00"},
+    "tuesday": {"open": "10:00", "close": "18:00"},
+    "wednesday": {"open": "10:00", "close": "18:00"},
+    "thursday": {"open": "10:00", "close": "18:00"},
+    "friday": {"open": "10:00", "close": "17:00"},
+    "saturday": {"open": "10:00", "close": "14:00"},
+    "sunday": null
+  }'::jsonb,
+  payment_methods = ARRAY['Cash', 'Credit Card', 'Bank Transfer', 'Cryptocurrency']
+WHERE clinic_id = '550e8400-e29b-41d4-a716-446655440003';
+
+UPDATE clinic_locations SET
+  opening_hours = '{
+    "monday": {"open": "09:00", "close": "17:30"},
+    "tuesday": {"open": "09:00", "close": "17:30"},
+    "wednesday": {"open": "09:00", "close": "17:30"},
+    "thursday": {"open": "09:00", "close": "17:30"},
+    "friday": {"open": "09:00", "close": "17:00"},
+    "saturday": null,
+    "sunday": null
+  }'::jsonb,
+  payment_methods = ARRAY['Cash', 'Credit Card', 'Bank Transfer']
+WHERE clinic_id = '550e8400-e29b-41d4-a716-446655440004';
+
+-- Update clinic_team with photo URLs (using placeholder professional headshot images)
+UPDATE clinic_team SET photo_url = 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+WHERE name = 'Dr. Mehmet Yilmaz';
+
+UPDATE clinic_team SET photo_url = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+WHERE name = 'Dr. Ayse Kaya';
+
+UPDATE clinic_team SET photo_url = 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+WHERE name = 'Elif Demir';
+
+UPDATE clinic_team SET photo_url = 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+WHERE name = 'Dr. Ahmet Ozturk';
+
+UPDATE clinic_team SET photo_url = 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+WHERE name = 'Dr. Zeynep Arslan';
+
+UPDATE clinic_team SET photo_url = 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+WHERE name = 'Dr. Can Yildirim';
+
+UPDATE clinic_team SET photo_url = 'https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+WHERE name = 'Sara Johnson';
+
+UPDATE clinic_team SET photo_url = 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+WHERE name = 'Dr. Emre Celik';
+
+-- Update clinics with statistics (years in operation and procedures performed)
+UPDATE clinics SET
+  years_in_operation = 15,
+  procedures_performed = 50000
+WHERE id = '550e8400-e29b-41d4-a716-446655440001';
+
+UPDATE clinics SET
+  years_in_operation = 12,
+  procedures_performed = 25000
+WHERE id = '550e8400-e29b-41d4-a716-446655440002';
+
+UPDATE clinics SET
+  years_in_operation = 8,
+  procedures_performed = 12000
+WHERE id = '550e8400-e29b-41d4-a716-446655440003';
+
+UPDATE clinics SET
+  years_in_operation = 10,
+  procedures_performed = 18000
+WHERE id = '550e8400-e29b-41d4-a716-446655440004';
+
+-- ============================================
+-- ENHANCED SEED FOR ADDITIONAL CLINICS
+-- Add location + hours/payments + team photos + stats for pagination clinics
+-- ============================================
+
+-- Add one primary location per additional seeded clinic
+INSERT INTO clinic_locations (
+  clinic_id,
+  location_name,
+  address_line,
+  city,
+  country,
+  postal_code,
+  latitude,
+  longitude,
+  is_primary,
+  opening_hours,
+  payment_methods
+)
+SELECT
+  c.id,
+  c.display_name || ' Main Location',
+  'Ataturk Blvd. No:' || ((idx % 80) + 10) || ', Central District',
+  c.primary_city,
+  c.primary_country,
+  LPAD((30000 + idx)::text, 5, '0'),
+  (36.9000 + (idx * 0.05)),
+  (27.0000 + (idx * 0.06)),
+  true,
+  CASE
+    WHEN idx % 4 = 0 THEN '{
+      "monday": {"open": "09:00", "close": "18:00"},
+      "tuesday": {"open": "09:00", "close": "18:00"},
+      "wednesday": {"open": "09:00", "close": "18:00"},
+      "thursday": {"open": "09:00", "close": "18:00"},
+      "friday": {"open": "09:00", "close": "17:00"},
+      "saturday": {"open": "10:00", "close": "14:00"},
+      "sunday": null
+    }'::jsonb
+    WHEN idx % 4 = 1 THEN '{
+      "monday": {"open": "08:30", "close": "19:00"},
+      "tuesday": {"open": "08:30", "close": "19:00"},
+      "wednesday": {"open": "08:30", "close": "19:00"},
+      "thursday": {"open": "08:30", "close": "19:00"},
+      "friday": {"open": "08:30", "close": "18:00"},
+      "saturday": {"open": "09:00", "close": "15:00"},
+      "sunday": null
+    }'::jsonb
+    WHEN idx % 4 = 2 THEN '{
+      "monday": {"open": "10:00", "close": "18:00"},
+      "tuesday": {"open": "10:00", "close": "18:00"},
+      "wednesday": {"open": "10:00", "close": "18:00"},
+      "thursday": {"open": "10:00", "close": "18:00"},
+      "friday": {"open": "10:00", "close": "17:00"},
+      "saturday": null,
+      "sunday": null
+    }'::jsonb
+    ELSE '{
+      "monday": {"open": "09:30", "close": "17:30"},
+      "tuesday": {"open": "09:30", "close": "17:30"},
+      "wednesday": {"open": "09:30", "close": "17:30"},
+      "thursday": {"open": "09:30", "close": "17:30"},
+      "friday": {"open": "09:30", "close": "16:30"},
+      "saturday": {"open": "10:00", "close": "13:00"},
+      "sunday": null
+    }'::jsonb
+  END,
+  CASE
+    WHEN idx % 3 = 0 THEN ARRAY['Cash', 'Credit Card', 'Bank Transfer', 'Insurance']
+    WHEN idx % 3 = 1 THEN ARRAY['Cash', 'Credit Card', 'Bank Transfer']
+    ELSE ARRAY['Cash', 'Credit Card', 'Bank Transfer', 'Cryptocurrency']
+  END
+FROM (
+  SELECT id, display_name, primary_city, primary_country, ROW_NUMBER() OVER (ORDER BY id) AS idx
+  FROM clinics
+  WHERE id >= '550e8400-e29b-41d4-a716-446655440100'
+    AND id <= '550e8400-e29b-41d4-a716-446655440119'
+) c
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM clinic_locations cl
+  WHERE cl.clinic_id = c.id
+    AND cl.is_primary = true
+);
+
+-- Add team members (doctor + coordinator) with photos for additional clinics
+INSERT INTO clinic_team (
+  clinic_id,
+  role,
+  name,
+  credentials,
+  years_experience,
+  doctor_involvement_level,
+  photo_url
+)
+SELECT
+  c.id,
+  'doctor'::clinic_roles,
+  'Dr. ' || split_part(c.display_name, ' Specialty', 1),
+  'MD, International Patient Care Specialist',
+  6 + (idx % 12),
+  CASE
+    WHEN idx % 3 = 0 THEN 'high'
+    WHEN idx % 3 = 1 THEN 'medium'
+    ELSE 'low'
+  END::doctor_involvement_levels,
+  CASE
+    WHEN idx % 4 = 0 THEN 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+    WHEN idx % 4 = 1 THEN 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+    WHEN idx % 4 = 2 THEN 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+    ELSE 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+  END
+FROM (
+  SELECT id, display_name, ROW_NUMBER() OVER (ORDER BY id) AS idx
+  FROM clinics
+  WHERE id >= '550e8400-e29b-41d4-a716-446655440100'
+    AND id <= '550e8400-e29b-41d4-a716-446655440119'
+) c
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM clinic_team t
+  WHERE t.clinic_id = c.id
+    AND t.role = 'doctor'::clinic_roles
+);
+
+INSERT INTO clinic_team (
+  clinic_id,
+  role,
+  name,
+  credentials,
+  years_experience,
+  doctor_involvement_level,
+  photo_url
+)
+SELECT
+  c.id,
+  'coordinator'::clinic_roles,
+  'Coordinator ' || c.idx,
+  'International Patient Coordinator',
+  2 + (idx % 6),
+  'medium'::doctor_involvement_levels,
+  CASE
+    WHEN idx % 2 = 0 THEN 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+    ELSE 'https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=400&w=400'
+  END
+FROM (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS idx
+  FROM clinics
+  WHERE id >= '550e8400-e29b-41d4-a716-446655440100'
+    AND id <= '550e8400-e29b-41d4-a716-446655440119'
+) c
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM clinic_team t
+  WHERE t.clinic_id = c.id
+    AND t.role = 'coordinator'::clinic_roles
+);
+
+-- Add clinic-level statistics for additional clinics
+UPDATE clinics c
+SET
+  years_in_operation = 5 + x.idx,
+  procedures_performed = 6000 + (x.idx * 1100)
+FROM (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS idx
+  FROM clinics
+  WHERE id >= '550e8400-e29b-41d4-a716-446655440100'
+    AND id <= '550e8400-e29b-41d4-a716-446655440119'
+) x
+WHERE c.id = x.id;

@@ -16,6 +16,7 @@ CREATE TYPE sentiment_enum AS ENUM ('negative', 'neutral', 'positive');
 CREATE TYPE score_band_enum AS ENUM ('A', 'B', 'C', 'D');
 CREATE TYPE social_platform_enum AS ENUM ('instagram', 'tiktok', 'x', 'reddit', 'youtube', 'facebook');
 
+
 create table public.clinics (
   id uuid not null default gen_random_uuid (),
   display_name character varying not null,
@@ -26,7 +27,7 @@ create table public.clinics (
   website_url text null,
   whatsapp_contact text null,
   email_contact text null,
-  phone_contact VARCHAR(50) null,
+  phone_contact VARCHAR(20) null,
   description text,
   short_description text,
   thumbnail_url text,
@@ -285,10 +286,12 @@ CREATE TABLE clinic_google_places (
 CREATE INDEX idx_clinic_google_places_clinic_id ON clinic_google_places(clinic_id);
 CREATE INDEX idx_clinic_google_places_place_id ON clinic_google_places(place_id);
 
+
 CREATE INDEX idx_clinic_media_clinic_id ON clinic_media(clinic_id);
 CREATE UNIQUE INDEX idx_clinic_media_primary
   ON clinic_media(clinic_id)
   WHERE is_primary = true;
+
 -- Indexes for clinic_social_media
 CREATE INDEX idx_clinic_social_media_clinic_id ON clinic_social_media(clinic_id);
 CREATE INDEX idx_clinic_social_media_platform ON clinic_social_media(platform);
@@ -311,6 +314,7 @@ ALTER TABLE clinic_media
 ADD CONSTRAINT clinic_media_unique_url 
 UNIQUE (clinic_id, url);
 
+
 -- ALTER TABLE clinics ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE clinic_team ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE clinic_pricing ENABLE ROW LEVEL SECURITY;
@@ -319,5 +323,3 @@ UNIQUE (clinic_id, url);
 -- ALTER TABLE clinic_languages ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE clinic_services ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE clinic_credentials ENABLE ROW LEVEL SECURITY;
-
-
