@@ -97,7 +97,7 @@ export const UnifiedFilterBar = ({
                                 <SlidersHorizontal className="h-4 w-4" />
                                 Filters
                                 {totalActiveFilters > 0 && (
-                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#17375B] text-white text-[10px] font-bold">
+                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--im-color-primary)] text-white text-[10px] font-bold">
                                         {totalActiveFilters}
                                     </span>
                                 )}
@@ -110,14 +110,14 @@ export const UnifiedFilterBar = ({
                 <div className="mt-2 md:mt-0">
                     <Button
                         size="icon"
-                        className="hidden md:flex bg-[#17375B] hover:bg-[#17375B]/90 text-white rounded-full h-10 w-10 shrink-0 ml-2"
+                        className="hidden md:flex bg-[var(--im-color-primary)] hover:bg-[var(--im-color-primary)]/90 text-white rounded-full h-10 w-10 shrink-0 ml-2"
                         onClick={onSearch}
                     >
                         <Search className="h-4 w-4 stroke-[3px]" />
                     </Button>
                     <Button
                         size="lg"
-                        className="w-full md:hidden bg-[#17375B] hover:bg-[#17375B]/90 text-white font-semibold h-12 shadow-md rounded-lg"
+                        className="w-full md:hidden bg-[var(--im-color-primary)] hover:bg-[var(--im-color-primary)]/90 text-white font-semibold h-12 shadow-md rounded-lg"
                         onClick={onSearch}
                     >
                         <Search className="mr-2 h-4 w-4 stroke-[3px]" />

@@ -23,7 +23,7 @@ const faqItems = [
                     <p className="mt-2">
                         Istanbul Medic is for patients seeking high-quality medical procedures
                         performed by board-certified doctors in JCI-accredited facilities. We focus
-                        on hair restoration and partner with Istanbul's finest hospital network.
+                        on hair restoration and partner with Istanbul&apos;s finest hospital network.
                     </p>
                 </div>
                 <div>

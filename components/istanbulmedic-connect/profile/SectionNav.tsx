@@ -10,13 +10,15 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { id: "overview", label: "Overview" },
+  { id: "location", label: "Location" },
+  { id: "pricing", label: "Pricing" },
+  { id: "packages", label: "Packages" },
   { id: "doctors", label: "Doctors" },
-  { id: "community", label: "Community" },
   { id: "transparency", label: "Safety" },
   { id: "ai-insights", label: "AI Insights" },
   { id: "reviews", label: "Reviews" },
+  { id: "community", label: "Community" },
   { id: "instagram-intel", label: "Social" },
-  { id: "location", label: "Location" },
 ]
 
 export function SectionNav() {
@@ -45,9 +47,6 @@ export function SectionNav() {
   }, [])
 
   useEffect(() => {
-    // Run once on mount
-    updateActiveSection()
-
     // Throttled scroll listener
     let ticking = false
     const onScroll = () => {

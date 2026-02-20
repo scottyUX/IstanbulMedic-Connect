@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 interface PriceRatingBlockProps {
   price: ReactNode
   priceLabel?: string
-  rating: number
+  rating: number | null
   reviewCount: number
   reviewsHref?: string
   className?: string
@@ -34,8 +34,8 @@ export const PriceRatingBlock = ({
         )}
       </div>
       <div className="flex items-center gap-1 text-sm font-semibold">
-        <Star className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" aria-hidden />
-        {rating.toFixed(2)}
+        <Star className={rating !== null ? "h-3 w-3 fill-[#FFD700] text-[#FFD700]" : "h-3 w-3 text-muted-foreground/40"} aria-hidden />
+        {rating !== null ? rating.toFixed(2) : "—"}
         {" · "}
         {reviewsHref ? (
           <a href={reviewsHref} className={linkClass}>
