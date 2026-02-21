@@ -2,37 +2,48 @@ import { runInstagramScraper } from "./instagramService";
 import { extractInstagramClaims } from "./extractionInstagram";
 import * as fs from "fs";
 import * as path from "path";
+
 const configPath = path.resolve(__dirname, "insta_pipeline/clinics.json");
 const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 const apiToken: string = config.apiToken;
-const clinicUrls: string[] = config.clinics;
+const endpoint: string = config.endpoint; 
+const clinics: { clinicId: string; instagramUrl: string }[] = config.clinics;
 
-// Replace once given actual endpoint
 async function uploadToSupabase(payload: {
-  clinic_name: string;
-  scraped_at: string;
-  extracted_claims: any;
+  clinicId: string;
+  instagramData: any;
 }): Promise<{ success: boolean; error?: string }> {
-  console.log(`  [upload] Stub called for: ${payload.clinic_name}`);
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    return {
+      success: false,
+      error: errorData.error || `HTTP ${response.status}`,
+    };
+  }
+
   return { success: true };
 }
 
 async function runPipeline() {
   console.log(`Instagram Pipeline - ${new Date().toISOString()}`);
-  console.log(`Clinics to scrape: ${clinicUrls.length}`);
+  console.log(`Clinics to scrape: ${clinics.length}`);
 
   const errors: { url: string; error: string }[] = [];
   let succeeded = 0;
 
-  for (let i = 0; i < clinicUrls.length; i++) {
-    const url = clinicUrls[i];
-    console.log(`\n[${i + 1}/${clinicUrls.length}] Scraping: ${url}`);
+  for (let i = 0; i < clinics.length; i++) {
+    const { clinicId, instagramUrl } = clinics[i];
+    console.log(`\n[${i + 1}/${clinics.length}] Scraping: ${instagramUrl}`);
 
     try {
-      const rawData = await runInstagramScraper({ apiToken, instagramUrl: url });
+      const rawData = await runInstagramScraper({ apiToken, instagramUrl });
       const extractedClaims = extractInstagramClaims(rawData);
-      const scrapedAt = new Date().toISOString();
-      const clinicName = extractedClaims.instagram.username || "unknown";
 
       // Save JSON files
       fs.writeFileSync("./instagram-raw-data.json", JSON.stringify(rawData, null, 2));
@@ -41,9 +52,8 @@ async function runPipeline() {
 
       // Upload to Supabase
       const uploadResult = await uploadToSupabase({
-        clinic_name: clinicName,
-        scraped_at: scrapedAt,
-        extracted_claims: extractedClaims.extracted_claims,
+        clinicId,
+        instagramData: extractedClaims.extracted_claims,
       });
 
       if (!uploadResult.success) {
@@ -55,14 +65,14 @@ async function runPipeline() {
       succeeded++;
     } catch (error: any) {
       console.error(`  Failed: ${error.message}`);
-      errors.push({ url, error: error.message });
+      errors.push({ url: instagramUrl, error: error.message });
     }
   }
 
   // Summary
   console.log("\n========== Pipeline Complete ==========");
-  console.log(`Succeeded: ${succeeded}/${clinicUrls.length}`);
-  console.log(`Failed: ${errors.length}/${clinicUrls.length}`);
+  console.log(`Succeeded: ${succeeded}/${clinics.length}`);
+  console.log(`Failed: ${errors.length}/${clinics.length}`);
 
   if (errors.length > 0) {
     console.log("\nFailed URLs:");

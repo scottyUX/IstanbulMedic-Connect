@@ -35,12 +35,15 @@ interface InstagramProfileData {
   };
 }
 
-export function extractInstagramClaims(rawData: InstagramProfileData[]) {
-  if (!rawData || rawData.length === 0) {
-    throw new Error("No data returned from Instagram scraper");
+import type { InstagramScraperResult } from "./instagramService";
+
+export function extractInstagramClaims(rawData: InstagramScraperResult) {
+  if (!rawData.profile || rawData.profile.length === 0) {
+    throw new Error("No profile data returned from Instagram scraper");
   }
 
-  const profile = rawData[0];
+  const profile: InstagramProfileData = rawData.profile[0];
+  const postsData: any[] = rawData.posts ?? [];
 
   if (!profile || !profile.id) {
     throw new Error(
@@ -177,8 +180,8 @@ export function extractInstagramClaims(rawData: InstagramProfileData[]) {
     }
   }
 
-  // Last 3 posts
-  const latestPosts = (profile.latestPosts ?? []).slice(0, 3).map((post: any) => ({
+  // All posts
+  const allPosts = postsData.map((post: any) => ({
     id: post.id ?? "",
     type: post.type ?? "",
     shortCode: post.shortCode ?? "",
@@ -188,6 +191,8 @@ export function extractInstagramClaims(rawData: InstagramProfileData[]) {
     mentions: post.mentions ?? [],
     likesCount: post.likesCount ?? 0,
     commentsCount: post.commentsCount ?? 0,
+    firstComment: post.firstComment ?? "",
+    latestComments: post.latestComments ?? [],
     timestamp: post.timestamp ?? "",
     displayUrl: post.displayUrl ?? "",
     alt: post.alt ?? "",
@@ -254,8 +259,8 @@ export function extractInstagramClaims(rawData: InstagramProfileData[]) {
         claimed: geographyClaimed,
       },
 
-      // Latest 3 posts
-      latest_posts: latestPosts,
+      // All posts
+      posts: allPosts,
     },
   };
 }
