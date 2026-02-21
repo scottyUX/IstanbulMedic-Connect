@@ -25,13 +25,21 @@ interface ApifyErrorResponse {
   };
 }
 
-export async function runInstagramScraper({
-  apiToken,
-  instagramUrl,
-}: InstagramScraperInput): Promise<any[]> {
-  console.log("🚀 Starting Instagram scraper...");
+export interface InstagramScraperResult {
+  profile: any[];
+  posts: any[];
+}
 
-  //run scraper
+// Scraping function
+async function runApifyScraper(
+  apiToken: string,
+  instagramUrl: string,
+  resultsType: string,
+  resultsLimit: number,
+  label: string
+): Promise<any[]> {
+  console.log(`\n[${label}] Starting scrape (${resultsType})...`);
+
   const runResponse = await fetch(
     `https://api.apify.com/v2/acts/apify~instagram-scraper/runs?token=${apiToken}`,
     {
@@ -41,8 +49,8 @@ export async function runInstagramScraper({
       },
       body: JSON.stringify({
         directUrls: [instagramUrl],
-        resultsType: "details", // Get full profile information
-        resultsLimit: 1,
+        resultsType,
+        resultsLimit,
       }),
     }
   );
@@ -54,7 +62,7 @@ export async function runInstagramScraper({
     const errorMessage =
       errorData.error?.message || `HTTP ${runResponse.status}`;
     throw new Error(
-      `Failed to start Instagram scraper: ${errorMessage} (Status: ${runResponse.status})`
+      `[${label}] Failed to start scraper: ${errorMessage} (Status: ${runResponse.status})`
     );
   }
 
@@ -62,19 +70,18 @@ export async function runInstagramScraper({
 
   if (!runData?.data?.id) {
     throw new Error(
-      "Invalid API response: missing run ID in response from Apify"
+      `[${label}] Invalid API response: missing run ID`
     );
   }
 
   const runId = runData.data.id;
-  console.log(`Scraper started (Run ID: ${runId})`);
+  console.log(`[${label}] Scraper started (Run ID: ${runId})`);
+  console.log(`[${label}] Waiting for scraper to complete...`);
 
-  // Wait for scraper to finish
-  console.log("Waiting for scraper to complete");
-
+  // Poll for completion
   let finishedRunData: ApifyFinishedRunResponse | null = null;
-  const maxAttempts = 60; // 60 attempts * 5 seconds = 5 minutes max
-  const pollInterval = 5000; // 5 seconds
+  const maxAttempts = 60;
+  const pollInterval = 5000;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const statusResponse = await fetch(
@@ -88,7 +95,7 @@ export async function runInstagramScraper({
       const errorMessage =
         errorData.error?.message || `HTTP ${statusResponse.status}`;
       throw new Error(
-        `Error checking scraper status: ${errorMessage} (Status: ${statusResponse.status})`
+        `[${label}] Error checking status: ${errorMessage} (Status: ${statusResponse.status})`
       );
     }
 
@@ -97,36 +104,30 @@ export async function runInstagramScraper({
 
     if (status === "SUCCEEDED") {
       finishedRunData = statusData;
-      console.log(` Scraper completed successfully`);
+      console.log(`[${label}] Scraper completed successfully`);
       break;
     } else if (status === "FAILED" || status === "ABORTED" || status === "TIMED-OUT") {
-      throw new Error(`Scraper failed with status: ${status}`);
+      throw new Error(`[${label}] Scraper failed with status: ${status}`);
     } else {
       if (attempt % 6 === 0) {
-        console.log(`  Still running. (${attempt * pollInterval / 1000}s elapsed)`);
+        console.log(`[${label}] Still running... (${attempt * pollInterval / 1000}s elapsed)`);
       }
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
   }
 
   if (!finishedRunData) {
-    throw new Error(
-      "Scraper timed out after 5 minutes. Check Apify."
-    );
+    throw new Error(`[${label}] Scraper timed out after 5 minutes`);
   }
 
   if (!finishedRunData?.data?.defaultDatasetId) {
-    throw new Error(
-      "Invalid API response: missing dataset ID in finished run response"
-    );
+    throw new Error(`[${label}] Invalid API response: missing dataset ID`);
   }
 
   const datasetId = finishedRunData.data.defaultDatasetId;
-  const runStatus = finishedRunData.data.status;
-  console.log(`Scraper completed with status: ${runStatus}`);
 
-  // Fetch data
-  console.log("Fetching scraped data");
+  // Fetch dataset
+  console.log(`[${label}] Fetching scraped data...`);
 
   const datasetResponse = await fetch(
     `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apiToken}&clean=false`
@@ -139,17 +140,36 @@ export async function runInstagramScraper({
     const errorMessage =
       errorData.error?.message || `HTTP ${datasetResponse.status}`;
     throw new Error(
-      `Failed to fetch dataset items: ${errorMessage} (Status: ${datasetResponse.status})`
+      `[${label}] Failed to fetch dataset: ${errorMessage} (Status: ${datasetResponse.status})`
     );
   }
 
   const rawData: any[] = await datasetResponse.json();
 
   if (!Array.isArray(rawData)) {
-    throw new Error("Invalid API response: expected array of items");
+    throw new Error(`[${label}] Invalid API response: expected array`);
   }
 
-  console.log(`Retrieved ${rawData.length} items from dataset`);
+  console.log(`[${label}] Retrieved ${rawData.length} items`);
 
   return rawData;
+}
+
+export async function runInstagramScraper({
+  apiToken,
+  instagramUrl,
+}: InstagramScraperInput): Promise<InstagramScraperResult> {
+  console.log(`Starting Instagram scraper for: ${instagramUrl}`);
+
+  // Scrape profile
+  const profile = await runApifyScraper(
+    apiToken, instagramUrl, "details", 1, "Profile"
+  );
+
+  // Scrape posts
+  const posts = await runApifyScraper(
+    apiToken, instagramUrl, "posts", 200, "Posts"
+  );
+
+  return { profile, posts };
 }
