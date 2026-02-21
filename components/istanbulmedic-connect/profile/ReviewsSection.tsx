@@ -17,7 +17,7 @@ interface Review {
 }
 
 interface ReviewsSectionProps {
-  averageRating: number
+  averageRating: number | null
   totalReviews: number
   communityTags: string[]
   reviews: Review[]
@@ -31,58 +31,41 @@ export const ReviewsSection = ({
 }: ReviewsSectionProps) => {
   return (
     <div id="reviews" className="py-8 border-t border-border/60 scroll-mt-32">
+      {/* Rating Header */}
       <div className="flex flex-col items-center justify-center text-center mb-16 pt-4">
         <div className="flex items-center justify-center mb-4 relative">
-          {/* Laurel decoration placeholder - using text scale for impact as per design */}
           <span className="text-[8rem] font-bold leading-none tracking-tighter text-foreground select-none">
-            {averageRating.toFixed(2)}
+            {averageRating !== null ? averageRating.toFixed(2) : "—"}
           </span>
-          <div className="absolute -top-8 -right-16 rotate-12 bg-[#FFD700]/10 p-3 rounded-full hidden sm:block">
-            <Trophy className="h-10 w-10 text-[#FFD700] fill-[#FFD700]" />
-          </div>
+          {/* Only show trophy if clinic qualifies as patient favorite */}
+          {averageRating !== null && averageRating >= 4.5 && totalReviews >= 5 && (
+            <div className="absolute -top-8 -right-16 rotate-12 bg-[#FFD700]/10 p-3 rounded-full hidden sm:block">
+              <Trophy className="h-10 w-10 text-[#FFD700] fill-[#FFD700]" />
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-col items-center gap-2 mb-10">
-          <div className="text-2xl font-bold text-foreground">Patient Favorite</div>
-          <p className="text-base text-muted-foreground max-w-sm text-center">
-            One of the top 5% highly rated clinics for patient outcomes and service quality.
-          </p>
-        </div>
-
-        <div className="w-full max-w-5xl mx-auto overflow-x-auto pb-6">
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-6 md:gap-8 min-w-[600px] px-4">
-            <div className="flex flex-col items-center md:items-start gap-1 md:border-r border-border/40 last:border-0">
-              <div className="text-sm font-semibold text-foreground">Hygiene</div>
-              <div className="text-lg font-bold">5.0</div>
-              <Sparkles className="h-6 w-6 text-muted-foreground mt-2 stroke-1" />
-            </div>
-            <div className="flex flex-col items-center md:items-start gap-1 md:border-r border-border/40 last:border-0">
-              <div className="text-sm font-semibold text-foreground">Outcome</div>
-              <div className="text-lg font-bold">4.9</div>
-              <CheckCircle2 className="h-6 w-6 text-muted-foreground mt-2 stroke-1" />
-            </div>
-            <div className="flex flex-col items-center md:items-start gap-1 md:border-r border-border/40 last:border-0">
-              <div className="text-sm font-semibold text-foreground">Process</div>
-              <div className="text-lg font-bold">4.8</div>
-              <Clock className="h-6 w-6 text-muted-foreground mt-2 stroke-1" />
-            </div>
-            <div className="flex flex-col items-center md:items-start gap-1 md:border-r border-border/40 last:border-0">
-              <div className="text-sm font-semibold text-foreground">Communication</div>
-              <div className="text-lg font-bold">5.0</div>
-              <MessageSquare className="h-6 w-6 text-muted-foreground mt-2 stroke-1" />
-            </div>
-            <div className="flex flex-col items-center md:items-start gap-1 md:border-r border-border/40 last:border-0">
-              <div className="text-sm font-semibold text-foreground">Facilities</div>
-              <div className="text-lg font-bold">4.9</div>
-              <Building2 className="h-6 w-6 text-muted-foreground mt-2 stroke-1" />
-            </div>
-            <div className="flex flex-col items-center md:items-start gap-1 md:border-r border-border/40 last:border-0">
-              <div className="text-sm font-semibold text-foreground">Value</div>
-              <div className="text-lg font-bold">4.9</div>
-              <Tag className="h-6 w-6 text-muted-foreground mt-2 stroke-1" />
-            </div>
+        {/* Patient Favorite badge - only show if clinic qualifies */}
+        {averageRating !== null && averageRating >= 4.5 && totalReviews >= 5 ? (
+          <div className="flex flex-col items-center gap-2 mb-10">
+            <div className="text-2xl font-bold text-foreground">Patient Favorite</div>
+            <p className="text-base text-muted-foreground max-w-sm text-center">
+              One of the top highly rated clinics for patient outcomes and service quality.
+            </p>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 mb-10">
+            <div className="text-2xl font-bold text-foreground">Patient Reviews</div>
+            <p className="text-base text-muted-foreground max-w-sm text-center">
+              {totalReviews > 0
+                ? `Based on ${totalReviews} patient review${totalReviews === 1 ? "" : "s"}.`
+                : "No reviews yet. Be the first to share your experience."}
+            </p>
+          </div>
+        )}
+
+        {/* Category ratings - hidden since we don't have real data for these */}
+        {/* TODO: Add category ratings when available from database */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
@@ -152,38 +135,45 @@ export const ReviewsSection = ({
             <div className="flex flex-col md:flex-row h-full">
               {/* Left Sidebar - Fixed Stats */}
               <div className="hidden md:flex w-1/3 flex-col p-8 border-r border-border/40 bg-muted/5 h-full overflow-y-auto">
-                <div className="flex items-center gap-4 mb-8 mt-4">
-                  <Trophy className="h-16 w-16 text-[#FFD700] fill-[#FFD700]" />
-                  <div className="bg-[#FFD700] text-black text-3xl font-bold px-4 py-2 rounded-xl">
-                    {averageRating.toFixed(2)}
-                  </div>
-                </div>
-
-                <div className="mb-8">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Patient Favorite</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    One of the most loved highly rated clinics for patient outcomes and service quality on Istanbul Medic.
-                  </p>
-                </div>
-
-                <div className="space-y-5 mt-4">
-                  {[
-                    { label: "Hygiene", score: "5.0", icon: Sparkles },
-                    { label: "Outcome", score: "4.9", icon: CheckCircle2 },
-                    { label: "Process", score: "4.8", icon: Clock },
-                    { label: "Communication", score: "5.0", icon: MessageSquare },
-                    { label: "Facilities", score: "4.9", icon: Building2 },
-                    { label: "Value", score: "4.9", icon: Tag },
-                  ].map((idx) => (
-                    <div key={idx.label} className="flex items-center justify-between pb-4 border-b border-border/40 last:border-0">
-                      <div className="flex items-center gap-3">
-                        <idx.icon className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium text-foreground">{idx.label}</span>
+                {/* Only show trophy badge if clinic qualifies as patient favorite */}
+                {averageRating !== null && averageRating >= 4.5 && totalReviews >= 5 ? (
+                  <>
+                    <div className="flex items-center gap-4 mb-8 mt-4">
+                      <Trophy className="h-16 w-16 text-[#FFD700] fill-[#FFD700]" />
+                      <div className="bg-[#FFD700] text-black text-3xl font-bold px-4 py-2 rounded-xl">
+                        {averageRating.toFixed(2)}
                       </div>
-                      <span className="font-bold text-foreground">{idx.score}</span>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="mb-8">
+                      <h3 className="text-2xl font-bold text-foreground mb-2">Patient Favorite</h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        One of the most loved highly rated clinics for patient outcomes and service quality on Istanbul Medic.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4 mb-8 mt-4">
+                      <Star className="h-16 w-16 text-muted-foreground" />
+                      <div className="bg-muted text-foreground text-3xl font-bold px-4 py-2 rounded-xl">
+                        {averageRating !== null ? averageRating.toFixed(2) : "—"}
+                      </div>
+                    </div>
+
+                    <div className="mb-8">
+                      <h3 className="text-2xl font-bold text-foreground mb-2">Patient Reviews</h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {totalReviews > 0
+                          ? `Reviews from ${totalReviews} patient${totalReviews === 1 ? "" : "s"}.`
+                          : "No reviews yet."}
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {/* Category ratings removed - no real data available */}
+                {/* TODO: Add category ratings when available from database */}
               </div>
 
               {/* Right Content - Scrollable Reviews */}

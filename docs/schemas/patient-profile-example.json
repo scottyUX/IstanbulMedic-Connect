@@ -1,0 +1,146 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "userId": "auth-user-uuid-from-supabase",
+  "createdAt": "2025-02-16T12:00:00Z",
+  "updatedAt": "2025-02-16T14:30:00Z",
+  "profileVersion": 2,
+
+  "patientInfo": {
+    "fullName": "John Smith",
+    "email": "john.smith@example.com",
+    "phone": "+15551234567",
+    "preferredContactMethod": "email",
+    "timezone": "America/New_York",
+    "preferredLanguage": "en"
+  },
+
+  "qualification": {
+    "ageTier": "25_34",
+    "gender": "male",
+    "country": "US",
+    "budgetTier": "2000_5000",
+    "timeline": "3_6_months",
+    "hairLossPattern": "norwood_3"
+  },
+
+  "hairLoss": {
+    "norwoodScale": 3,
+    "durationYears": 5,
+    "familyHistory": {
+      "fatherBald": true,
+      "maternalGrandfatherBald": false
+    },
+    "previousTreatments": ["minoxidil", "finasteride"],
+    "priorTransplants": [
+      {
+        "year": 2020,
+        "estimatedGrafts": 2500,
+        "clinicCountry": "TR"
+      }
+    ],
+    "donorAreaQuality": "good",
+    "donorAreaAvailability": "adequate",
+    "desiredDensity": "high"
+  },
+
+  "medical": {
+    "allergies": ["penicillin"],
+    "medications": ["finasteride"],
+    "bloodThinners": false,
+    "priorSurgeries": [
+      {
+        "type": "scalp",
+        "year": 2020,
+        "notes": "FUE procedure"
+      }
+    ],
+    "smokingStatus": "former",
+    "alcoholUse": "occasional",
+    "chronicConditions": [],
+    "autoimmuneDisorders": [],
+    "diabetes": false,
+    "hypertension": false,
+    "otherConditions": []
+  },
+
+  "photos": [
+    {
+      "id": "photo-uuid-1",
+      "patientProfileId": "550e8400-e29b-41d4-a716-446655440000",
+      "view": "front",
+      "url": "https://ioofmlovhjvnnqvczeri.supabase.co/storage/v1/object/public/patient-photos/abc123.jpg",
+      "uploadedAt": "2025-02-16T13:00:00Z",
+      "isPrimary": true,
+      "aiProcessedAt": "2025-02-16T13:05:00Z",
+      "qualityScore": 92,
+      "analysisVersion": "v1.0"
+    },
+    {
+      "id": "photo-uuid-2",
+      "patientProfileId": "550e8400-e29b-41d4-a716-446655440000",
+      "view": "donor_area",
+      "url": "https://ioofmlovhjvnnqvczeri.supabase.co/storage/v1/object/public/patient-photos/def456.jpg",
+      "uploadedAt": "2025-02-16T13:01:00Z",
+      "isPrimary": true,
+      "aiProcessedAt": "2025-02-16T13:05:00Z",
+      "qualityScore": 88,
+      "analysisVersion": "v1.0"
+    }
+  ],
+
+  "aiAnalysis": {
+    "version": "v1.0",
+    "generatedAt": "2025-02-16T13:05:00Z",
+    "estimatedNorwoodStage": 3,
+    "estimatedMinGrafts": 3200,
+    "estimatedMaxGrafts": 3800,
+    "donorCapacityScore": 78,
+    "confidenceScore": 0.85,
+    "suitability": "good",
+    "riskFlags": [],
+    "keyFactors": [
+      "Healthy donor area with adequate density",
+      "Realistic expectations for coverage",
+      "Stable hair loss on finasteride"
+    ],
+    "recommendations": [
+      "Continue finasteride to stabilize loss",
+      "Consider PRP post-procedure for healing"
+    ]
+  },
+
+  "status": {
+    "stage": "profile_complete",
+    "subStage": null,
+    "updatedAt": "2025-02-16T14:30:00Z",
+    "updatedBy": "patient",
+    "source": "manual"
+  },
+
+  "consent": {
+    "consentGiven": true,
+    "consentTimestamp": "2025-02-16T12:05:00Z",
+    "consentVersion": "1.0",
+    "dataSharingConsent": true
+  },
+
+  "preferences": {
+    "travelFlexibility": "flexible_3_months",
+    "packagePreference": "standard"
+  },
+
+  "shares": [
+    {
+      "id": "share-uuid-1",
+      "clinicId": "clinic-uuid-istanbul-hair-center",
+      "sharedAt": "2025-02-16T14:00:00Z",
+      "snapshotVersion": 2,
+      "status": "pending",
+      "viewedAt": null,
+      "expiresAt": "2025-03-16T14:00:00Z",
+      "shareToken": "tp_a1b2c3d4e5"
+    }
+  ],
+
+  "snapshots": []
+}

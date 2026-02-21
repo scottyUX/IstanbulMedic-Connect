@@ -62,11 +62,10 @@ export default function StepsSection({
                                 </div>
 
                                 <div className="space-y-3">
-                                    <FadeInUp
-                                        as="h3"
-                                        className="im-heading-3 text-im-text-primary"
-                                    >
-                                        {step.title}
+                                    <FadeInUp>
+                                        <h3 className="im-heading-3 text-im-text-primary">
+                                            {step.title}
+                                        </h3>
                                     </FadeInUp>
                                     <FadeInUp transition={{ delay: 0.05 }}>
                                         <p

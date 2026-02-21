@@ -42,32 +42,27 @@ export default function HeroBanner({
                 <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
                     {/* Text block - left */}
                     <div className="max-w-xl lg:col-span-5">
-                        <FadeInUp
-                            as="h1"
-                            className="im-heading-display mb-6 text-white"
-                            style={{ fontFamily: 'var(--im-font-heading), "Merriweather", serif' }}
-                            reveal={false}
-                        >
-                            {(title.split('\n').concat(['', '', '']).slice(0, 3)).map((line, i) => (
-                                <span key={i} className="block min-h-[1.2em] whitespace-nowrap">
-                                    {line ? preventOrphans(line) : '\u00A0'}
-                                </span>
-                            ))}
+                        <FadeInUp reveal={false}>
+                            <h1
+                                className="im-heading-display mb-6 text-white"
+                                style={{ fontFamily: 'var(--im-font-heading), "Merriweather", serif' }}
+                            >
+                                {(title.split('\n').concat(['', '', '']).slice(0, 3)).map((line, i) => (
+                                    <span key={i} className="block min-h-[1.2em] whitespace-nowrap">
+                                        {line ? preventOrphans(line) : '\u00A0'}
+                                    </span>
+                                ))}
+                            </h1>
                         </FadeInUp>
-                        <FadeInUp
-                            as="div"
-                            className="im-text-body-lg mb-8 leading-relaxed text-white/95 space-y-4"
-                            reveal={false}
-                        >
-                            {subtitle.split('\n\n').map((paragraph, i) => (
-                                <p key={i}>{paragraph}</p>
-                            ))}
+                        <FadeInUp reveal={false}>
+                            <div className="im-text-body-lg mb-8 leading-relaxed text-white/95 space-y-4">
+                                {subtitle.split('\n\n').map((paragraph, i) => (
+                                    <p key={i}>{paragraph}</p>
+                                ))}
+                            </div>
                         </FadeInUp>
-                        <FadeInUp
-                            as="div"
-                            className="flex flex-wrap gap-4"
-                            reveal={false}
-                        >
+                        <FadeInUp reveal={false}>
+                            <div className="flex flex-wrap gap-4">
                             <Button
                                 href="/clinics"
                                 size="xl"
@@ -84,6 +79,7 @@ export default function HeroBanner({
                             >
                                 {ctaProfileLabel}
                             </Button>
+                            </div>
                         </FadeInUp>
                     </div>
 

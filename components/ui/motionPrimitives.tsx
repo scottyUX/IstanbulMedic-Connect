@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion';
 import type { MotionProps, MotionStyle } from 'framer-motion';
-import type { PropsWithChildren, JSX } from 'react';
+import type { PropsWithChildren } from 'react';
 
-const ease = [0.22, 1, 0.36, 1];
+const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const fadeInUp = {
     hidden: { opacity: 0, y: 24 },
@@ -23,7 +23,6 @@ const scaleIn = {
 
 type MotionBoxProps = PropsWithChildren<
     MotionProps & {
-        as?: keyof JSX.IntrinsicElements;
         className?: string;
         id?: string;
         /**
@@ -45,6 +44,8 @@ type MotionBoxProps = PropsWithChildren<
 const DEFAULT_VIEWPORT_MARGIN = '0px 0px -10% 0px';
 
 type ViewportConfig = NonNullable<MotionProps['viewport']>;
+
+const MotionDiv = motion.div;
 
 function buildViewportConfig(amountOverride?: number, once?: boolean): ViewportConfig {
     const config: ViewportConfig =
@@ -68,7 +69,6 @@ function mergeStyles(base: MotionStyle, incoming?: MotionProps['style']): Motion
 
 export function FadeInUp({
     children,
-    as: Component = 'div',
     reveal = true,
     amountOverride,
     once = true,
@@ -76,7 +76,6 @@ export function FadeInUp({
     viewport: viewportProp,
     ...rest
 }: MotionBoxProps) {
-    const MotionComponent = motion(Component as any);
     const mergedStyle = mergeStyles(
         { willChange: 'transform, opacity', backfaceVisibility: 'hidden' },
         style,
@@ -84,7 +83,7 @@ export function FadeInUp({
 
     if (!reveal) {
         return (
-            <MotionComponent
+            <MotionDiv
                 initial="hidden"
                 animate="visible"
                 variants={fadeInUp}
@@ -93,7 +92,7 @@ export function FadeInUp({
                 {...rest}
             >
                 {children}
-            </MotionComponent>
+            </MotionDiv>
         );
     }
 
@@ -101,7 +100,7 @@ export function FadeInUp({
         viewportProp === undefined ? buildViewportConfig(amountOverride, once) : viewportProp;
 
     return (
-        <MotionComponent
+        <MotionDiv
             initial="hidden"
             whileInView="visible"
             viewport={viewport}
@@ -110,13 +109,12 @@ export function FadeInUp({
             {...rest}
         >
             {children}
-        </MotionComponent>
+        </MotionDiv>
     );
 }
 
 export function FadeIn({
     children,
-    as: Component = 'div',
     reveal = true,
     amountOverride,
     once = true,
@@ -124,7 +122,6 @@ export function FadeIn({
     viewport: viewportProp,
     ...rest
 }: MotionBoxProps) {
-    const MotionComponent = motion(Component as any);
     const mergedStyle = mergeStyles(
         { willChange: 'opacity', backfaceVisibility: 'hidden' },
         style,
@@ -132,7 +129,7 @@ export function FadeIn({
 
     if (!reveal) {
         return (
-            <MotionComponent
+            <MotionDiv
                 initial="hidden"
                 animate="visible"
                 variants={fadeIn}
@@ -141,7 +138,7 @@ export function FadeIn({
                 {...rest}
             >
                 {children}
-            </MotionComponent>
+            </MotionDiv>
         );
     }
 
@@ -149,7 +146,7 @@ export function FadeIn({
         viewportProp === undefined ? buildViewportConfig(amountOverride, once) : viewportProp;
 
     return (
-        <MotionComponent
+        <MotionDiv
             initial="hidden"
             whileInView="visible"
             viewport={viewport}
@@ -158,13 +155,12 @@ export function FadeIn({
             {...rest}
         >
             {children}
-        </MotionComponent>
+        </MotionDiv>
     );
 }
 
 export function ScaleIn({
     children,
-    as: Component = 'div',
     reveal = true,
     amountOverride,
     once = true,
@@ -172,7 +168,6 @@ export function ScaleIn({
     viewport: viewportProp,
     ...rest
 }: MotionBoxProps) {
-    const MotionComponent = motion(Component as any);
     const mergedStyle = mergeStyles(
         { willChange: 'transform, opacity', backfaceVisibility: 'hidden' },
         style,
@@ -180,7 +175,7 @@ export function ScaleIn({
 
     if (!reveal) {
         return (
-            <MotionComponent
+            <MotionDiv
                 initial="hidden"
                 animate="visible"
                 variants={scaleIn}
@@ -189,7 +184,7 @@ export function ScaleIn({
                 {...rest}
             >
                 {children}
-            </MotionComponent>
+            </MotionDiv>
         );
     }
 
@@ -197,7 +192,7 @@ export function ScaleIn({
         viewportProp === undefined ? buildViewportConfig(amountOverride, once) : viewportProp;
 
     return (
-        <MotionComponent
+        <MotionDiv
             initial="hidden"
             whileInView="visible"
             viewport={viewport}
@@ -206,7 +201,7 @@ export function ScaleIn({
             {...rest}
         >
             {children}
-        </MotionComponent>
+        </MotionDiv>
     );
 }
 
@@ -221,12 +216,10 @@ export const staggerContainer = {
 
 export function Reveal({
     children,
-    as: Component = 'div',
     viewport,
     style,
     ...rest
-}: MotionBoxProps & { as?: keyof JSX.IntrinsicElements }) {
-    const MotionComponent = motion(Component as any);
+}: MotionBoxProps) {
     const mergedStyle = mergeStyles(
         { willChange: 'opacity, transform', backfaceVisibility: 'hidden' },
         style,
@@ -235,7 +228,7 @@ export function Reveal({
         viewport === undefined ? buildViewportConfig(undefined, true) : viewport;
 
     return (
-        <MotionComponent
+        <MotionDiv
             initial="hidden"
             whileInView="visible"
             viewport={viewportConfig}
@@ -244,6 +237,6 @@ export function Reveal({
             {...rest}
         >
             {children}
-        </MotionComponent>
+        </MotionDiv>
     );
 }

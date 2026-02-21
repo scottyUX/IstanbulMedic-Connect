@@ -25,7 +25,7 @@ export default function CategoryPillsSection() {
                         Offer what you do best with Istanbul Medic
                     </h2>
                     <p className="im-text-body im-text-muted text-left">
-                        Istanbul Medic is for more than medical tourism. Now it's for patients who deserve excellence.
+                        Istanbul Medic is for more than medical tourism. Now it&apos;s for patients who deserve excellence.
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-3">

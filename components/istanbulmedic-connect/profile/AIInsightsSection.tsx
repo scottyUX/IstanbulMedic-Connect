@@ -21,13 +21,19 @@ export const AIInsightsSection = ({ insights }: AIInsightsSectionProps) => {
         </p>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-3">
-          {insights.map((insight) => (
-            <li key={insight} className="rounded-xl bg-muted/5 p-4 text-base text-muted-foreground">
-              {insight}
-            </li>
-          ))}
-        </ul>
+        {insights.length > 0 ? (
+          <ul className="space-y-3">
+            {insights.map((insight) => (
+              <li key={insight} className="rounded-xl bg-muted/5 p-4 text-base text-muted-foreground">
+                {insight}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-base text-muted-foreground italic">
+            No AI insights available yet. Check back as we gather more data about this clinic.
+          </p>
+        )}
       </CardContent>
     </Card>
   )

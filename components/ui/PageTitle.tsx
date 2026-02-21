@@ -17,23 +17,18 @@ export default function PageTitle<T extends keyof JSX.IntrinsicElements = 'h2'>(
     as,
     reveal = false,
 }: PageTitleProps<T>) {
-    // default to 'h2' when not provided
     const Tag = (as ?? 'h2') as keyof JSX.IntrinsicElements;
 
     return (
-        <FadeInUp
-            as={Tag}
-            reveal={reveal}
-            className={cn(
-                `
-         im-heading-1
-         text-center
-         text-im-text-primary
-        `,
-                className,
-            )}
-        >
-            {children}
+        <FadeInUp reveal={reveal}>
+            <Tag
+                className={cn(
+                    'im-heading-1 text-center text-im-text-primary',
+                    className,
+                )}
+            >
+                {children}
+            </Tag>
         </FadeInUp>
     );
 }
