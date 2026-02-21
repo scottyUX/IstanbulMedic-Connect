@@ -1,10 +1,13 @@
 export interface Clinic {
-  id: number
+  id: string
   name: string
   location: string
-  image: string
+  image: string | null
   specialties: string[]
+  languages: string[]
+  accreditations: string[]
   trustScore: number
+  trustBand?: 'A' | 'B' | 'C' | 'D' | null
   description: string
   rating?: number
   aiInsight?: string
@@ -24,3 +27,56 @@ export interface FilterState {
   aiMatchScore: number
 }
 
+/** View model for Instagram intelligence data (from import results / DB) */
+export interface InstagramIntelligenceVM {
+  profileUrl?: string
+  username?: string
+  fullName?: string
+  biography?: string
+
+  followersCount?: number
+  postsCount?: number
+  verified?: boolean
+  isBusinessAccount?: boolean
+  businessCategoryName?: string
+
+  externalUrls?: string[]
+
+  extracted?: {
+    positioningClaims?: string[]
+    servicesClaimed?: string[]
+    languagesClaimed?: string[]
+    geographyClaimed?: string[]
+    addressText?: string
+    websiteCandidates?: string[]
+    linkAggregatorDetected?: string
+  }
+
+  firstSeenAt?: string
+  lastSeenAt?: string
+
+  /** Monthly follower counts (e.g. [{ month: "2025-07", followers: 7800 }]) */
+  followerHistory?: { month: string; followers: number }[]
+  /** Monthly post counts (e.g. [{ month: "2025-07", posts: 42 }]) */
+  postActivityHistory?: { month: string; posts: number }[]
+
+  /** Engagement metrics (clinic vs benchmark) */
+  engagement?: {
+    engagementTotalPerPost?: number
+    engagementRate?: number
+    commentsPerPost?: number
+    benchmark?: {
+      engagementTotalPerPost?: number
+      engagementRate?: number
+      commentsPerPost?: number
+    }
+  }
+
+  confidence?: {
+    positioning?: number
+    services?: number
+    languages?: number
+    geography?: number
+    contact?: number
+  }
+}

@@ -114,7 +114,7 @@ export default function Header({ forceMobileNav = false }: HeaderProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                     >
-                        {t('common.ctas.bookConsultation')}
+                        {String(t('common.ctas.bookConsultation') ?? '')}
                     </Button>
                 </div>
 
@@ -188,7 +188,7 @@ export default function Header({ forceMobileNav = false }: HeaderProps) {
                                                 rel="noopener noreferrer"
                                                 className="w-full shadow-[0_12px_30px_rgba(49,194,181,0.35)]"
                                             >
-                                                {t('common.ctas.bookConsultation')}
+                                                {String(t('common.ctas.bookConsultation') ?? '')}
                                             </Button>
                                         </nav>
                                     </motion.div>

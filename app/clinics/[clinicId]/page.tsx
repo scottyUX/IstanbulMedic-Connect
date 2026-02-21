@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation"
+import { getClinicById } from "@/lib/api/clinics"
 import ClinicProfilePageClient from "./ClinicProfilePageClient"
 
 interface ClinicProfilePageProps {
@@ -5,8 +7,19 @@ interface ClinicProfilePageProps {
 }
 
 export default async function ClinicProfilePage({ params }: ClinicProfilePageProps) {
-  const { clinicId: clinicIdParam } = await params
-  const clinicId = Number(clinicIdParam)
-  return <ClinicProfilePageClient clinicId={Number.isFinite(clinicId) ? clinicId : 0} />
-}
+  const { clinicId } = await params
 
+  if (process.env.NODE_ENV === "development") {
+    if (process.env.NEXT_PUBLIC_IM_FORCE_ERROR === "1") {
+      throw new Error("Forced clinic profile error for preview")
+    }
+  }
+
+  const clinic = await getClinicById(clinicId)
+
+  if (!clinic) {
+    notFound()
+  }
+
+  return <ClinicProfilePageClient clinic={clinic} />
+}

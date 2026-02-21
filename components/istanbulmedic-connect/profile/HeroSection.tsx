@@ -2,22 +2,18 @@
 
 import Image from "next/image"
 import { useMemo, useState } from "react"
-import { MapPin, ShieldCheck, Star, Share, Heart, Grid3X3, X, ChevronLeft, ChevronRight, Trophy, Sparkles } from "lucide-react"
+import { ShieldCheck, Star, Share, Heart, Grid3X3, X, ChevronLeft, ChevronRight, Trophy, Sparkles } from "lucide-react"
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
 
 interface HeroSectionProps {
   clinicName: string
   location: string
   images: string[]
   transparencyScore: number
-  rating: number
+  rating: number | null
   reviewCount: number
-  specialties: string[]
 }
 
 export const HeroSection = ({
@@ -27,20 +23,9 @@ export const HeroSection = ({
   transparencyScore,
   rating,
   reviewCount,
-  specialties,
 }: HeroSectionProps) => {
-  const safeImages = useMemo(() => {
-    if (images.length >= 5) return images.slice(0, 5)
-    // Fill with placeholders if not enough images
-    const placeholders = [
-      "/assets/image2.png",
-      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=2653&ixlib=rb-4.0.3",
-      "https://images.unsplash.com/photo-1516549655169-df83a253836f?auto=format&fit=crop&q=80&w=2696&ixlib=rb-4.0.3",
-      "https://images.unsplash.com/photo-1512918760538-d59402497648?auto=format&fit=crop&q=80&w=2695&ixlib=rb-4.0.3",
-      "https://images.unsplash.com/photo-1596524430615-b46475ddff6e?auto=format&fit=crop&q=80&w=2670&ixlib=rb-4.0.3"
-    ]
-    return [...images, ...placeholders].slice(0, 5)
-  }, [images])
+  const safeImages = useMemo(() => images.slice(0, 5), [images])
+  const hasImages = safeImages.length > 0
 
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -94,7 +79,7 @@ export const HeroSection = ({
                 }}
               >
                 <Star className="h-4 w-4 fill-[#FFD700] text-[#FFD700]" />
-                <span>{rating.toFixed(2)}</span>
+                <span>{rating !== null ? rating.toFixed(2) : "—"}</span>
                 <span className="text-muted-foreground font-normal">·</span>
                 <span className="text-muted-foreground font-normal">{reviewCount} reviews</span>
               </Button>
@@ -128,114 +113,140 @@ export const HeroSection = ({
             </div>
           </div>
 
-          {/* Patient Favorite Banner */}
-          <div className="border border-border/60 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-background shadow-sm">
+          {/* Patient Favorite Banner - only show if clinic qualifies (rating >= 4.5 with at least 5 reviews) */}
+          {rating !== null && rating >= 4.5 && reviewCount >= 5 && (
+            <div className="border border-border/60 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-background shadow-sm">
 
-            {/* Left: Badge */}
-            <div className="flex items-center gap-4 shrink-0">
-              <div className="relative">
-                <Trophy className="h-12 w-12 text-[#FFD700] fill-[#FFD700]" />
-                <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-[#FFD700] fill-[#FFD700] animate-pulse" />
-              </div>
-              <div className="flex flex-col">
-                <span className="im-heading-4 text-foreground">Patient</span>
-                <span className="im-heading-4 text-foreground">favorite</span>
-              </div>
-            </div>
-
-            {/* Middle: Text */}
-            <div className="flex-1 text-center md:text-left px-4">
-              <p className="im-text-body-lg font-medium text-foreground">
-                One of the most loved clinics on Istanbul Medic Connect
-              </p>
-              <p className="text-muted-foreground">
-                Rated highly for hygiene, outcome, and service.
-              </p>
-            </div>
-
-            {/* Right: Stats */}
-            <div className="flex items-center gap-6 shrink-0 md:border-l md:pl-6 border-border/60">
-              <div className="text-center">
-                <div className="im-heading-3 text-foreground">{rating.toFixed(2)}</div>
-                <div className="flex gap-0.5 mt-1 justify-center">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />
-                  ))}
+              {/* Left: Badge */}
+              <div className="flex items-center gap-4 shrink-0">
+                <div className="relative">
+                  <Trophy className="h-12 w-12 text-[#FFD700] fill-[#FFD700]" />
+                  <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-[#FFD700] fill-[#FFD700] animate-pulse" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="im-heading-4 text-foreground">Patient</span>
+                  <span className="im-heading-4 text-foreground">favorite</span>
                 </div>
               </div>
-              <div className="h-10 w-px bg-border/60 hidden md:block"></div>
-              <div className="text-center">
-                <div className="im-heading-3 text-foreground">{reviewCount}</div>
-                <Button
-                  variant="link"
-                  className="h-auto p-0 text-sm text-foreground hover:text-[#3EBBB7] underline-offset-4 mt-1"
-                  onClick={() => {
-                    const reviewsSection = document.getElementById("reviews")
-                    if (reviewsSection) {
-                      reviewsSection.scrollIntoView({ behavior: "smooth", block: "start" })
-                    }
-                  }}
-                >
-                  Reviews
-                </Button>
-              </div>
-            </div>
 
-          </div>
+              {/* Middle: Text */}
+              <div className="flex-1 text-center md:text-left px-4">
+                <p className="im-text-body-lg font-medium text-foreground">
+                  One of the most loved clinics on Istanbul Medic Connect
+                </p>
+                <p className="text-muted-foreground">
+                  Rated highly for hygiene, outcome, and service.
+                </p>
+              </div>
+
+              {/* Right: Stats */}
+              <div className="flex items-center gap-6 shrink-0 md:border-l md:pl-6 border-border/60">
+                <div className="text-center">
+                  <div className="im-heading-3 text-foreground">{rating.toFixed(2)}</div>
+                  <div className="flex gap-0.5 mt-1 justify-center">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />
+                    ))}
+                  </div>
+                </div>
+                <div className="h-10 w-px bg-border/60 hidden md:block"></div>
+                <div className="text-center">
+                  <div className="im-heading-3 text-foreground">{reviewCount}</div>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-sm text-foreground hover:text-[#3EBBB7] underline-offset-4 mt-1"
+                    onClick={() => {
+                      const reviewsSection = document.getElementById("reviews")
+                      if (reviewsSection) {
+                        reviewsSection.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }
+                    }}
+                  >
+                    Reviews
+                  </Button>
+                </div>
+              </div>
+
+            </div>
+          )}
 
           {/* Image Grid */}
           <div className="relative mb-8 md:mb-12">
-            <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 h-[400px] lg:h-[480px] rounded-xl overflow-hidden">
-              {/* Main Image */}
-              <div
-                className="col-span-2 row-span-2 relative cursor-pointer hover:opacity-95 transition-opacity"
-                onClick={() => openLightbox(0)}
-              >
-                <Image src={safeImages[0]} alt="Clinic Main View" fill className="object-cover" priority />
-              </div>
+            {hasImages ? (
+              <>
+                <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 h-[400px] lg:h-[480px] rounded-xl overflow-hidden">
+                  {/* Main Image */}
+                  <div
+                    className="col-span-2 row-span-2 relative cursor-pointer hover:opacity-95 transition-opacity"
+                    onClick={() => openLightbox(0)}
+                  >
+                    <Image src={safeImages[0]} alt="Clinic Main View" fill className="object-cover" priority />
+                  </div>
 
-              {/* Secondary Images */}
-              <div
-                className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
-                onClick={() => openLightbox(1)}
-              >
-                <Image src={safeImages[1]} alt="Clinic Interior" fill className="object-cover" />
-              </div>
-              <div
-                className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
-                onClick={() => openLightbox(2)}
-              >
-                <Image src={safeImages[2]} alt="Clinic Detail" fill className="object-cover" />
-              </div>
-              <div
-                className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
-                onClick={() => openLightbox(3)}
-              >
-                <Image src={safeImages[3]} alt="Clinic Equipment" fill className="object-cover" />
-              </div>
-              <div
-                className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
-                onClick={() => openLightbox(4)}
-              >
-                <Image src={safeImages[4]} alt="Clinic Staff" fill className="object-cover" />
-              </div>
-            </div>
+                  {/* Secondary Images */}
+                  {safeImages[1] ? (
+                    <div
+                      className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
+                      onClick={() => openLightbox(1)}
+                    >
+                      <Image src={safeImages[1]} alt="Clinic Interior" fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="col-span-1 row-span-1 flex items-center justify-center bg-muted/40 text-sm text-muted-foreground">No photo</div>
+                  )}
+                  {safeImages[2] ? (
+                    <div
+                      className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
+                      onClick={() => openLightbox(2)}
+                    >
+                      <Image src={safeImages[2]} alt="Clinic Detail" fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="col-span-1 row-span-1 flex items-center justify-center bg-muted/40 text-sm text-muted-foreground">No photo</div>
+                  )}
+                  {safeImages[3] ? (
+                    <div
+                      className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
+                      onClick={() => openLightbox(3)}
+                    >
+                      <Image src={safeImages[3]} alt="Clinic Equipment" fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="col-span-1 row-span-1 flex items-center justify-center bg-muted/40 text-sm text-muted-foreground">No photo</div>
+                  )}
+                  {safeImages[4] ? (
+                    <div
+                      className="col-span-1 row-span-1 relative cursor-pointer hover:opacity-95 transition-opacity"
+                      onClick={() => openLightbox(4)}
+                    >
+                      <Image src={safeImages[4]} alt="Clinic Staff" fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="col-span-1 row-span-1 flex items-center justify-center bg-muted/40 text-sm text-muted-foreground">No photo</div>
+                  )}
+                </div>
 
-            {/* Mobile View (Carousel-like single image for now) */}
-            <div className="md:hidden relative h-[300px] w-full rounded-xl overflow-hidden">
-              <Image src={safeImages[0]} alt="Clinic Main View" fill className="object-cover" priority />
-            </div>
+                {/* Mobile View (single image) */}
+                <div className="md:hidden relative h-[300px] w-full rounded-xl overflow-hidden">
+                  <Image src={safeImages[0]} alt="Clinic Main View" fill className="object-cover" priority />
+                </div>
 
-            {/* Show All Photos Button */}
-            <Button
-              variant="secondary"
-              size="sm"
-              className="absolute bottom-4 right-4 gap-2 bg-white/90 hover:bg-white shadow-sm border border-black/10 text-black font-semibold text-base"
-              onClick={() => openLightbox(0)}
-            >
-              <Grid3X3 className="h-4 w-4" />
-              Show all photos
-            </Button>
+                {/* Show All Photos Button */}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="absolute bottom-4 right-4 gap-2 bg-white/90 hover:bg-white shadow-sm border border-black/10 text-black font-semibold text-base"
+                  onClick={() => openLightbox(0)}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                  Show all photos
+                </Button>
+              </>
+            ) : (
+              <div className="flex h-[300px] md:h-[400px] lg:h-[480px] w-full items-center justify-center rounded-xl bg-muted/40 text-muted-foreground">
+                No clinic photos uploaded yet
+              </div>
+            )}
           </div>
 
         </div>
@@ -248,41 +259,52 @@ export const HeroSection = ({
           </DialogClose>
 
           <div className="relative w-full h-full flex items-center justify-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-4 z-50 text-white hover:bg-black/50 hover:text-white rounded-full h-12 w-12"
-              onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
-            >
-              <ChevronLeft className="h-8 w-8" />
-            </Button>
+            {hasImages && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-4 z-50 text-white hover:bg-black/50 hover:text-white rounded-full h-12 w-12"
+                onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
+              >
+                <ChevronLeft className="h-8 w-8" />
+              </Button>
+            )}
 
-            <div className="relative w-full h-full max-h-[85vh] max-w-[85vw]">
-              <Image
-                src={safeImages[currentImageIndex]}
-                alt={`Photo ${currentImageIndex + 1}`}
-                fill
-                className="object-contain"
-                priority
-              />
+            {hasImages && safeImages[currentImageIndex] ? (
+              <div className="relative w-full h-full max-h-[85vh] max-w-[85vw]">
+                <Image
+                  src={safeImages[currentImageIndex]}
+                  alt={`Photo ${currentImageIndex + 1}`}
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                No clinic photos uploaded yet
+              </div>
+            )}
+
+            {hasImages && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 z-50 text-white hover:bg-black/50 hover:text-white rounded-full h-12 w-12"
+                onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
+              >
+                <ChevronRight className="h-8 w-8" />
+              </Button>
+            )}
+          </div>
+
+          {hasImages && (
+            <div className="absolute bottom-4 text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
+              {currentImageIndex + 1} / {safeImages.length}
             </div>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-4 z-50 text-white hover:bg-black/50 hover:text-white rounded-full h-12 w-12"
-              onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
-            >
-              <ChevronRight className="h-8 w-8" />
-            </Button>
-          </div>
-
-          <div className="absolute bottom-4 text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
-            {currentImageIndex + 1} / {safeImages.length}
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
   )
 }
-

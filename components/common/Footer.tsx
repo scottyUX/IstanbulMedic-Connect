@@ -23,14 +23,17 @@ export default function Footer() {
   const t = useTranslations();
   const { language, setLanguage } = useLanguage();
 
-  const navLabels = t('footer.navigation') as Record<(typeof navLinks)[number]['labelKey'], string>;
-  const contact = t('footer.contact') as {
+  const navLabels = t('footer.navigation') as unknown as Record<
+    (typeof navLinks)[number]['labelKey'],
+    string
+  >;
+  const contact = t('footer.contact') as unknown as {
     heading: string;
     phone: string;
     email: string;
     address: string;
   };
-  const languageOptions = t('languages.options') as Record<
+  const languageOptions = t('languages.options') as unknown as Record<
     LanguageCode,
     { name: string; abbr: string }
   >;
@@ -44,7 +47,7 @@ export default function Footer() {
   const certificationNotice = (t('footer.certificationNotice') as string) || '';
 
   return (
-    <footer className="bg-[#0D1E32] text-white">
+    <footer className="bg-[var(--im-color-text-primary)] text-white">
       <Container className="flex flex-col gap-8 px-6 py-14 text-center sm:px-8 sm:py-16 lg:gap-12 lg:px-12 lg:py-20 lg:text-left">
         {/* Top grid */}
         <div className="grid gap-12 lg:grid-cols-[1.4fr_repeat(3,minmax(0,1fr))] lg:items-start">
@@ -79,7 +82,7 @@ export default function Footer() {
                 key={href}
                 href={href}
                 className={`transition text-center lg:text-left hover:text-white ${
-                  pathname === href ? 'font-semibold text-[#3EBBB7]' : ''
+                  pathname === href ? 'font-semibold text-[var(--im-color-secondary)]' : ''
                 }`}
               >
                 {navLabels?.[labelKey] ?? labelKey}
@@ -129,7 +132,7 @@ export default function Footer() {
                   aria-label={`${selectorDescription}: ${name}`}
                   className={`cursor-pointer transition ${
                     language === code
-                      ? 'font-semibold text-[#3EBBB7]'
+                      ? 'font-semibold text-[var(--im-color-secondary)]'
                       : 'text-[#EFEFEF] hover:text-white'
                   }`}
                 >

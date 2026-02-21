@@ -40,19 +40,25 @@ export const TransparencySection = ({ transparencyScore, items }: TransparencySe
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {items.map((item) => (
-            <div key={item.title} className="flex flex-col gap-3 rounded-xl bg-muted/5 p-4 h-full">
-              <div className="flex items-start justify-between">
-                <CheckCircle2 className="h-6 w-6 text-[#17375B]" aria-label="Verified" />
+        {items.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {items.map((item) => (
+              <div key={item.title} className="flex flex-col gap-3 rounded-xl bg-muted/5 p-4 h-full">
+                <div className="flex items-start justify-between">
+                  <CheckCircle2 className="h-6 w-6 text-[#17375B]" aria-label="Verified" />
+                </div>
+                <div>
+                  <div className="text-base font-semibold text-foreground leading-tight mb-1">{item.title}</div>
+                  <div className="text-sm text-muted-foreground leading-relaxed">{item.description}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-base font-semibold text-foreground leading-tight mb-1">{item.title}</div>
-                <div className="text-sm text-muted-foreground leading-relaxed">{item.description}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-base text-muted-foreground italic">
+            No verified credentials available yet. Contact clinic for documentation.
+          </p>
+        )}
       </CardContent>
     </Card>
   )

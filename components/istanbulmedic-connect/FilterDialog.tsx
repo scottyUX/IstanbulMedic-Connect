@@ -221,7 +221,7 @@ export function FilterDialog({
                     <Button
                         variant="link"
                         onClick={handleClearAll}
-                        className="text-base font-semibold text-foreground hover:text-[#3EBBB7] underline-offset-4 px-0"
+                        className="text-base font-semibold text-foreground hover:text-[var(--im-color-secondary)] underline-offset-4 px-0"
                     >
                         Clear all
                     </Button>
