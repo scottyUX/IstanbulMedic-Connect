@@ -3,7 +3,7 @@ import { extractInstagramClaims } from "./extractionInstagram";
 import * as fs from "fs";
 import * as path from "path";
 
-const configPath = path.resolve(__dirname, "insta_pipeline/clinics.json");
+const configPath = path.resolve(__dirname, "instagramPipeline/clinics.json");
 const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 const apiToken: string = config.apiToken;
 const endpoint: string = config.endpoint; 
