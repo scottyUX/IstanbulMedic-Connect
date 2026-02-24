@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://istanbulmedic.com/schemas/patient-profile.json",
+  "title": "Patient Profile",
+  "description": "Treatment Passport schema for IstanbulMedic Connect",
+  "type": "object",
+  "required": ["id", "userId", "createdAt", "updatedAt", "profileVersion", "patientInfo", "consent", "status"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "profileVersion": { "type": "integer", "minimum": 1 },
+
+    "patientInfo": {
+      "type": "object",
+      "required": ["fullName", "email"],
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "preferredContactMethod": { "enum": ["email", "phone", "whatsapp"] },
+        "timezone": { "type": "string" },
+        "preferredLanguage": { "type": "string", "minLength": 2, "maxLength": 2 }
+      }
+    },
+
+    "qualification": {
+      "type": "object",
+      "properties": {
+        "ageTier": { "enum": ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"] },
+        "dateOfBirth": { "type": "string", "format": "date" },
+        "gender": { "enum": ["male", "female", "other", "prefer_not_to_say"] },
+        "country": { "type": "string", "minLength": 2, "maxLength": 2 },
+        "budgetTier": { "enum": ["under_2000", "2000_5000", "5000_8000", "8000_12000", "12000_plus"] },
+        "timeline": { "enum": ["asap", "1_3_months", "3_6_months", "6_12_months", "12_plus_months"] },
+        "hairLossPattern": { "type": "string" }
+      }
+    },
+
+    "hairLoss": {
+      "type": "object",
+      "properties": {
+        "norwoodScale": { "type": "integer", "minimum": 1, "maximum": 7 },
+        "durationYears": { "type": "integer", "minimum": 0 },
+        "familyHistory": {
+          "type": "object",
+          "properties": {
+            "fatherBald": { "type": "boolean" },
+            "maternalGrandfatherBald": { "type": "boolean" }
+          }
+        },
+        "previousTreatments": { "type": "array", "items": { "type": "string" } },
+        "priorTransplants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "year": { "type": "integer" },
+              "estimatedGrafts": { "type": "integer" },
+              "clinicCountry": { "type": "string" }
+            }
+          }
+        },
+        "donorAreaQuality": { "enum": ["poor", "adequate", "good", "excellent"] },
+        "donorAreaAvailability": { "enum": ["limited", "adequate", "good"] },
+        "desiredDensity": { "enum": ["low", "medium", "high", "maximum"] }
+      }
+    },
+
+    "medical": {
+      "type": "object",
+      "properties": {
+        "allergies": { "type": "array", "items": { "type": "string" } },
+        "medications": { "type": "array", "items": { "type": "string" } },
+        "bloodThinners": { "type": "boolean" },
+        "priorSurgeries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "year": { "type": "integer" },
+              "notes": { "type": "string" }
+            }
+          }
+        },
+        "smokingStatus": { "enum": ["never", "former", "current"] },
+        "alcoholUse": { "enum": ["none", "occasional", "regular", "heavy"] },
+        "chronicConditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "condition": { "type": "string" },
+              "controlled": { "type": "boolean" }
+            }
+          }
+        },
+        "autoimmuneDisorders": { "type": "array", "items": { "type": "string" } },
+        "diabetes": { "type": "boolean" },
+        "hypertension": { "type": "boolean" },
+        "otherConditions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "patientProfileId": { "type": "string", "format": "uuid" },
+          "view": { "enum": ["front", "left_side", "right_side", "top", "donor_area"] },
+          "url": { "type": "string", "format": "uri" },
+          "uploadedAt": { "type": "string", "format": "date-time" },
+          "isPrimary": { "type": "boolean" },
+          "aiProcessedAt": { "type": "string", "format": "date-time" },
+          "qualityScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "analysisVersion": { "type": "string" }
+        }
+      }
+    },
+
+    "aiAnalysis": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "string" },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "estimatedNorwoodStage": { "type": "integer" },
+        "estimatedMinGrafts": { "type": "integer" },
+        "estimatedMaxGrafts": { "type": "integer" },
+        "donorCapacityScore": { "type": "number", "minimum": 0, "maximum": 100 },
+        "confidenceScore": { "type": "number", "minimum": 0, "maximum": 1 },
+        "suitability": { "enum": ["poor", "fair", "good", "excellent"] },
+        "riskFlags": { "type": "array", "items": { "type": "string" } },
+        "keyFactors": { "type": "array", "items": { "type": "string" } },
+        "recommendations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "status": {
+      "type": "object",
+      "required": ["stage", "updatedAt"],
+      "properties": {
+        "stage": {
+          "enum": ["onboarding", "profile_complete", "shared", "offers_pending", "offers_ready", "accepted"]
+        },
+        "subStage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "enum": ["system", "patient", "consultant", "clinic"] },
+        "source": { "enum": ["manual", "ai", "clinic"] }
+      }
+    },
+
+    "consent": {
+      "type": "object",
+      "required": ["consentGiven", "consentTimestamp", "consentVersion"],
+      "properties": {
+        "consentGiven": { "type": "boolean" },
+        "consentTimestamp": { "type": "string", "format": "date-time" },
+        "consentVersion": { "type": "string" },
+        "dataSharingConsent": { "type": "boolean" }
+      }
+    },
+
+    "preferences": {
+      "type": "object",
+      "properties": {
+        "travelFlexibility": {
+          "enum": ["fixed_dates", "flexible_1_month", "flexible_3_months", "fully_flexible"]
+        },
+        "packagePreference": { "enum": ["budget", "standard", "premium", "vip"] }
+      }
+    },
+
+    "shares": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "clinicId": { "type": "string", "format": "uuid" },
+          "sharedAt": { "type": "string", "format": "date-time" },
+          "snapshotVersion": { "type": "integer" },
+          "status": { "enum": ["pending", "viewed", "offer_sent", "revoked"] },
+          "viewedAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "shareToken": { "type": "string" }
+        }
+      }
+    },
+
+    "snapshots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "version": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "data": { "type": "object" }
+        }
+      }
+    }
+  }
+}

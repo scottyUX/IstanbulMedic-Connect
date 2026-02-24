@@ -1,24 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
-import { useCopilotChat } from "@copilotkit/react-core";
+import { useCopilotChatInternal } from "@copilotkit/react-core";
 import GeminiInput, { type GeminiInputHandle } from "./GeminiInput";
-import type { InputProps } from "@copilotkit/react-ui";
 
 const GeminiChatWrapper = () => {
-  const { messages } = useCopilotChat();
-  const [showGreeting, setShowGreeting] = useState(true);
+  const { visibleMessages } = useCopilotChatInternal();
   const inputRef = useRef<GeminiInputHandle>(null);
 
-  useEffect(() => {
-    // Hide greeting when there are messages
-    if (messages && messages.length > 0) {
-      setShowGreeting(false);
-    } else {
-      setShowGreeting(true);
-    }
-  }, [messages]);
+  const showGreeting = useMemo(() => {
+    return !visibleMessages || visibleMessages.length === 0;
+  }, [visibleMessages]);
 
   const handleSuggestionClick = (text: string) => {
     if (inputRef.current) {

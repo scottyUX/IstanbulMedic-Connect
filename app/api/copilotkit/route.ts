@@ -5,6 +5,7 @@ import {
   OpenAIAdapter,
 } from "@copilotkit/runtime";
 import { BuiltInAgent } from "@copilotkit/runtime/v2";
+import type { AbstractAgent } from "@ag-ui/client";
 
 // Create OpenAI service adapter
 const serviceAdapter = new OpenAIAdapter({
@@ -29,11 +30,16 @@ When users ask for these tools or widgets, use them appropriately. For example:
 - "Open a note pad" → use open_note_pad tool`,
 });
 
+// Work around intersected `agents` types in CopilotRuntime (Record & PromiseLike).
+// Runtime accepts a plain record at runtime; this cast keeps TypeScript happy.
+const agents = {
+  default: agent as unknown as AbstractAgent,
+} as unknown as Record<string, AbstractAgent> &
+  PromiseLike<Record<string, AbstractAgent>>;
+
 // Create the runtime
 const runtime = new CopilotRuntime({
-  agents: {
-    default: agent,
-  },
+  agents,
 });
 
 // Create the endpoint handler (handles both GET and POST)

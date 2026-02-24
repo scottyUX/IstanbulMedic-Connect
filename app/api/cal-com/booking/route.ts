@@ -79,10 +79,7 @@ export async function POST(req: NextRequest) {
     // Convert user's local time to UTC using their timezone
     // Cal.com API v2 requires start time in UTC timezone (ISO 8601 format)
     const userTimeZone = timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-    
-    // Create a date string representing the user's local time
-    const localDateTimeStr = `${date}T${String(hour24).padStart(2, "0")}:${minutes}:00`;
-    
+
     // Method: Create a date object, then use Intl to calculate the offset
     // Step 1: Create a reference date in UTC
     const utcDate = new Date(`${date}T${String(hour24).padStart(2, "0")}:${minutes}:00Z`);
@@ -112,12 +109,22 @@ export async function POST(req: NextRequest) {
     // Cal.com API v2 - Create booking
     // According to docs: https://cal.com/docs/api-reference/v2/bookings/create-a-booking
     // Request body should use "attendee" object, not "responses"
-    const requestBody: any = {
-      eventTypeId: eventTypeId,
+    const requestBody: {
+      eventTypeId: number;
+      start: string;
+      attendee: {
+        name: string;
+        email: string;
+        timeZone: string;
+        phoneNumber?: string;
+      };
+      metadata?: Record<string, string>;
+    } = {
+      eventTypeId,
       start: startTime,
       attendee: {
-        name: name,
-        email: email,
+        name,
+        email,
         timeZone: userTimeZone, // Use user's timezone from browser
       },
     };

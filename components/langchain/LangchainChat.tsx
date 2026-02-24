@@ -16,11 +16,26 @@ export default function LangchainChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [showGreeting, setShowGreeting] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const userScrolledUpRef = useRef(false);
 
-  // Auto-scroll to bottom on new messages or streaming updates
+  // Detect when the user manually scrolls away from the bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      userScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 100;
+    };
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [showGreeting]);
+
+  // Auto-scroll the container only — never the page
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || userScrolledUpRef.current) return;
+    container.scrollTop = container.scrollHeight;
   }, [messages, streamingText]);
 
   const sendMessage = async (text: string) => {
@@ -36,6 +51,7 @@ export default function LangchainChat() {
     setIsLoading(true);
     setStreamingText("");
     setShowGreeting(false);
+    userScrolledUpRef.current = false;
 
     try {
       const response = await fetch("/api/langchain-agent", {
@@ -113,7 +129,7 @@ export default function LangchainChat() {
 
         {/* Messages Area */}
         {!showGreeting && (
-          <div className="flex-1 overflow-y-auto px-4 py-6">
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-6">
             <div className="max-w-3xl mx-auto w-full space-y-3">
               {messages.map((msg) => (
                 <div
@@ -165,7 +181,6 @@ export default function LangchainChat() {
                 </div>
               )}
 
-              <div ref={messagesEndRef} />
             </div>
           </div>
         )}

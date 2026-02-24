@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { CopilotKit } from "@copilotkit/react-core";
 import { createA2UIMessageRenderer } from "@copilotkit/a2ui-renderer";
+import { a2uiViewerTheme } from "@/lib/a2ui/viewer-theme";
 import LeilaHero from "@/components/leila/LeilaHero";
 import LeilaNarrative from "@/components/leila/LeilaNarrative";
 import LeilaChat from "@/components/leila/LeilaChat";
@@ -11,29 +12,9 @@ import UserContextProvider from "@/components/leila/UserContextProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
-// A2UI theme for Leila
-const leilaTheme = {
-  primaryColor: "#2563eb", // Blue-600
-  font: "Inter, system-ui, sans-serif",
-} as any;
-
 export default function LeilaPage() {
-  const [showChat, setShowChat] = useState(false);
-  const [heroCollapsed, setHeroCollapsed] = useState(false);
   const [initialPrompt, setInitialPrompt] = useState<string | null>(null);
   const { logout, user, profile, isAuthenticated, loading } = useAuth();
-
-  // Auto-show chat when user is authenticated
-  useEffect(() => {
-    if (!loading && isAuthenticated && user) {
-      setShowChat(true);
-      setHeroCollapsed(true);
-    } else if (!loading && !isAuthenticated) {
-      // Reset to hero view when logged out
-      setShowChat(false);
-      setHeroCollapsed(false);
-    }
-  }, [isAuthenticated, user, loading]);
 
   // Console log user profile
   useEffect(() => {
@@ -59,7 +40,7 @@ export default function LeilaPage() {
 
   // Create A2UI renderer - must be stable (useMemo)
   const A2UIRenderer = useMemo(
-    () => createA2UIMessageRenderer({ theme: leilaTheme }),
+    () => createA2UIMessageRenderer({ theme: a2uiViewerTheme }),
     []
   );
 
@@ -67,19 +48,11 @@ export default function LeilaPage() {
   const renderActivityMessages = useMemo(() => [A2UIRenderer], [A2UIRenderer]);
 
   const handleStartConsultation = (question: string) => {
-    // Only set initialPrompt if a question is provided
-    // If empty, just open chat to show question buttons
     if (question.trim()) {
       setInitialPrompt(question);
     } else {
       setInitialPrompt(null);
     }
-    setShowChat(true);
-    setHeroCollapsed(true);
-  };
-
-  const handleConversationStart = () => {
-    setHeroCollapsed(true);
   };
 
   return (
@@ -110,7 +83,7 @@ export default function LeilaPage() {
           <>
             <LeilaHero
               onGetStarted={handleStartConsultation}
-              pending={showChat && !heroCollapsed}
+              pending={loading}
             />
             <LeilaNarrative />
           </>
@@ -120,7 +93,6 @@ export default function LeilaPage() {
         {!loading && isAuthenticated && (
           <div className="mt-0">
             <LeilaChat
-              onConversationStart={handleConversationStart}
               initialPrompt={initialPrompt ?? undefined}
             />
           </div>

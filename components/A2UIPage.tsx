@@ -3,18 +3,15 @@
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import { createA2UIMessageRenderer } from "@copilotkit/a2ui-renderer";
+import type { ReactNode } from "react";
 
-// Simple A2UI theme
-const a2uiTheme = {
-  primaryColor: "#9B8AFF",
-  font: "Plus Jakarta Sans",
-};
+import { a2uiViewerTheme } from "@/lib/a2ui/viewer-theme";
 
 // Create A2UI renderer
-const A2UIRenderer = createA2UIMessageRenderer({ theme: a2uiTheme });
+const A2UIRenderer = createA2UIMessageRenderer({ theme: a2uiViewerTheme });
 
 interface A2UIPageProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 const A2UIPage = ({ children }: A2UIPageProps) => {
@@ -27,7 +24,7 @@ const A2UIPage = ({ children }: A2UIPageProps) => {
       {children}
       <CopilotSidebar
         defaultOpen
-        labels={{ modalHeaderTitle: "A2UI Assistant" }}
+        labels={{ title: "A2UI Assistant" }}
       />
     </CopilotKit>
   );
