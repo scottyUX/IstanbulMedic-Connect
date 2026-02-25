@@ -1,0 +1,14 @@
+{
+  "apiToken": "YOUR_APIFY_API_TOKEN",
+  "endpoint": "http://localhost:3000/api/instagram",
+  "clinics": [
+    {
+      "clinicId": "YOUR_CLINIC_UUID_HERE",
+      "instagramUrl": "https://www.instagram.com/istanbulmedic/"
+    },
+    {
+      "clinicId": "YOUR_CLINIC_UUID_HERE",
+      "instagramUrl": "https://www.instagram.com/anotherclinic/"
+    }
+  ]
+}
