@@ -48,10 +48,10 @@ describe('databaseLookupTool', () => {
       expect(databaseLookupTool.name).toBe('database_lookup');
     });
 
-    it('description mentions clinics, users, and consultations', () => {
+    it('description mentions key tables', () => {
       expect(databaseLookupTool.description).toContain('clinics');
-      expect(databaseLookupTool.description).toContain('users');
-      expect(databaseLookupTool.description).toContain('consultations');
+      expect(databaseLookupTool.description).toContain('clinic_pricing');
+      expect(databaseLookupTool.description).toContain('clinic_reviews');
     });
   });
 
@@ -72,14 +72,14 @@ describe('databaseLookupTool', () => {
       expect(parsed.metadata.tookMs).toBeDefined();
     });
 
-    it('queries users table', async () => {
-      await databaseLookupTool.invoke({ table: 'users' });
-      expect(mockFrom).toHaveBeenCalledWith('users');
+    it('queries clinic_pricing table', async () => {
+      await databaseLookupTool.invoke({ table: 'clinic_pricing' });
+      expect(mockFrom).toHaveBeenCalledWith('clinic_pricing');
     });
 
-    it('queries consultations table', async () => {
-      await databaseLookupTool.invoke({ table: 'consultations' });
-      expect(mockFrom).toHaveBeenCalledWith('consultations');
+    it('queries clinic_reviews table', async () => {
+      await databaseLookupTool.invoke({ table: 'clinic_reviews' });
+      expect(mockFrom).toHaveBeenCalledWith('clinic_reviews');
     });
   });
 
@@ -92,23 +92,23 @@ describe('databaseLookupTool', () => {
       await databaseLookupTool.invoke({ table: 'clinics', query: 'istanbul' });
 
       expect(mockOr).toHaveBeenCalledWith(
-        'name.ilike.%istanbul%,location.ilike.%istanbul%,specialties.ilike.%istanbul%'
+        'display_name.ilike.%istanbul%,description.ilike.%istanbul%,primary_city.ilike.%istanbul%,primary_country.ilike.%istanbul%'
       );
     });
 
-    it('applies ilike search on users columns', async () => {
-      await databaseLookupTool.invoke({ table: 'users', query: 'john' });
+    it('applies ilike search on clinic_locations columns', async () => {
+      await databaseLookupTool.invoke({ table: 'clinic_locations', query: 'istanbul' });
 
       expect(mockOr).toHaveBeenCalledWith(
-        'email.ilike.%john%,full_name.ilike.%john%'
+        'location_name.ilike.%istanbul%,city.ilike.%istanbul%,country.ilike.%istanbul%,address_line.ilike.%istanbul%'
       );
     });
 
-    it('applies ilike search on consultations columns', async () => {
-      await databaseLookupTool.invoke({ table: 'consultations', query: 'pending' });
+    it('applies ilike search on clinic_team columns', async () => {
+      await databaseLookupTool.invoke({ table: 'clinic_team', query: 'Dr' });
 
       expect(mockOr).toHaveBeenCalledWith(
-        'status.ilike.%pending%,notes.ilike.%pending%'
+        'name.ilike.%Dr%,credentials.ilike.%Dr%'
       );
     });
   });
