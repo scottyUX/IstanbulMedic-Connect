@@ -1,6 +1,6 @@
 import { GooglePlacesService } from '../lib/services/googlePlacesService';
 import { ApifyClient } from 'apify-client';
-
+import { createClient } from '@supabase/supabase-js'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -38,13 +38,22 @@ const RAW_CLINICS = [
   { name: "Longevita", place_id: "ChIJY-PxTLQbdkgRo__pU5Sv54w" },
 ];
 
-// ─── No Supabase needed — using place_id directly as clinicId ─────────────────
-// TODO: replace with real UUID lookup once you have Supabase set up,
-// or pre-populate the RAW_CLINICS array with a `clinicId` field.
-async function getClinicIdByPlaceId(placeId: string): Promise<string | null> {
-  return placeId;
-}
+// ─── Get id ─────────────────
 
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+async function getClinicIdByPlaceId(placeId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('clinic_google_places')
+    .select('clinic_id')
+    .eq('place_id', placeId)
+    .single()
+  return data?.clinic_id || null
+}
 // ─── Core scrape function (unchanged from your original) ──────────────────────
 
 async function scrapeAndImport(clinicId: string, placeId: string) {
@@ -121,7 +130,7 @@ async function scrapeAndImport(clinicId: string, placeId: string) {
     body: JSON.stringify(payload),
   });
 
-  const result = await response.json();
+  const result = await response.json() as any
   if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
   return result;
 }

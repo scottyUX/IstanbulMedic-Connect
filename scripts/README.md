@@ -14,3 +14,9 @@ NEXT_PUBLIC_SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 APIFY_API_TOKEN=
 GOOGLE_PLACES_API_KEY=
+
+I ran scrape-and-import using the following commands
+npm run dev
+export $(cat .env.local | xargs) && npx tsx scripts/scrape-and-import.ts
+
+Use seed-clinics to add a new clinic to the database with its google clinic id before calling the scraper logic on it
