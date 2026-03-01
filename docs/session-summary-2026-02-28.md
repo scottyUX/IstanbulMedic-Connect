@@ -485,7 +485,114 @@ Made `price` prop optional so sidebar can show just rating when pricing is disab
 
 ### Remaining Work
 
-- [ ] Finish skipping remaining test files (HeroSection, LocationInfoSection, SummarySidebar, SectionNav, InstagramIntelligenceSection, clinics-api)
+- [x] ~~Finish skipping remaining test files~~ Done in Session 5
 - [ ] Create DB view for rating sorting
 - [ ] Implement smart search with synonyms (future)
+- [ ] Enable features as real data becomes available
+
+---
+
+## Continued Work (Session 5 - 2026-03-01)
+
+### Focus: Test Fixes + Review Sorting/Search
+
+#### 1. Fixed Remaining Test Files
+Completed skipping tests for hidden features:
+
+| Test File | Tests Skipped | Reason |
+|-----------|---------------|--------|
+| `HeroSection.test.tsx` | 2 | Transparency score, Share/Save buttons |
+| `LocationInfoSection.test.tsx` | 3 | Languages, Payment methods, Services |
+| `SummarySidebar.test.tsx` | 18 | Pricing, booking, compare, share actions |
+| `SectionNav.test.tsx` | 4 | Tests expecting all 10 tabs |
+| `InstagramIntelligenceSection.test.tsx` | 12 (entire suite) | `profileInstagram: false` |
+| `clinics-api.test.ts` | 0 | Updated search test for display_name only |
+
+Also updated:
+- Patient Favorite tests to match new threshold (4.8/100)
+- SummarySidebar "handles null rating" test to check for "Talk to Leila" instead of hidden "Book Consultation"
+
+**Test Status:** 239 passed, 58 skipped ✅
+
+#### 2. Fixed Missing File in Vercel Build
+**Issue:** Build failed with `Module not found: Can't resolve './clinicRatings'`
+
+**Fix:** Added `lib/api/clinicRatings.ts` to git commit (was untracked).
+
+#### 3. Added Review Sorting Feature
+**File:** `components/istanbulmedic-connect/profile/ReviewsSection.tsx`
+
+Added sort dropdown to the "Show all reviews" modal:
+- **Most Recent** (default) - sorted by date descending
+- **Highest Rated** - sorted by rating descending
+- **Lowest Rated** - sorted by rating ascending
+
+**Design decisions:**
+- Initial 4 reviews on page always sorted by "Most Recent" (for transparency)
+- Modal sorting is independent from initial display
+- User can explore with different sorts in modal without affecting page
+
+**Exported functions for testing:**
+- `sortReviews(reviews, sortOption)` - sorts review array
+- `parseReviewDate(dateStr)` - parses date strings for comparison
+
+#### 4. Added Review Search Feature
+**File:** `components/istanbulmedic-connect/profile/ReviewsSection.tsx`
+
+Made the search input in the modal functional:
+- Filters reviews by **text content only** (not author name)
+- Shows "X results for 'query'" when searching
+- Shows "No reviews match your search" with clear button when no results
+
+**Why text-only search:** All reviews show "Patient" as author (anonymous for privacy in medical tourism context).
+
+#### 5. Added Tests for Sorting/Search
+**File:** `tests/components/ReviewsSection.test.tsx`
+
+Added 10 new tests:
+
+**Sort tests (7):**
+- `sortReviews` sorts by most recent
+- `sortReviews` sorts by highest rated
+- `sortReviews` sorts by lowest rated
+- `sortReviews` doesn't mutate original array
+- `parseReviewDate` parses valid dates
+- `parseReviewDate` returns 0 for invalid dates
+- `parseReviewDate` handles various formats
+
+**Search tests (3):**
+- Filters reviews by text in modal search
+- Shows no results message when search matches nothing
+- Clears search when clear button is clicked
+
+**Test Status:** 27 tests in ReviewsSection.test.tsx (all passing)
+
+### Files Changed (Session 5)
+
+| File | Change |
+|------|--------|
+| `components/istanbulmedic-connect/profile/ReviewsSection.tsx` | Added sorting dropdown, search functionality |
+| `tests/components/ReviewsSection.test.tsx` | Added 10 tests for sorting/search |
+| `tests/components/HeroSection.test.tsx` | Skipped/updated tests for hidden features |
+| `tests/components/LocationInfoSection.test.tsx` | Skipped tests for hidden features |
+| `tests/components/SummarySidebar.test.tsx` | Skipped tests for hidden features |
+| `tests/components/SectionNav.test.tsx` | Skipped/updated tests for hidden tabs |
+| `tests/components/InstagramIntelligenceSection.test.tsx` | Skipped entire suite |
+| `tests/unit/clinics-api.test.ts` | Updated search test |
+
+### Commits (Session 5)
+
+1. `32776ee` - feat: Production-ready updates with feature flags and bug fixes (amended to include clinicRatings.ts)
+2. `72d74bc` - feat: Add review sorting and search to modal
+
+### Task Status Update
+
+**Completed this session:**
+- [x] Review sorting (Most Recent, Highest Rated, Lowest Rated)
+- [x] Review search in modal
+- [x] All test files updated for hidden features
+
+**Still pending:**
+- [ ] Create DB view for rating sorting
+- [ ] Implement smart search with synonyms
 - [ ] Enable features as real data becomes available
