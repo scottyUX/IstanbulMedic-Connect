@@ -177,3 +177,37 @@ See the `docs/` folder for detailed documentation:
 - `docs/data-layer-architecture.md` - Data fetching patterns
 - `docs/data-integrity-refactor.md` - Data display guidelines
 - `docs/backend-schema-mapping.md` - Database schema details
+## Learn More
+
+- [CopilotKit Documentation](https://docs.copilotkit.ai)
+- [Generative UI Article](https://dev.to/copilotkit/the-developers-guide-to-generative-ui-in-2026-1bh3)
+- [AG-UI Protocol](https://docs.copilotkit.ai)
+- [A2UI Specification](https://ai.google.dev/a2ui)
+
+## Next Steps
+
+- Configure MCP Apps middleware for open-ended Generative UI
+- Add more example components for Static Generative UI
+- Experiment with different A2UI templates
+- Customize the A2UI theme
+
+# Supabase
+## Getting Set Up for local development
+
+### Prerequisites
+
+- updated npm
+- a container runtime compatible with Docker APIs (Docker Desktop)
+
+### Installation & Set UP
+- follow this guide: https://supabase.com/docs/guides/local-development?queryGroups=package-manager&package-manager=npm
+- update .env with (from running supabase start or supabase status)
+  - SUPABASE_URL=http://...(project url under APIs)
+  - SUPABASE_ANON_KEY=sb_publishable_...
+  - SUPABASE_SERVICE_ROLE_KEY=sb_secret_....
+  - DATABASE_URL=postgresql://postgres:postgres@...
+- Login to supabase using - supabase login
+- apply migrations(basis for schemas) and seed.sql(mock data) - supabase db reset
+
+
+
