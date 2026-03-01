@@ -5,6 +5,7 @@ import Section from '@/components/ui/section';
 import Container from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { CONSULTATION_LINK } from '@/lib/constants';
+import { FEATURE_CONFIG } from '@/lib/filterConfig';
 
 export default function SafeAffordableSection() {
     return (
@@ -31,14 +32,16 @@ export default function SafeAffordableSection() {
                             handle everything so you can focus on getting your
                             hair back.
                         </p>
-                        <Button
-                            href={CONSULTATION_LINK}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-fit bg-white text-[#5B2C6F] hover:bg-white/90"
-                        >
-                            Get my free plan
-                        </Button>
+                        {FEATURE_CONFIG.createProfile && (
+                            <Button
+                                href={CONSULTATION_LINK}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-fit bg-white text-[#5B2C6F] hover:bg-white/90"
+                            >
+                                Get my free plan
+                            </Button>
+                        )}
                     </div>
                 </div>
             </Container>

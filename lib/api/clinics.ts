@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import type { Tables } from '@/lib/supabase/database.types';
+import type { Tables, Json } from '@/lib/supabase/database.types';
+import { aggregateClinicRatings } from './clinicRatings';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -19,6 +20,7 @@ type ClinicReviewRow = Tables<'clinic_reviews'>;
 type ClinicScoreComponentRow = Tables<'clinic_score_components'>;
 
 export type ClinicSortOption =
+  | 'Alphabetical'
   | 'Best Match'
   | 'Highest Rated'
   | 'Most Transparent'
@@ -32,6 +34,8 @@ export interface ClinicsQuery {
   languages?: string[];
   accreditations?: string[];
   minTrustScore?: number;
+  minRating?: number;
+  minReviews?: number;
   page?: number;
   pageSize?: number;
   sort?: ClinicSortOption;
@@ -57,6 +61,7 @@ export interface ClinicListItem {
   trustBand: 'A' | 'B' | 'C' | 'D' | null;
   description: string;
   rating?: number;
+  reviewCount?: number;
   aiInsight?: string;
 }
 
@@ -78,10 +83,12 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   pricing: ClinicPricingRow[];
   team: ClinicTeamRow[];
   packages: ClinicPackageRow[];
-  reviews: ClinicReviewRow[];
+  reviews: (ClinicReviewRow & { sources?: { source_name: string; source_type: string } | null })[];
   scoreComponents: ClinicScoreComponentRow[];
   yearsInOperation: number | null;
   proceduresPerformed: number | null;
+  /** Total review count from clinic_facts (actual Google total, not scraped count) */
+  totalReviewCount: number;
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -99,6 +106,7 @@ type ClinicServicePartial = Pick<ClinicServiceRow, 'service_name' | 'service_cat
 type ClinicLanguagePartial = Pick<ClinicLanguageRow, 'language'>;
 type ClinicCredentialPartial = Pick<ClinicCredentialRow, 'credential_type' | 'credential_name'>;
 type ClinicMediaPartial = Pick<ClinicMediaRow, 'url' | 'is_primary' | 'display_order' | 'media_type'>;
+type ClinicFactPartial = Pick<ClinicFactRow, 'fact_key' | 'fact_value'>;
 
 type ClinicListQueryRow = {
   id: string;
@@ -110,6 +118,7 @@ type ClinicListQueryRow = {
   clinic_languages?: ClinicLanguagePartial[] | null;
   clinic_credentials?: ClinicCredentialPartial[] | null;
   clinic_media?: ClinicMediaPartial[] | null;
+  clinic_facts?: ClinicFactPartial[] | null;
 };
 
 const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
@@ -163,6 +172,10 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     });
   const imageUrl = imageMedia[0]?.url ?? null;
 
+  // Aggregate rating from clinic_facts (Google rating, etc.)
+  const factRows = Array.isArray(clinic.clinic_facts) ? clinic.clinic_facts : [];
+  const ratingData = aggregateClinicRatings(factRows);
+
   return {
     id: clinic.id,
     name: clinic.display_name,
@@ -174,7 +187,8 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     trustScore: score?.overall_score ?? 0,
     trustBand: score?.band ?? null,
     description: `Quality healthcare clinic in ${clinic.primary_city}.`,
-    rating: undefined,
+    rating: ratingData.rating ?? undefined,
+    reviewCount: ratingData.reviewCount > 0 ? ratingData.reviewCount : undefined,
     aiInsight: undefined,
   };
 };
@@ -195,10 +209,15 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
   const selectedLanguages = (query.languages ?? []).map((l) => l.trim()).filter(Boolean);
   const selectedAccreditations = (query.accreditations ?? []).map((a) => a.trim()).filter(Boolean);
   const minTrustScore = typeof query.minTrustScore === 'number' ? query.minTrustScore : undefined;
+  const minRating = typeof query.minRating === 'number' ? query.minRating : undefined;
+  const minReviews = typeof query.minReviews === 'number' ? query.minReviews : undefined;
 
   let filteredIds: Set<string> | null = null;
 
   if (searchQuery) {
+    // TODO: Implement smart search with text normalization/synonyms to map
+    // user input like "hair", "fue", "dhi" to service enums like "Hair Transplant".
+    // For now, just search by clinic display name.
     const { data: nameMatches, error: nameError } = await supabase
       .from('clinics')
       .select('id')
@@ -210,22 +229,8 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
       throw new Error(`Failed to search clinics: ${nameError.message}`);
     }
 
-    const { data: serviceMatches, error: serviceError } = await supabase
-      .from('clinic_services')
-      .select('clinic_id')
-      .or(`service_name.ilike.%${searchQuery}%,service_category.ilike.%${searchQuery}%`);
-
-    if (serviceError) {
-      console.error('Error searching clinics by services:', serviceError);
-      throw new Error(`Failed to search clinics: ${serviceError.message}`);
-    }
-
-    const searchIds = [
-      ...(nameMatches ?? []).map((row: { id: string }) => row.id),
-      ...(serviceMatches ?? []).map((row: { clinic_id: string }) => row.clinic_id),
-    ];
-
-    filteredIds = applyIdFilter(filteredIds, Array.from(new Set(searchIds)));
+    const searchIds = (nameMatches ?? []).map((row: { id: string }) => row.id);
+    filteredIds = applyIdFilter(filteredIds, searchIds);
   }
 
   if (selectedTreatments.length > 0) {
@@ -333,6 +338,68 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
     filteredIds = applyIdFilter(filteredIds, scoreIds);
   }
 
+  // Filter by minimum rating and/or minimum reviews using clinic_facts
+  if (typeof minRating === 'number' || typeof minReviews === 'number') {
+    const { data: factsData, error: factsError } = await supabase
+      .from('clinic_facts')
+      .select('clinic_id, fact_key, fact_value')
+      .in('fact_key', ['google_rating', 'google_review_count']);
+
+    if (factsError) {
+      console.error('Error filtering clinics by rating/reviews:', factsError);
+      throw new Error(`Failed to filter clinics: ${factsError.message}`);
+    }
+
+    // Helper to extract number from fact_value (handles { "value": X } format)
+    const extractNumber = (factValue: unknown): number | null => {
+      if (factValue === null || factValue === undefined) return null;
+      if (typeof factValue === 'number') return factValue;
+      if (typeof factValue === 'string') {
+        const parsed = parseFloat(factValue);
+        return Number.isNaN(parsed) ? null : parsed;
+      }
+      // Handle { "value": X } format
+      if (typeof factValue === 'object' && factValue !== null && 'value' in factValue) {
+        const inner = (factValue as { value: unknown }).value;
+        if (typeof inner === 'number') return inner;
+        if (typeof inner === 'string') {
+          const parsed = parseFloat(inner);
+          return Number.isNaN(parsed) ? null : parsed;
+        }
+      }
+      return null;
+    };
+
+    // Group facts by clinic_id
+    const clinicFactsMap = new Map<string, { rating: number | null; reviewCount: number }>();
+    for (const fact of factsData ?? []) {
+      if (!clinicFactsMap.has(fact.clinic_id)) {
+        clinicFactsMap.set(fact.clinic_id, { rating: null, reviewCount: 0 });
+      }
+      const entry = clinicFactsMap.get(fact.clinic_id)!;
+      if (fact.fact_key === 'google_rating') {
+        entry.rating = extractNumber(fact.fact_value);
+      } else if (fact.fact_key === 'google_review_count') {
+        entry.reviewCount = extractNumber(fact.fact_value) ?? 0;
+      }
+    }
+
+    // Filter clinic IDs based on criteria
+    const ratingFilteredIds = Array.from(clinicFactsMap.entries())
+      .filter(([, data]) => {
+        if (typeof minRating === 'number' && (data.rating === null || data.rating < minRating)) {
+          return false;
+        }
+        if (typeof minReviews === 'number' && data.reviewCount < minReviews) {
+          return false;
+        }
+        return true;
+      })
+      .map(([clinicId]) => clinicId);
+
+    filteredIds = applyIdFilter(filteredIds, ratingFilteredIds);
+  }
+
   if (filteredIds && filteredIds.size === 0) {
     return { clinics: [], total: 0, page, pageSize };
   }
@@ -369,6 +436,10 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
       clinic_scores (
         overall_score,
         band
+      ),
+      clinic_facts (
+        fact_key,
+        fact_value
       )
     `,
       { count: 'exact' }
@@ -386,7 +457,16 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
   }
 
   switch (sort) {
+    case 'Alphabetical':
+      queryBuilder = queryBuilder.order('display_name', { ascending: true });
+      break;
     case 'Highest Rated':
+      // TODO: Currently sorts by trust score. Will sort by rating once DB view is created.
+      queryBuilder = queryBuilder.order('overall_score', {
+        foreignTable: 'clinic_scores',
+        ascending: false,
+      });
+      break;
     case 'Most Transparent':
     case 'Best Match':
       queryBuilder = queryBuilder.order('overall_score', {
@@ -443,7 +523,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
       clinic_pricing (*),
       clinic_team (*),
       clinic_packages (*),
-      clinic_reviews (*)
+      clinic_reviews (*, sources (source_name, source_type))
     `)
     .eq('id', clinicId)
     .single();
@@ -472,21 +552,11 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
   const pricing = (clinic.clinic_pricing as ClinicPricingRow[]) || [];
   const team = (clinic.clinic_team as ClinicTeamRow[]) || [];
   const packages = (clinic.clinic_packages as ClinicPackageRow[]) || [];
-  const reviews = (clinic.clinic_reviews as ClinicReviewRow[]) || [];
+  const reviews = (clinic.clinic_reviews as (ClinicReviewRow & { sources?: { source_name: string; source_type: string } | null })[]) || [];
   const scoreComponents = (clinic.clinic_score_components as ClinicScoreComponentRow[]) || [];
 
-  // Calculate average rating from reviews
-  const ratings = reviews
-    .map((r) => {
-      const match = r.rating?.match(/(\d+(\.\d+)?)/);
-      return match ? parseFloat(match[1]) : null;
-    })
-    .filter((r): r is number => r !== null);
-
-  const avgRating =
-    ratings.length > 0
-      ? ratings.reduce((a, b) => a + b, 0) / ratings.length
-      : undefined;
+  // Get rating and review count from clinic_facts (not calculated from scraped reviews)
+  const ratingData = aggregateClinicRatings(facts);
 
   // Build specialties
   const specialties: string[] = [
@@ -541,7 +611,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     trustScore: score?.overall_score ?? 0,
     trustBand: score?.band ?? null,
     description: `${clinic.display_name} - Quality healthcare in ${clinic.primary_city}.`,
-    rating: avgRating,
+    rating: ratingData.rating ?? undefined,
+    reviewCount: ratingData.reviewCount > 0 ? ratingData.reviewCount : undefined,
     aiInsight: undefined,
     accreditations,
     websiteUrl: clinic.website_url,
@@ -564,6 +635,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     scoreComponents,
     yearsInOperation: clinic.years_in_operation,
     proceduresPerformed: clinic.procedures_performed,
+    totalReviewCount: ratingData.reviewCount,
   };
 }
 

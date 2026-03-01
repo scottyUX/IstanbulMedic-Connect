@@ -55,6 +55,8 @@ describe('ExploreClinicsPage', () => {
       'Ministry Licensed': false,
     },
     aiMatchScore: 0,
+    minRating: null,
+    minReviews: null,
   };
 
   const sampleClinics: Clinic[] = [

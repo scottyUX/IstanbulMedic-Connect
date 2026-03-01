@@ -10,6 +10,7 @@ export interface Clinic {
   trustBand?: 'A' | 'B' | 'C' | 'D' | null
   description: string
   rating?: number
+  reviewCount?: number
   aiInsight?: string
 }
 
@@ -25,6 +26,8 @@ export interface FilterState {
   languages: Record<Language, boolean>
   accreditations: Record<Accreditation, boolean>
   aiMatchScore: number
+  minRating: number | null      // null = "Any"
+  minReviews: number | null     // null = "Any"
 }
 
 /** View model for Instagram intelligence data (from import results / DB) */

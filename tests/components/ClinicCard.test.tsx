@@ -36,7 +36,8 @@ describe('ClinicCard', () => {
     expect(screen.getByText('A quality healthcare clinic in Istanbul.')).toBeInTheDocument();
   });
 
-  it('renders trust score', () => {
+  // TODO: Unskip when clinic_scores data is populated and trust score display is added back to ClinicCard
+  it.skip('renders trust score', () => {
     render(<ClinicCard {...defaultProps} />);
     expect(screen.getByText(/Trust 85/)).toBeInTheDocument();
   });
@@ -63,7 +64,8 @@ describe('ClinicCard', () => {
     expect(screen.getByText('4.5')).toBeInTheDocument();
   });
 
-  it('does not render rating when not provided', () => {
+  // TODO: Unskip when clinic_scores data is populated and trust score display is added back to ClinicCard
+  it.skip('shows trust score when no rating provided', () => {
     render(<ClinicCard {...defaultProps} />);
     // Trust score should appear without rating
     expect(screen.getByText('Trust 85')).toBeInTheDocument();
@@ -104,12 +106,14 @@ describe('ClinicCard', () => {
     expect(screen.getByText('No clinic photo uploaded')).toBeInTheDocument();
   });
 
-  it('renders compare checkbox', () => {
+  // TODO: Unskip when FEATURE_CONFIG.compare is enabled
+  it.skip('renders compare checkbox', () => {
     render(<ClinicCard {...defaultProps} />);
     expect(screen.getByLabelText(`Compare ${defaultProps.name}`)).toBeInTheDocument();
   });
 
-  it('does not trigger onViewProfile when compare checkbox is clicked', () => {
+  // TODO: Unskip when FEATURE_CONFIG.compare is enabled
+  it.skip('does not trigger onViewProfile when compare checkbox is clicked', () => {
     const onViewProfile = vi.fn();
     render(<ClinicCard {...defaultProps} onViewProfile={onViewProfile} />);
 

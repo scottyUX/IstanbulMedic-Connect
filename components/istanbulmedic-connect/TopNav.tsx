@@ -11,12 +11,13 @@ import Logo from "@/components/common/Logo"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
+import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
 const NAV_ITEMS = [
-  { label: "How It Works", href: "/clinics#how-it-works" },
-  { label: "Treatments", href: "/clinics#treatments" },
+  { label: "Home", href: "/" },
   { label: "Clinics", href: "/clinics" },
-  { label: "Design System", href: "/design-system" },
+  // TODO: Re-enable when Design System should be public
+  // { label: "Design System", href: "/design-system" },
 ] as const
 
 const CONSULTATION_LINK = "https://cal.com/team/istanbul-medic/istanbul-medic-15-minutes-consultation"
@@ -127,8 +128,7 @@ export const TopNav = () => {
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
           {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || (item.href !== "/clinics" && pathname?.startsWith(String(item.href)))
+            const isActive = pathname === item.href
 
             return (
               <Link
@@ -169,27 +169,29 @@ export const TopNav = () => {
           >
             Talk to Leila
           </Button>
-          {isAuthenticated ? (
-            <Button
-              variant="outline"
-              onClick={() => {
-                setOpen(false)
-                logout()
-              }}
-              aria-label="Log out"
-              className="shrink-0"
-            >
-              Log out
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              href="/auth/login"
-              aria-label="Login or sign up"
-              className="shrink-0"
-            >
-              Login / Sign up
-            </Button>
+          {FEATURE_CONFIG.auth && (
+            isAuthenticated ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setOpen(false)
+                  logout()
+                }}
+                aria-label="Log out"
+                className="shrink-0"
+              >
+                Log out
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                href="/auth/login"
+                aria-label="Login or sign up"
+                className="shrink-0"
+              >
+                Login / Sign up
+              </Button>
+            )
           )}
         </div>
 
@@ -235,9 +237,7 @@ export const TopNav = () => {
                   >
                     <nav className="space-y-6">
                       {navItems.map((item) => {
-                        const isActive =
-                          pathname === item.href ||
-                          (item.href !== "/clinics" && pathname?.startsWith(String(item.href)))
+                        const isActive = pathname === item.href
 
                         return (
                           <Link
@@ -276,26 +276,28 @@ export const TopNav = () => {
                       >
                         Talk to Leila
                       </Button>
-                      {isAuthenticated ? (
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setOpen(false)
-                            logout()
-                          }}
-                          className="w-full"
-                        >
-                          Log out
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          href="/auth/login"
-                          onClick={() => setOpen(false)}
-                          className="w-full"
-                        >
-                          Login / Sign up
-                        </Button>
+                      {FEATURE_CONFIG.auth && (
+                        isAuthenticated ? (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setOpen(false)
+                              logout()
+                            }}
+                            className="w-full"
+                          >
+                            Log out
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            href="/auth/login"
+                            onClick={() => setOpen(false)}
+                            className="w-full"
+                          >
+                            Login / Sign up
+                          </Button>
+                        )
                       )}
                     </nav>
                   </motion.div>

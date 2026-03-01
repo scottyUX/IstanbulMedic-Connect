@@ -141,10 +141,9 @@ describe('getClinics', () => {
     );
   });
 
-  it('handles search query filtering', async () => {
-    // For search, multiple queries are made
+  it('handles search query filtering by display name only', async () => {
+    // Search only queries clinics by display_name (service search removed due to ENUM type limitation)
     const nameMatchBuilder = createMockQueryBuilder([{ id: 'clinic-1' }], null);
-    const serviceMatchBuilder = createMockQueryBuilder([{ clinic_id: 'clinic-1' }], null);
     const mainBuilder = createMockQueryBuilder([sampleClinicRow], null, 1);
 
     let callCount = 0;
@@ -153,16 +152,13 @@ describe('getClinics', () => {
         callCount++;
         return nameMatchBuilder;
       }
-      if (table === 'clinic_services') {
-        return serviceMatchBuilder;
-      }
       return mainBuilder;
     });
 
     const result = await getClinics({ searchQuery: 'hair' });
 
     expect(mockSupabase.from).toHaveBeenCalledWith('clinics');
-    expect(mockSupabase.from).toHaveBeenCalledWith('clinic_services');
+    // clinic_services search was removed because ENUM types don't support ILIKE
     expect(result.clinics).toBeDefined();
   });
 
@@ -330,7 +326,10 @@ describe('getClinicById', () => {
     clinic_credentials: [{ credential_name: 'JCI', credential_type: 'accreditation' }],
     clinic_media: [{ url: 'https://example.com/img.jpg', is_primary: true, display_order: 0, media_type: 'image' }],
     clinic_mentions: [],
-    clinic_facts: [],
+    clinic_facts: [
+      { fact_key: 'google_rating', fact_value: { value: 4.7 } },
+      { fact_key: 'google_review_count', fact_value: { value: 150 } },
+    ],
     clinic_pricing: [],
     clinic_team: [],
     clinic_packages: [],
@@ -366,27 +365,29 @@ describe('getClinicById', () => {
     expect(result!.proceduresPerformed).toBe(5000);
   });
 
-  it('calculates average rating from reviews', async () => {
+  it('gets rating from clinic_facts', async () => {
     const mockBuilder = createMockQueryBuilder(sampleFullClinic, null);
     mockSupabase.from.mockReturnValue(mockBuilder);
 
     const result = await getClinicById('clinic-1');
 
-    // (4.5 + 5) / 2 = 4.75
-    expect(result!.rating).toBe(4.75);
+    // Rating comes from clinic_facts google_rating
+    expect(result!.rating).toBe(4.7);
+    expect(result!.totalReviewCount).toBe(150);
   });
 
-  it('handles clinic with no reviews', async () => {
-    const clinicNoReviews = {
+  it('handles clinic with no rating facts', async () => {
+    const clinicNoFacts = {
       ...sampleFullClinic,
-      clinic_reviews: [],
+      clinic_facts: [],
     };
-    const mockBuilder = createMockQueryBuilder(clinicNoReviews, null);
+    const mockBuilder = createMockQueryBuilder(clinicNoFacts, null);
     mockSupabase.from.mockReturnValue(mockBuilder);
 
     const result = await getClinicById('clinic-1');
 
     expect(result!.rating).toBeUndefined();
+    expect(result!.totalReviewCount).toBe(0);
   });
 
   it('uses primary location for location string', async () => {

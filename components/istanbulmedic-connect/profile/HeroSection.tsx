@@ -3,9 +3,10 @@
 import Image from "next/image"
 import { useMemo, useState } from "react"
 import { ShieldCheck, Star, Share, Heart, Grid3X3, X, ChevronLeft, ChevronRight, Trophy, Sparkles } from "lucide-react"
-import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog"
 
 import { Button } from "@/components/ui/button"
+import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
 interface HeroSectionProps {
   clinicName: string
@@ -54,16 +55,22 @@ export const HeroSection = ({
               <h1 className="im-heading-1 text-foreground">
                 {clinicName}
               </h1>
-              <div className="hidden sm:flex items-center gap-2">
-                <Button variant="link" size="sm" className="gap-2 text-base font-medium text-foreground hover:text-[#3EBBB7] underline-offset-4">
-                  <Share className="h-4 w-4" />
-                  Share
-                </Button>
-                <Button variant="link" size="sm" className="gap-2 text-base font-medium text-foreground hover:text-[#3EBBB7] underline-offset-4">
-                  <Heart className="h-4 w-4" />
-                  Save
-                </Button>
-              </div>
+              {(FEATURE_CONFIG.share || FEATURE_CONFIG.saveClinic) && (
+                <div className="hidden sm:flex items-center gap-2">
+                  {FEATURE_CONFIG.share && (
+                    <Button variant="link" size="sm" className="gap-2 text-base font-medium text-foreground hover:text-[#3EBBB7] underline-offset-4">
+                      <Share className="h-4 w-4" />
+                      Share
+                    </Button>
+                  )}
+                  {FEATURE_CONFIG.saveClinic && (
+                    <Button variant="link" size="sm" className="gap-2 text-base font-medium text-foreground hover:text-[#3EBBB7] underline-offset-4">
+                      <Heart className="h-4 w-4" />
+                      Save
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Sub-header Stats */}
@@ -83,20 +90,24 @@ export const HeroSection = ({
                 <span className="text-muted-foreground font-normal">·</span>
                 <span className="text-muted-foreground font-normal">{reviewCount} reviews</span>
               </Button>
-              <span className="hidden sm:inline text-muted-foreground">•</span>
-              <Button
-                variant="link"
-                className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4"
-                onClick={() => {
-                  const transparencySection = document.getElementById("transparency")
-                  if (transparencySection) {
-                    transparencySection.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }
-                }}
-              >
-                <ShieldCheck className="h-4 w-4 text-[#FFD700] mr-1" />
-                <span>Transparency {transparencyScore}</span>
-              </Button>
+              {FEATURE_CONFIG.profileTransparency && (
+                <>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4"
+                    onClick={() => {
+                      const transparencySection = document.getElementById("transparency")
+                      if (transparencySection) {
+                        transparencySection.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }
+                    }}
+                  >
+                    <ShieldCheck className="h-4 w-4 text-[#FFD700] mr-1" />
+                    <span>Transparency {transparencyScore}</span>
+                  </Button>
+                </>
+              )}
               <span className="hidden sm:inline text-muted-foreground">•</span>
               <Button
                 variant="link"
@@ -113,8 +124,8 @@ export const HeroSection = ({
             </div>
           </div>
 
-          {/* Patient Favorite Banner - only show if clinic qualifies (rating >= 4.5 with at least 5 reviews) */}
-          {rating !== null && rating >= 4.5 && reviewCount >= 5 && (
+          {/* Patient Favorite Banner - only show if clinic qualifies (rating >= 4.8 with at least 100 reviews) */}
+          {rating !== null && rating >= 4.8 && reviewCount >= 100 && (
             <div className="border border-border/60 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-background shadow-sm">
 
               {/* Left: Badge */}
@@ -254,6 +265,7 @@ export const HeroSection = ({
 
       <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
         <DialogContent className="max-w-[95vw] h-[95vh] p-0 bg-black border-none flex flex-col items-center justify-center">
+          <DialogTitle className="sr-only">Clinic photo gallery</DialogTitle>
           <DialogClose className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white z-50">
             <X className="h-6 w-6" />
           </DialogClose>

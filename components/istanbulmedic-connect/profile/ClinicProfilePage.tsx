@@ -9,6 +9,7 @@ import { DoctorsSection } from "./DoctorsSection"
 import { TransparencySection } from "./TransparencySection"
 import { AIInsightsSection } from "./AIInsightsSection"
 import { ReviewsSection } from "./ReviewsSection"
+import { normalizeReviewSource } from "@/lib/review-sources"
 import { CommunitySignalsSection } from "./CommunitySignalsSection"
 import { InstagramIntelligenceSection } from "./InstagramIntelligenceSection"
 import { LocationInfoSection } from "./LocationInfoSection"
@@ -19,9 +20,9 @@ import {
   toNumber,
   transformOpeningHours,
   deriveServicesFromPackages,
-  deriveCommunityTags,
   type OpeningHoursJson,
 } from "@/lib/transformers/clinic"
+import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
 type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
 type CommunitySentiment = "Positive" | "Neutral" | "Negative"
@@ -128,7 +129,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
   }))
 
   // Transform reviews (no fake fallbacks)
-  const recentReviews = clinic.reviews.slice(0, 4).map((r) => {
+  const allReviews = clinic.reviews.map((r) => {
     const ratingMatch = r.rating?.match(/(\d+)/)
     const ratingNum = ratingMatch ? parseInt(ratingMatch[1]) : null
     return {
@@ -137,6 +138,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
       date: r.review_date ?? "Unknown date",
       text: r.review_text,
       verified: true,
+      source: normalizeReviewSource(r.sources?.source_name ?? "other"),
     }
   })
 
@@ -165,8 +167,13 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
   const yearsInOperation = clinic.yearsInOperation ?? toNumber(factsMap.years_in_operation) ?? null
   const proceduresPerformed = clinic.proceduresPerformed ?? toNumber(factsMap.total_procedures_completed) ?? null
 
-  // Transform opening hours from primary location
-  const openingHours = transformOpeningHours(primaryLocation?.opening_hours as OpeningHoursJson | null)
+  // Transform opening hours from clinic_facts (key: opening_hours)
+  // Handle both direct value and { value: ... } wrapper formats
+  const openingHoursRaw = factsMap.opening_hours as OpeningHoursJson | { value: OpeningHoursJson } | null
+  const openingHoursData = openingHoursRaw && typeof openingHoursRaw === 'object' && 'value' in openingHoursRaw
+    ? (openingHoursRaw as { value: OpeningHoursJson }).value
+    : openingHoursRaw as OpeningHoursJson | null
+  const openingHours = transformOpeningHours(openingHoursData)
 
   // Transform payment methods from primary location
   const paymentMethods: string[] = Array.isArray(primaryLocation?.payment_methods)
@@ -175,9 +182,6 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
 
   // Derive services from packages
   const services = deriveServicesFromPackages(clinic.packages)
-
-  // Derive community tags from positive mentions
-  const communityTags = deriveCommunityTags(clinic.mentions)
 
   const topicLabels: Record<string, string> = {
     pricing: "Pricing transparency",
@@ -296,7 +300,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
         images={heroImages}
         transparencyScore={clinic.trustScore}
         rating={clinic.rating ?? null}
-        reviewCount={clinic.reviews.length}
+        reviewCount={clinic.totalReviewCount}
       />
 
       {/* Section Navigation */}
@@ -307,13 +311,15 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content Column */}
           <div className="space-y-6 lg:col-span-2">
-            <OverviewSection
-              specialties={specialties}
-              yearsInOperation={yearsInOperation}
-              proceduresPerformed={proceduresPerformed}
-              languages={languages}
-              description={clinic.description}
-            />
+            {FEATURE_CONFIG.profileOverview && (
+              <OverviewSection
+                specialties={specialties}
+                yearsInOperation={yearsInOperation}
+                proceduresPerformed={proceduresPerformed}
+                languages={languages}
+                description={clinic.description}
+              />
+            )}
 
             <LocationInfoSection
               address={primaryLocation?.address_line || clinic.location}
@@ -325,18 +331,28 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
               services={services}
             />
 
-            <PricingSection pricing={clinic.pricing} />
+            {FEATURE_CONFIG.profilePricing && (
+              <PricingSection pricing={clinic.pricing} />
+            )}
 
-            <PackagesSection packages={clinic.packages} />
+            {FEATURE_CONFIG.profilePackages && (
+              <PackagesSection packages={clinic.packages} />
+            )}
 
-            {doctors.length > 0 && <DoctorsSection doctors={doctors} />}
+            {FEATURE_CONFIG.profileDoctors && doctors.length > 0 && (
+              <DoctorsSection doctors={doctors} />
+            )}
 
-            <TransparencySection
-              transparencyScore={clinic.trustScore}
-              items={transparencyItems}
-            />
+            {FEATURE_CONFIG.profileTransparency && (
+              <TransparencySection
+                transparencyScore={clinic.trustScore}
+                items={transparencyItems}
+              />
+            )}
 
-            <AIInsightsSection insights={aiInsights} />
+            {FEATURE_CONFIG.profileAIInsights && (
+              <AIInsightsSection insights={aiInsights} />
+            )}
           </div>
 
           {/* Sidebar */}
@@ -345,7 +361,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
               transparencyScore={clinic.trustScore}
               topSpecialties={specialties.slice(0, 3)}
               rating={clinic.rating ?? null}
-              reviewCount={clinic.reviews.length}
+              reviewCount={clinic.totalReviewCount}
             />
           </div>
         </div>
@@ -354,18 +370,20 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
         <div className="mt-12 space-y-12 w-full">
           <ReviewsSection
             averageRating={clinic.rating ?? null}
-            totalReviews={clinic.reviews.length}
-            reviews={recentReviews}
-            communityTags={communityTags}
+            totalReviews={clinic.totalReviewCount}
+            reviews={allReviews}
           />
 
-          <CommunitySignalsSection
-            posts={communitySignals.posts}
-            summary={communitySignals.summary}
-          />
+          {FEATURE_CONFIG.profileCommunitySignals && (
+            <CommunitySignalsSection
+              posts={communitySignals.posts}
+              summary={communitySignals.summary}
+            />
+          )}
 
-          {/* TODO: Replace MOCK_INSTAGRAM_DATA with real Supabase data */}
-          <InstagramIntelligenceSection data={MOCK_INSTAGRAM_DATA} />
+          {FEATURE_CONFIG.profileInstagram && (
+            <InstagramIntelligenceSection data={MOCK_INSTAGRAM_DATA} />
+          )}
         </div>
       </div>
     </div>

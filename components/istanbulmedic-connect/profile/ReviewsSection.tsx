@@ -1,34 +1,69 @@
 "use client"
 
-import { Star, Sparkles, CheckCircle2, Clock, MessageSquare, Building2, Tag, Trophy } from "lucide-react"
+import { useState } from "react"
+import { Star, Trophy } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import {
+  type ReviewSource,
+  REVIEW_SOURCE_ICON,
+  REVIEW_SOURCE_LABEL,
+} from "@/lib/review-sources"
 
-interface Review {
+export interface Review {
   author: string
   rating: number
   date: string
   text: string
   verified: boolean
+  source: ReviewSource
 }
 
 interface ReviewsSectionProps {
   averageRating: number | null
   totalReviews: number
-  communityTags: string[]
   reviews: Review[]
 }
+
+const REVIEW_TRUNCATE_LENGTH = 250
 
 export const ReviewsSection = ({
   averageRating,
   totalReviews,
-  communityTags,
   reviews,
 }: ReviewsSectionProps) => {
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set())
+
+  // Get unique sources present in reviews
+  const uniqueSources = Array.from(new Set(reviews.map(r => r.source)))
+
+  const toggleReviewExpanded = (reviewKey: string) => {
+    setExpandedReviews(prev => {
+      const next = new Set(prev)
+      if (next.has(reviewKey)) {
+        next.delete(reviewKey)
+      } else {
+        next.add(reviewKey)
+      }
+      return next
+    })
+  }
+
+  const truncateText = (text: string, key: string) => {
+    if (text.length <= REVIEW_TRUNCATE_LENGTH) {
+      return { text, isTruncated: false }
+    }
+    if (expandedReviews.has(key)) {
+      return { text, isTruncated: false, canCollapse: true }
+    }
+    return { text: text.slice(0, REVIEW_TRUNCATE_LENGTH) + "...", isTruncated: true }
+  }
+
   return (
     <div id="reviews" className="py-8 border-t border-border/60 scroll-mt-32">
       {/* Rating Header */}
@@ -63,58 +98,118 @@ export const ReviewsSection = ({
             </p>
           </div>
         )}
-
-        {/* Category ratings - hidden since we don't have real data for these */}
-        {/* TODO: Add category ratings when available from database */}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
-        {reviews.map((review) => (
-          <div key={`${review.author}-${review.date}`} className="flex flex-col gap-3">
-            <div className="flex items-center gap-4 mb-1">
-              <div className="h-12 w-12 rounded-full bg-neutral-200 flex items-center justify-center text-lg font-medium text-neutral-600">
-                {review.author.charAt(0)}
-              </div>
-              <div>
-                <div className="font-semibold text-base text-foreground">{review.author}</div>
-                <div className="text-sm text-muted-foreground">Patient</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-foreground">
-              <div className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, idx) => (
-                  <Star
-                    key={idx}
-                    className={
-                      idx < review.rating
-                        ? "h-3 w-3 fill-[#FFD700] text-[#FFD700]"
-                        : "h-3 w-3 text-neutral-300"
-                    }
-                  />
-                ))}
-              </div>
-              <span className="text-muted-foreground">·</span>
-              <span className="font-medium text-muted-foreground">{review.date}</span>
-              {review.verified && (
-                <>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-muted-foreground">Verified</span>
-                </>
+      {/* Source Tabs */}
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="mb-6 flex h-auto w-fit flex-wrap gap-2 rounded-full border-0 bg-transparent p-0">
+          <TabsTrigger
+            value="all"
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/50",
+              "data-[state=active]:border-transparent data-[state=active]:bg-[#17375B] data-[state=active]:text-white data-[state=active]:hover:bg-[#17375B]"
+            )}
+          >
+            All
+          </TabsTrigger>
+          {uniqueSources.map((source) => (
+            <TabsTrigger
+              key={source}
+              value={source}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/50",
+                "data-[state=active]:border-transparent data-[state=active]:bg-[#17375B] data-[state=active]:text-white data-[state=active]:hover:bg-[#17375B] [&[data-state=active]_svg]:!text-white"
               )}
-            </div>
+            >
+              {REVIEW_SOURCE_ICON[source]}
+              {REVIEW_SOURCE_LABEL[source]}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-            <p className="text-foreground leading-relaxed">
-              {review.text}
-            </p>
+        {["all", ...uniqueSources].map((source) => {
+          const filteredReviews =
+            source === "all"
+              ? reviews
+              : reviews.filter((r) => r.source === source)
+          const visibleReviews = filteredReviews.slice(0, 4)
 
-            <button type="button" className="text-foreground font-semibold underline underline-offset-2 self-start hover:text-neutral-600 transition-colors">
-              Show more
-            </button>
-          </div>
-        ))}
-      </div>
+          return (
+            <TabsContent key={source} value={source} className="mt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
+                {visibleReviews.map((review, idx) => {
+                  const reviewKey = `${review.author}-${review.date}-${idx}`
+                  const { text: displayText, isTruncated, canCollapse } = truncateText(review.text, reviewKey)
 
+                  return (
+                    <div key={reviewKey} className="flex flex-col gap-3">
+                      <div className="flex items-center gap-4 mb-1">
+                        <div className="h-12 w-12 rounded-full bg-neutral-200 flex items-center justify-center text-lg font-medium text-neutral-600">
+                          {review.author.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-base text-foreground">{review.author}</div>
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              {REVIEW_SOURCE_ICON[review.source]}
+                              <span className="text-foreground/80 font-medium">{REVIEW_SOURCE_LABEL[review.source]}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-foreground">
+                        <div className="flex gap-0.5">
+                          {Array.from({ length: 5 }).map((_, starIdx) => (
+                            <Star
+                              key={starIdx}
+                              className={
+                                starIdx < review.rating
+                                  ? "h-3 w-3 fill-[#FFD700] text-[#FFD700]"
+                                  : "h-3 w-3 text-neutral-300"
+                              }
+                            />
+                          ))}
+                        </div>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="font-medium text-muted-foreground">{review.date}</span>
+                        {review.verified && (
+                          <>
+                            <span className="text-muted-foreground">·</span>
+                            <span className="text-muted-foreground">Verified</span>
+                          </>
+                        )}
+                      </div>
+
+                      <p className="text-foreground leading-relaxed">
+                        {displayText}
+                      </p>
+
+                      {(isTruncated || canCollapse) && (
+                        <button
+                          type="button"
+                          className="text-foreground font-semibold underline underline-offset-2 self-start hover:text-neutral-600 transition-colors"
+                          onClick={() => toggleReviewExpanded(reviewKey)}
+                        >
+                          {isTruncated ? "Show more" : "Show less"}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {filteredReviews.length === 0 && (
+                <div className="py-8 text-center text-muted-foreground">
+                  No reviews found for this source.
+                </div>
+              )}
+            </TabsContent>
+          )
+        })}
+      </Tabs>
+
+      {/* Show All Reviews Modal */}
       <div className="mt-10">
         <Dialog>
           <DialogTrigger asChild>
@@ -172,15 +267,33 @@ export const ReviewsSection = ({
                   </>
                 )}
 
-                {/* Category ratings removed - no real data available */}
-                {/* TODO: Add category ratings when available from database */}
+                {/* Source breakdown */}
+                {uniqueSources.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Sources</h4>
+                    {uniqueSources.map((source) => {
+                      const count = reviews.filter(r => r.source === source).length
+                      return (
+                        <div key={source} className="flex items-center gap-3">
+                          <div className="shrink-0">{REVIEW_SOURCE_ICON[source]}</div>
+                          <span className="text-sm text-foreground">{REVIEW_SOURCE_LABEL[source]}</span>
+                          <span className="text-sm text-muted-foreground ml-auto">{count}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Right Content - Scrollable Reviews */}
               <div className="flex-1 flex flex-col h-full bg-background">
                 {/* Sticky Header inside Right Col */}
                 <div className="p-6 md:p-8 pb-4 border-b border-border/40 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-                  <h2 className="text-2xl font-bold mb-6 pl-8 md:pl-0">{totalReviews} reviews</h2>
+                  <h2 className="text-2xl font-bold mb-6 pl-8 md:pl-0">
+                    {reviews.length < totalReviews
+                      ? `Showing ${reviews.length} of ${totalReviews.toLocaleString()} reviews`
+                      : `${totalReviews} reviews`}
+                  </h2>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -201,7 +314,12 @@ export const ReviewsSection = ({
                           </div>
                           <div>
                             <div className="font-semibold text-base text-foreground">{review.author}</div>
-                            <div className="text-sm text-muted-foreground">Patient · 2 years on Platform</div>
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                              {REVIEW_SOURCE_ICON[review.source]}
+                              <span className="font-medium text-foreground/80">{REVIEW_SOURCE_LABEL[review.source]}</span>
+                              <span>·</span>
+                              <span>{review.date}</span>
+                            </div>
                           </div>
                         </div>
 
@@ -211,36 +329,6 @@ export const ReviewsSection = ({
                               <Star key={idx} className={`h-3.5 w-3.5 ${idx < review.rating ? 'fill-[#FFD700] text-[#FFD700]' : 'text-neutral-300'}`} />
                             ))}
                           </div>
-                          <span className="text-muted-foreground">·</span>
-                          <span className="font-medium text-muted-foreground">{review.date}</span>
-                        </div>
-
-                        <p className="text-foreground leading-relaxed text-base">
-                          {review.text}
-                        </p>
-                      </div>
-                    ))}
-                    {/* Duplicate for demo scroll */}
-                    {reviews.map((review, i) => (
-                      <div key={`${review.author}-${i}-modal-dup`} className="flex flex-col gap-3 group pt-8 border-t border-border/40">
-                        <div className="flex items-center gap-4 mb-1">
-                          <div className="h-12 w-12 rounded-full bg-neutral-200 flex items-center justify-center text-lg font-medium text-neutral-600 shrink-0">
-                            {review.author.charAt(0)}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-base text-foreground">{review.author}</div>
-                            <div className="text-sm text-muted-foreground">Patient · 1 year on Platform</div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="flex gap-0.5">
-                            {Array.from({ length: 5 }).map((_, idx) => (
-                              <Star key={idx} className={`h-3.5 w-3.5 ${idx < review.rating ? 'fill-[#FFD700] text-[#FFD700]' : 'text-neutral-300'}`} />
-                            ))}
-                          </div>
-                          <span className="text-muted-foreground">·</span>
-                          <span className="font-medium text-muted-foreground">{review.date}</span>
                         </div>
 
                         <p className="text-foreground leading-relaxed text-base">
@@ -258,4 +346,3 @@ export const ReviewsSection = ({
     </div>
   )
 }
-

@@ -17,6 +17,7 @@ import type {
   TreatmentType,
 } from "@/components/istanbulmedic-connect/types"
 import type { ClinicSortOption } from "@/lib/api/clinics"
+import { SORT_CONFIG } from "@/lib/filterConfig"
 
 interface ExploreClinicsPageProps {
   initialClinics: Clinic[]
@@ -53,6 +54,14 @@ const buildQueryString = (filters: FilterState, sortBy: ClinicSortOption, page: 
 
   if (filters.aiMatchScore !== 0) {
     params.set("minScore", String(filters.aiMatchScore))
+  }
+
+  if (filters.minRating !== null) {
+    params.set("minRating", String(filters.minRating))
+  }
+
+  if (filters.minReviews !== null) {
+    params.set("minReviews", String(filters.minReviews))
   }
 
   if (sortBy && sortBy !== "Best Match") {
@@ -165,11 +174,13 @@ export const ExploreClinicsPage = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Best Match">Best Match</SelectItem>
-                  <SelectItem value="Highest Rated">Highest Rated</SelectItem>
-                  <SelectItem value="Most Transparent">Most Transparent</SelectItem>
-                  <SelectItem value="Price: Low to High">Price: Low to High</SelectItem>
-                  <SelectItem value="Price: High to Low">Price: High to Low</SelectItem>
+                  {(Object.keys(SORT_CONFIG) as (keyof typeof SORT_CONFIG)[])
+                    .filter((key) => SORT_CONFIG[key])
+                    .map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -189,6 +200,7 @@ export const ExploreClinicsPage = ({
                 trustScore={clinic.trustScore}
                 description={clinic.description}
                 rating={clinic.rating}
+                reviewCount={clinic.reviewCount}
                 aiInsight={clinic.aiInsight}
                 onViewProfile={() => router.push(`/clinics/${clinic.id}`)}
               />

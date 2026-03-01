@@ -54,7 +54,7 @@ export const UnifiedFilterBar = ({
                         <Input
                             value={filters.searchQuery}
                             onChange={(e) => updateFilter("searchQuery", e.target.value)}
-                            placeholder="Treatment or clinic name"
+                            placeholder="Clinic name"
                             className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
                         />
                     </div>
@@ -71,7 +71,7 @@ export const UnifiedFilterBar = ({
                         <Input
                             value={filters.location}
                             onChange={(e) => updateFilter("location", e.target.value)}
-                            placeholder="Where in Istanbul?"
+                            placeholder="City or country"
                             className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
                         />
                     </div>

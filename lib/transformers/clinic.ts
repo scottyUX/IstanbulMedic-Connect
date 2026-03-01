@@ -6,7 +6,8 @@ export interface DayHours {
   close: string;
 }
 
-export interface OpeningHoursJson {
+// Legacy format
+export interface OpeningHoursJsonLegacy {
   monday?: DayHours | null;
   tuesday?: DayHours | null;
   wednesday?: DayHours | null;
@@ -15,6 +16,18 @@ export interface OpeningHoursJson {
   saturday?: DayHours | null;
   sunday?: DayHours | null;
 }
+
+// Google Places API format (from clinic_facts)
+export interface OpeningHoursGoogleFormat {
+  periods?: Array<{
+    open: { day: number; time: string };
+    close: { day: number; time: string };
+  }>;
+  open_now?: boolean;
+  weekday_text?: string[];
+}
+
+export type OpeningHoursJson = OpeningHoursJsonLegacy | OpeningHoursGoogleFormat;
 
 export interface OpeningHoursDisplay {
   day: string;
@@ -58,14 +71,27 @@ export const formatTime = (time: string): string => {
 
 /**
  * Transform JSONB opening hours to display format, grouping consecutive days with same hours
- * @example
- * // Input: { monday: {open: "09:00", close: "18:00"}, tuesday: {open: "09:00", close: "18:00"}, ... }
- * // Output: [{ day: "Monday - Tuesday", hours: "9:00 AM - 6:00 PM" }, ...]
+ * Handles both legacy format and Google Places API format (from clinic_facts)
  */
 export const transformOpeningHours = (
   jsonHours: OpeningHoursJson | null
 ): OpeningHoursDisplay[] => {
   if (!jsonHours) return [];
+
+  // Check if it's Google Places API format (has weekday_text)
+  if ('weekday_text' in jsonHours && Array.isArray(jsonHours.weekday_text)) {
+    return jsonHours.weekday_text.map((text) => {
+      // Format: "Monday: Open 24 hours" or "Monday: 9:00 AM – 6:00 PM"
+      const colonIndex = text.indexOf(':');
+      if (colonIndex === -1) return { day: text, hours: '' };
+      const day = text.substring(0, colonIndex).trim();
+      const hours = text.substring(colonIndex + 1).trim();
+      return { day, hours };
+    });
+  }
+
+  // Legacy format handling
+  const legacyHours = jsonHours as OpeningHoursJsonLegacy;
 
   const dayOrder = [
     'monday',
@@ -90,7 +116,7 @@ export const transformOpeningHours = (
   const entries: OpeningHoursDisplay[] = [];
 
   for (const dayKey of dayOrder) {
-    const dayData = jsonHours[dayKey];
+    const dayData = legacyHours[dayKey];
     if (dayData && dayData.open && dayData.close) {
       const hoursStr = `${formatTime(dayData.open)} - ${formatTime(dayData.close)}`;
       entries.push({ day: dayLabels[dayKey], hours: hoursStr });

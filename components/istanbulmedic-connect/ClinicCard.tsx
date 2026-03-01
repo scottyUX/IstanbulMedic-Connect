@@ -13,6 +13,7 @@ import {
   TAG_VARIANT_SEQUENCE,
 } from "@/components/ui/specialty-tag"
 import { cn } from "@/lib/utils"
+import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
 const merriweather = Merriweather({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ interface ClinicCardProps {
   trustScore: number
   description: string
   rating?: number
+  reviewCount?: number
   aiInsight?: string
   onViewProfile: () => void
 }
@@ -39,6 +41,7 @@ export const ClinicCard = ({
   trustScore,
   description,
   rating,
+  reviewCount,
   aiInsight,
   onViewProfile,
 }: ClinicCardProps) => {
@@ -118,33 +121,37 @@ export const ClinicCard = ({
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Star className="h-3.5 w-3.5 fill-current text-[#FFD700]" />
               <span className="font-medium">{rating.toFixed(1)}</span>
-              <span className="text-muted-foreground/70">Trust {trustScore}</span>
+              {typeof reviewCount === "number" && reviewCount > 0 && (
+                <span className="text-muted-foreground/70">({reviewCount.toLocaleString()})</span>
+              )}
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">Trust {trustScore}</div>
+            <div className="text-sm text-muted-foreground">No reviews yet</div>
           )}
         </div>
 
         {/* Right: Compare + View Profile */}
-        <div
-          className="flex shrink-0 flex-col items-end gap-2"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id={compareId}
-              checked={isCompared}
-              onCheckedChange={(value) => setIsCompared(Boolean(value))}
-              aria-label={`Compare ${name}`}
-            />
-            <label
-              htmlFor={compareId}
-              className={cn("cursor-pointer select-none text-sm text-muted-foreground")}
-            >
-              Compare
-            </label>
+        {FEATURE_CONFIG.compare && (
+          <div
+            className="flex shrink-0 flex-col items-end gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id={compareId}
+                checked={isCompared}
+                onCheckedChange={(value) => setIsCompared(Boolean(value))}
+                aria-label={`Compare ${name}`}
+              />
+              <label
+                htmlFor={compareId}
+                className={cn("cursor-pointer select-none text-sm text-muted-foreground")}
+              >
+                Compare
+              </label>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       </CardContent>
     </Card>

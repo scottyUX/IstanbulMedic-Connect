@@ -1,15 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ReviewsSection } from '@/components/istanbulmedic-connect/profile/ReviewsSection';
+import type { ReviewSource } from '@/lib/review-sources';
 
 describe('ReviewsSection', () => {
-  const sampleReviews = [
+  const sampleReviews: Array<{
+    author: string;
+    rating: number;
+    date: string;
+    text: string;
+    verified: boolean;
+    source: ReviewSource;
+  }> = [
     {
       author: 'John D',
       rating: 5,
       date: 'Jan 2025',
       text: 'Excellent experience with great results!',
       verified: true,
+      source: 'google',
     },
     {
       author: 'Sarah M',
@@ -17,13 +26,23 @@ describe('ReviewsSection', () => {
       date: 'Dec 2024',
       text: 'Very good service, professional staff.',
       verified: false,
+      source: 'trustpilot',
     },
   ];
+
+  // Long review for testing truncation (over 250 characters)
+  const longReview = {
+    author: 'Michael R',
+    rating: 5,
+    date: 'Feb 2025',
+    text: 'I had an absolutely wonderful experience at this clinic. The staff were incredibly professional and caring throughout my entire journey. From the initial consultation to the final follow-up, everything was handled with the utmost care and attention to detail. I would highly recommend this clinic to anyone considering treatment.',
+    verified: true,
+    source: 'google' as ReviewSource,
+  };
 
   const defaultProps = {
     averageRating: 4.5,
     totalReviews: 25,
-    communityTags: ['Professional staff', 'Good pricing'],
     reviews: sampleReviews,
   };
 
@@ -98,10 +117,16 @@ describe('ReviewsSection', () => {
     expect(sarahInitials.length).toBeGreaterThan(0);
   });
 
-  it('renders Show more buttons for each review', () => {
+  it('renders Show more button only for long reviews', () => {
+    // Short reviews should NOT have Show more button
     render(<ReviewsSection {...defaultProps} />);
+    expect(screen.queryByText('Show more')).not.toBeInTheDocument();
+  });
+
+  it('renders Show more button for reviews over 250 characters', () => {
+    render(<ReviewsSection {...defaultProps} reviews={[...sampleReviews, longReview]} />);
     const showMoreButtons = screen.getAllByText('Show more');
-    expect(showMoreButtons.length).toBeGreaterThan(0);
+    expect(showMoreButtons.length).toBe(1); // Only the long review should have it
   });
 
   it('renders Show all reviews button', () => {

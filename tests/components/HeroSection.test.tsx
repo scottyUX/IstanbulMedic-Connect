@@ -34,7 +34,8 @@ describe('HeroSection', () => {
     expect(screen.getByText('Istanbul, Turkey')).toBeInTheDocument();
   });
 
-  it('renders transparency score', () => {
+  // TODO: Unskip when FEATURE_CONFIG.profileTransparency is enabled
+  it.skip('renders transparency score', () => {
     render(<HeroSection {...defaultProps} />);
     expect(screen.getByText(/Transparency 85/)).toBeInTheDocument();
   });
@@ -56,7 +57,8 @@ describe('HeroSection', () => {
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
-  it('renders Share and Save buttons', () => {
+  // TODO: Unskip when FEATURE_CONFIG.share and saveClinic are enabled
+  it.skip('renders Share and Save buttons', () => {
     render(<HeroSection {...defaultProps} />);
     expect(screen.getByText('Share')).toBeInTheDocument();
     expect(screen.getByText('Save')).toBeInTheDocument();
@@ -72,20 +74,21 @@ describe('HeroSection', () => {
     expect(screen.getByText('No clinic photos uploaded yet')).toBeInTheDocument();
   });
 
-  it('shows Patient Favorite badge when rating >= 4.5 and reviewCount >= 5', () => {
-    render(<HeroSection {...defaultProps} rating={4.8} reviewCount={10} />);
+  // Patient Favorite threshold updated to rating >= 4.8 and reviewCount >= 100
+  it('shows Patient Favorite badge when rating >= 4.8 and reviewCount >= 100', () => {
+    render(<HeroSection {...defaultProps} rating={4.9} reviewCount={150} />);
     expect(screen.getByText('Patient')).toBeInTheDocument();
     expect(screen.getByText('favorite')).toBeInTheDocument();
     expect(screen.getByText('One of the most loved clinics on Istanbul Medic Connect')).toBeInTheDocument();
   });
 
-  it('does not show Patient Favorite badge when rating < 4.5', () => {
-    render(<HeroSection {...defaultProps} rating={4.0} reviewCount={10} />);
+  it('does not show Patient Favorite badge when rating < 4.8', () => {
+    render(<HeroSection {...defaultProps} rating={4.7} reviewCount={150} />);
     expect(screen.queryByText('One of the most loved clinics')).not.toBeInTheDocument();
   });
 
-  it('does not show Patient Favorite badge when reviewCount < 5', () => {
-    render(<HeroSection {...defaultProps} rating={4.8} reviewCount={3} />);
+  it('does not show Patient Favorite badge when reviewCount < 100', () => {
+    render(<HeroSection {...defaultProps} rating={4.9} reviewCount={50} />);
     expect(screen.queryByText('One of the most loved clinics')).not.toBeInTheDocument();
   });
 
