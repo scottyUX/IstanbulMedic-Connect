@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -32,12 +39,49 @@ interface ReviewsSectionProps {
 
 const REVIEW_TRUNCATE_LENGTH = 250
 
+export type SortOption = "most_recent" | "highest_rated" | "lowest_rated"
+
+const SORT_LABELS: Record<SortOption, string> = {
+  most_recent: "Most Recent",
+  highest_rated: "Highest Rated",
+  lowest_rated: "Lowest Rated",
+}
+
+export const parseReviewDate = (dateStr: string): number => {
+  const parsed = Date.parse(dateStr)
+  return isNaN(parsed) ? 0 : parsed
+}
+
+export const sortReviews = (reviews: Review[], sortBy: SortOption): Review[] => {
+  const sorted = [...reviews]
+  switch (sortBy) {
+    case "most_recent":
+      return sorted.sort((a, b) => parseReviewDate(b.date) - parseReviewDate(a.date))
+    case "highest_rated":
+      return sorted.sort((a, b) => b.rating - a.rating)
+    case "lowest_rated":
+      return sorted.sort((a, b) => a.rating - b.rating)
+    default:
+      return sorted
+  }
+}
+
 export const ReviewsSection = ({
   averageRating,
   totalReviews,
   reviews,
 }: ReviewsSectionProps) => {
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set())
+  const [modalSortBy, setModalSortBy] = useState<SortOption>("most_recent")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Initial 4 reviews always sorted by most recent (for transparency)
+  const initialReviewsSorted = sortReviews(reviews, "most_recent")
+  // Modal reviews: filter by search (text only), then sort
+  const modalReviewsFiltered = searchQuery.trim()
+    ? reviews.filter((r) => r.text.toLowerCase().includes(searchQuery.toLowerCase()))
+    : reviews
+  const modalReviewsSorted = sortReviews(modalReviewsFiltered, modalSortBy)
 
   // Get unique sources present in reviews
   const uniqueSources = Array.from(new Set(reviews.map(r => r.source)))
@@ -130,8 +174,8 @@ export const ReviewsSection = ({
         {["all", ...uniqueSources].map((source) => {
           const filteredReviews =
             source === "all"
-              ? reviews
-              : reviews.filter((r) => r.source === source)
+              ? initialReviewsSorted
+              : initialReviewsSorted.filter((r) => r.source === source)
           const visibleReviews = filteredReviews.slice(0, 4)
 
           return (
@@ -290,53 +334,82 @@ export const ReviewsSection = ({
                 {/* Sticky Header inside Right Col */}
                 <div className="p-6 md:p-8 pb-4 border-b border-border/40 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
                   <h2 className="text-2xl font-bold mb-6 pl-8 md:pl-0">
-                    {reviews.length < totalReviews
-                      ? `Showing ${reviews.length} of ${totalReviews.toLocaleString()} reviews`
-                      : `${totalReviews} reviews`}
+                    {searchQuery.trim()
+                      ? `${modalReviewsSorted.length} result${modalReviewsSorted.length === 1 ? "" : "s"} for "${searchQuery}"`
+                      : reviews.length < totalReviews
+                        ? `Showing ${reviews.length} of ${totalReviews.toLocaleString()} reviews`
+                        : `${totalReviews} reviews`}
                   </h2>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search reviews"
-                      className="pl-10 h-11 bg-muted/30 border-border/60 rounded-full focus-visible:ring-1"
-                    />
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search reviews"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 h-11 bg-muted/30 border-border/60 rounded-full focus-visible:ring-1"
+                      />
+                    </div>
+                    <Select value={modalSortBy} onValueChange={(value) => setModalSortBy(value as SortOption)}>
+                      <SelectTrigger className="w-[160px] h-11 rounded-full border-border/60">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="most_recent">{SORT_LABELS.most_recent}</SelectItem>
+                        <SelectItem value="highest_rated">{SORT_LABELS.highest_rated}</SelectItem>
+                        <SelectItem value="lowest_rated">{SORT_LABELS.lowest_rated}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
                 {/* Scrollable List */}
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 pt-4">
-                  <div className="space-y-8">
-                    {reviews.map((review, i) => (
-                      <div key={`${review.author}-${i}-modal`} className="flex flex-col gap-3 group">
-                        <div className="flex items-center gap-4 mb-1">
-                          <div className="h-12 w-12 rounded-full bg-neutral-200 flex items-center justify-center text-lg font-medium text-neutral-600 shrink-0">
-                            {review.author.charAt(0)}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-base text-foreground">{review.author}</div>
-                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                              {REVIEW_SOURCE_ICON[review.source]}
-                              <span className="font-medium text-foreground/80">{REVIEW_SOURCE_LABEL[review.source]}</span>
-                              <span>·</span>
-                              <span>{review.date}</span>
+                  {modalReviewsSorted.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <p className="text-muted-foreground text-lg">No reviews match your search.</p>
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="mt-4 text-sm text-foreground underline underline-offset-2 hover:text-muted-foreground"
+                      >
+                        Clear search
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      {modalReviewsSorted.map((review, i) => (
+                        <div key={`${review.author}-${i}-modal`} className="flex flex-col gap-3 group">
+                          <div className="flex items-center gap-4 mb-1">
+                            <div className="h-12 w-12 rounded-full bg-neutral-200 flex items-center justify-center text-lg font-medium text-neutral-600 shrink-0">
+                              {review.author.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-base text-foreground">{review.author}</div>
+                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                {REVIEW_SOURCE_ICON[review.source]}
+                                <span className="font-medium text-foreground/80">{REVIEW_SOURCE_LABEL[review.source]}</span>
+                                <span>·</span>
+                                <span>{review.date}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="flex gap-0.5">
-                            {Array.from({ length: 5 }).map((_, idx) => (
-                              <Star key={idx} className={`h-3.5 w-3.5 ${idx < review.rating ? 'fill-[#FFD700] text-[#FFD700]' : 'text-neutral-300'}`} />
-                            ))}
+                          <div className="flex items-center gap-2 text-sm">
+                            <div className="flex gap-0.5">
+                              {Array.from({ length: 5 }).map((_, idx) => (
+                                <Star key={idx} className={`h-3.5 w-3.5 ${idx < review.rating ? 'fill-[#FFD700] text-[#FFD700]' : 'text-neutral-300'}`} />
+                              ))}
+                            </div>
                           </div>
-                        </div>
 
-                        <p className="text-foreground leading-relaxed text-base">
-                          {review.text}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                          <p className="text-foreground leading-relaxed text-base">
+                            {review.text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
