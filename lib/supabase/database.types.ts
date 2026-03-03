@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -34,6 +39,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      analyses: {
+        Row: {
+          analyzed_at: string
+          commit_sha: string | null
+          id: string
+          repo_url: string
+          report_json: Json
+          result_id: string
+          summary_json: Json | null
+        }
+        Insert: {
+          analyzed_at?: string
+          commit_sha?: string | null
+          id?: string
+          repo_url: string
+          report_json: Json
+          result_id: string
+          summary_json?: Json | null
+        }
+        Update: {
+          analyzed_at?: string
+          commit_sha?: string | null
+          id?: string
+          repo_url?: string
+          report_json?: Json
+          result_id?: string
+          summary_json?: Json | null
+        }
+        Relationships: []
+      }
       clinic_credentials: {
         Row: {
           clinic_id: string
@@ -115,6 +150,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "clinic_facts_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_google_places: {
+        Row: {
+          clinic_id: string
+          created_at: string | null
+          id: string
+          last_checked_at: string | null
+          place_id: string
+          rating: number | null
+          updated_at: string | null
+          user_ratings_total: number | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string | null
+          id?: string
+          last_checked_at?: string | null
+          place_id: string
+          rating?: number | null
+          updated_at?: string | null
+          user_ratings_total?: number | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string | null
+          id?: string
+          last_checked_at?: string | null
+          place_id?: string
+          rating?: number | null
+          updated_at?: string | null
+          user_ratings_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_google_places_clinic_id_fkey"
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
@@ -560,6 +636,47 @@ export type Database = {
           },
         ]
       }
+      clinic_social_media: {
+        Row: {
+          account_handle: string
+          clinic_id: string
+          created_at: string | null
+          follower_count: number | null
+          id: string
+          last_checked_at: string | null
+          platform: Database["public"]["Enums"]["social_platform_enum"]
+          verified: boolean | null
+        }
+        Insert: {
+          account_handle: string
+          clinic_id: string
+          created_at?: string | null
+          follower_count?: number | null
+          id?: string
+          last_checked_at?: string | null
+          platform: Database["public"]["Enums"]["social_platform_enum"]
+          verified?: boolean | null
+        }
+        Update: {
+          account_handle?: string
+          clinic_id?: string
+          created_at?: string | null
+          follower_count?: number | null
+          id?: string
+          last_checked_at?: string | null
+          platform?: Database["public"]["Enums"]["social_platform_enum"]
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_social_media_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_team: {
         Row: {
           clinic_id: string
@@ -773,7 +890,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      upsert_clinic_facts: {
+        Args: { facts_data: Json }
+        Returns: {
+          clinic_id: string
+          computed_by: Database["public"]["Enums"]["computed_by_enum"]
+          confidence: number
+          fact_key: string
+          fact_value: Json
+          first_seen_at: string
+          id: string
+          is_conflicting: boolean
+          last_seen_at: string
+          value_type: Database["public"]["Enums"]["value_type_enum"]
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "clinic_facts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       clinic_credential_types:
@@ -834,6 +971,13 @@ export type Database = {
         | "before_after"
       score_band_enum: "A" | "B" | "C" | "D"
       sentiment_enum: "negative" | "neutral" | "positive"
+      social_platform_enum:
+        | "instagram"
+        | "tiktok"
+        | "x"
+        | "reddit"
+        | "youtube"
+        | "facebook"
       source_type_enum:
         | "clinic_website"
         | "registry"
@@ -1038,6 +1182,14 @@ export const Constants = {
       ],
       score_band_enum: ["A", "B", "C", "D"],
       sentiment_enum: ["negative", "neutral", "positive"],
+      social_platform_enum: [
+        "instagram",
+        "tiktok",
+        "x",
+        "reddit",
+        "youtube",
+        "facebook",
+      ],
       source_type_enum: [
         "clinic_website",
         "registry",
@@ -1053,4 +1205,3 @@ export const Constants = {
     },
   },
 } as const
-
