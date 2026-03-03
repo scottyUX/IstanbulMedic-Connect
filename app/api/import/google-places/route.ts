@@ -4,12 +4,36 @@
 // ============================================
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+interface AddressComponent {
+  long_name: string
+  short_name: string
+  types: string[]
+}
+
+interface Photo {
+  photo_reference?: string
+  height?: number
+  width?: number
+  html_attributions?: string[]
+}
+
+interface Review {
+  rating?: number
+  text?: string
+  time?: number
+  language?: string
+}
+
+interface OpeningHours {
+  open_now?: boolean
+  weekday_text?: string[]
+  periods?: Array<{
+    open: { day: number; time: string }
+    close?: { day: number; time: string }
+  }>
+}
 
 interface GooglePlacesData {
   google_places: {
@@ -25,10 +49,10 @@ interface GooglePlacesData {
       lat: number
       lng: number
     }
-    address_components: any[]
-    opening_hours?: any
-    photos?: any[]
-    reviews?: any[]
+    address_components: AddressComponent[]
+    opening_hours?: OpeningHours
+    photos?: (Photo | string)[]
+    reviews?: Review[]
     types: string[]
   }
   extracted_claims: {
@@ -56,12 +80,20 @@ interface GooglePlacesData {
       claimed?: string[]
     }
     pricing?: {
-      ranges?: any[]
+      ranges?: Array<{ min?: number; max?: number; currency?: string }>
     }
   }
 }
 
 export async function POST(request: Request) {
+  // Create client per request for proper isolation in serverless environments
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  let sourceId: string | null = null
+
   try {
     const body = await request.json()
     const { clinicId, googlePlacesData } = body as {
@@ -94,7 +126,7 @@ export async function POST(request: Request) {
       .single()
 
     if (sourceError) throw sourceError
-    const sourceId = source.id
+    sourceId = source.id
 
     // 2. Extract location details
     const locationDetails = extractLocationDetails(gp.address_components, claims.location)
@@ -135,7 +167,10 @@ export async function POST(request: Request) {
 
     if (googlePlacesError) throw googlePlacesError
 
-    // 5. Upsert clinic location
+    // 5. Replace clinic location
+    // Note: delete-then-insert since clinic_locations has no unique constraint on clinic_id alone.
+    // A failed insert leaves the clinic locationless until the next import — acceptable trade-off
+    // without a DB-level transaction.
     await supabase
       .from('clinic_locations')
       .delete()
@@ -157,7 +192,8 @@ export async function POST(request: Request) {
 
     if (locationError) throw locationError
 
-    // 6. Insert/update services
+    // 6. Replace services
+    // Same delete-then-insert trade-off as locations above.
     if (claims.services?.claimed && claims.services.claimed.length > 0) {
       await supabase
         .from('clinic_services')
@@ -181,32 +217,67 @@ export async function POST(request: Request) {
       if (servicesError) throw servicesError
     }
 
+    // 10. Store raw payload before facts so upsertFact can link evidence to this document
+    const { error: sourceDocError } = await supabase.from('source_documents').insert({
+      source_id: sourceId,
+      doc_type: 'html',
+      title: `Google Places Data - ${gp.display_name}`,
+      raw_text: JSON.stringify(googlePlacesData),
+      language: 'en',
+      published_at: new Date().toISOString()
+    })
+
+    if (sourceDocError) throw sourceDocError
+
     // 7. Store facts
-    await upsertFact(clinicId, 'google_place_id', gp.place_id, 'string', sourceId)
-    await upsertFact(clinicId, 'google_rating', gp.rating, 'number', sourceId)
-    await upsertFact(clinicId, 'google_review_count', gp.user_ratings_total, 'number', sourceId)
-    
+    await upsertFact(supabase, clinicId, 'google_place_id', gp.place_id, 'string', sourceId!)
+    await upsertFact(supabase, clinicId, 'google_rating', gp.rating, 'number', sourceId!)
+    await upsertFact(supabase, clinicId, 'google_review_count', gp.user_ratings_total, 'number', sourceId!)
+
     if (gp.opening_hours) {
-      await upsertFact(clinicId, 'opening_hours', gp.opening_hours, 'json', sourceId)
+      await upsertFact(supabase, clinicId, 'opening_hours', gp.opening_hours, 'json', sourceId!)
     }
 
-    // 8. Import reviews
+    // 8. Import reviews — deduplicate against existing records to prevent double-imports
     if (gp.reviews && gp.reviews.length > 0) {
-      const reviews = gp.reviews.map((review: any) => ({
-        clinic_id: clinicId,
-        source_id: sourceId,
-        rating: review.rating?.toString() || null,
-        review_text: review.text || '',
-        review_date: review.time ? new Date(review.time * 1000).toISOString().split('T')[0] : null,
-        language: review.language || 'en'
-      }))
+      const { data: existing } = await supabase
+        .from('clinic_reviews')
+        .select('review_text, review_date')
+        .eq('clinic_id', clinicId)
 
-      await supabase.from('clinic_reviews').insert(reviews)
+      const existingSet = new Set(
+        (existing || []).map(
+          (r: { review_text: string; review_date: string | null }) =>
+            `${r.review_date}::${r.review_text}`
+        )
+      )
+
+      const newReviews = gp.reviews
+        .filter(review => {
+          const date = review.time
+            ? new Date(review.time * 1000).toISOString().split('T')[0]
+            : null
+          return !existingSet.has(`${date}::${review.text || ''}`)
+        })
+        .map(review => ({
+          clinic_id: clinicId,
+          source_id: sourceId as string,
+          rating: review.rating?.toString() || null,
+          review_text: review.text || '',
+          review_date: review.time
+            ? new Date(review.time * 1000).toISOString().split('T')[0]
+            : null,
+          language: review.language || 'en'
+        }))
+
+      if (newReviews.length > 0) {
+        await supabase.from('clinic_reviews').insert(newReviews)
+      }
     }
 
     // 9. Store primary media
     if (gp.photos && gp.photos.length > 0) {
-      const media = gp.photos.slice(0, 5).map((photo: any, idx: number) => ({
+      const media = gp.photos.slice(0, 5).map((photo, idx) => ({
         clinic_id: clinicId,
         media_type: 'image',
         url: constructPhotoUrl(photo),
@@ -218,16 +289,6 @@ export async function POST(request: Request) {
       await supabase.from('clinic_media').insert(media)
     }
 
-    // 10. Store raw payload as source document
-    await supabase.from('source_documents').insert({
-      source_id: sourceId,
-      doc_type: 'html',
-      title: `Google Places Data - ${gp.display_name}`,
-      raw_text: JSON.stringify(googlePlacesData),
-      language: 'en',
-      published_at: new Date().toISOString()
-    })
-
     return NextResponse.json({
       success: true,
       message: 'Google Places data imported successfully',
@@ -237,25 +298,33 @@ export async function POST(request: Request) {
       display_name: gp.display_name
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error importing Google Places data:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to import Google Places data' },
-      { status: 500 }
-    )
+    // Attempt to roll back the source record to avoid orphaned audit trails
+    if (sourceId) {
+      try {
+        await supabase.from('sources').delete().eq('id', sourceId)
+      } catch {
+        // best-effort rollback; ignore if it fails
+      }
+    }
+    const message = error instanceof Error ? error.message : 'Failed to import Google Places data'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
 // Helper functions
+
 async function upsertFact(
+  supabase: SupabaseClient<any>,
   clinicId: string,
   factKey: string,
-  factValue: any,
+  factValue: string | number | boolean | Record<string, unknown> | OpeningHours,
   valueType: 'string' | 'number' | 'bool' | 'json',
   sourceId: string
 ) {
-  const jsonValue = typeof factValue === 'object' 
-    ? factValue 
+  const jsonValue = typeof factValue === 'object'
+    ? factValue
     : { value: factValue }
 
   const { data: fact } = await supabase
@@ -295,7 +364,7 @@ async function upsertFact(
   }
 }
 
-function extractLocationDetails(addressComponents: any[], claimsLocation?: any) {
+function extractLocationDetails(addressComponents: AddressComponent[], claimsLocation?: GooglePlacesData['extracted_claims']['location']) {
   let city = claimsLocation?.city || ''
   let state = claimsLocation?.state || ''
   let country = claimsLocation?.country || ''
@@ -328,7 +397,7 @@ function mapServiceType(serviceType: string): {
   name: 'Hair Transplant' | 'Rhinoplasty' | 'Other'
 } {
   const lower = serviceType.toLowerCase()
-  
+
   if (lower.includes('hair') || lower.includes('transplant')) {
     return { category: 'Medical Tourism', name: 'Hair Transplant' }
   }
@@ -338,11 +407,11 @@ function mapServiceType(serviceType: string): {
   if (lower.includes('dental') || lower.includes('teeth')) {
     return { category: 'Dental', name: 'Other' }
   }
-  
+
   return { category: 'Other', name: 'Other' }
 }
 
-function constructPhotoUrl(photo: any): string {
+function constructPhotoUrl(photo: Photo | string): string {
   if (typeof photo === 'string') return photo
   if (photo.photo_reference) {
     return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`

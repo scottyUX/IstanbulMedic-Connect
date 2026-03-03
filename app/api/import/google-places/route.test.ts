@@ -420,13 +420,18 @@ function seedSuccessfulSingleImport(options?: {
     }
   }
 
+  mockDb.queue('source_documents', 'insert', {
+    error: null
+  })
+
+  mockDb.queue('clinic_reviews', 'select', {
+    data: [],
+    error: null
+  })
   mockDb.queue('clinic_reviews', 'insert', {
     error: null
   })
   mockDb.queue('clinic_media', 'insert', {
-    error: null
-  })
-  mockDb.queue('source_documents', 'insert', {
     error: null
   })
 }
