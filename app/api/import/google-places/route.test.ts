@@ -1192,10 +1192,10 @@ describe('POST /api/import/google-places', () => {
       })
     })
 
-    it('returns 500 when the request body contains invalid JSON', async () => {
+    it('returns 400 when the request body contains invalid JSON', async () => {
       const response = await singlePOST(makeSingleRequest('{invalid json'))
 
-      expect(response.status).toBe(500)
+      expect(response.status).toBe(400)
       await expect(response.json()).resolves.toMatchObject({
         error: expect.any(String)
       })

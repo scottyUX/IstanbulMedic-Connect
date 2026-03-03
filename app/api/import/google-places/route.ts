@@ -93,9 +93,16 @@ export async function POST(request: Request) {
   )
 
   let sourceId: string | null = null
+  let previousLocation: unknown[] = []
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body: expected JSON' }, { status: 400 })
+  }
 
   try {
-    const body = await request.json()
     const { clinicId, googlePlacesData } = body as {
       clinicId: string
       googlePlacesData: GooglePlacesData
@@ -168,9 +175,14 @@ export async function POST(request: Request) {
     if (googlePlacesError) throw googlePlacesError
 
     // 5. Replace clinic location
-    // Note: delete-then-insert since clinic_locations has no unique constraint on clinic_id alone.
-    // A failed insert leaves the clinic locationless until the next import — acceptable trade-off
-    // without a DB-level transaction.
+    // Read existing rows first so the catch block can restore them if the insert fails.
+    // A true fix would require a DB-level transaction via a Supabase RPC function.
+    const { data: savedLocation } = await supabase
+      .from('clinic_locations')
+      .select('clinic_id, location_name, address_line, city, country, postal_code, latitude, longitude, is_primary')
+      .eq('clinic_id', clinicId)
+    previousLocation = savedLocation || []
+
     await supabase
       .from('clinic_locations')
       .delete()
@@ -229,17 +241,9 @@ export async function POST(request: Request) {
 
     if (sourceDocError) throw sourceDocError
 
-    // 7. Store facts
-    await upsertFact(supabase, clinicId, 'google_place_id', gp.place_id, 'string', sourceId!)
-    await upsertFact(supabase, clinicId, 'google_rating', gp.rating, 'number', sourceId!)
-    await upsertFact(supabase, clinicId, 'google_review_count', gp.user_ratings_total, 'number', sourceId!)
-
-    if (gp.opening_hours) {
-      await upsertFact(supabase, clinicId, 'opening_hours', gp.opening_hours, 'json', sourceId!)
-    }
-
-    // 8. Import reviews — deduplicate against existing records to prevent double-imports
-    if (gp.reviews && gp.reviews.length > 0) {
+    // 7+8+9. Store facts, reviews, and media in parallel — all independent of each other
+    const importReviews = async () => {
+      if (!gp.reviews?.length) return
       const { data: existing } = await supabase
         .from('clinic_reviews')
         .select('review_text, review_date')
@@ -275,8 +279,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // 9. Store primary media
-    if (gp.photos && gp.photos.length > 0) {
+    const importMedia = async () => {
+      if (!gp.photos?.length) return
       const media = gp.photos.slice(0, 5).map((photo, idx) => ({
         clinic_id: clinicId,
         media_type: 'image',
@@ -285,9 +289,20 @@ export async function POST(request: Request) {
         source_id: sourceId,
         display_order: idx
       }))
-
       await supabase.from('clinic_media').insert(media)
     }
+
+    await Promise.all([
+      upsertFact(supabase, clinicId, 'google_place_id', gp.place_id, 'string', sourceId!),
+      upsertFact(supabase, clinicId, 'google_rating', gp.rating, 'number', sourceId!),
+      upsertFact(supabase, clinicId, 'google_review_count', gp.user_ratings_total, 'number', sourceId!),
+      ...(gp.opening_hours
+        ? [upsertFact(supabase, clinicId, 'opening_hours', gp.opening_hours, 'json', sourceId!)]
+        : []
+      ),
+      importReviews(),
+      importMedia()
+    ])
 
     return NextResponse.json({
       success: true,
@@ -304,6 +319,14 @@ export async function POST(request: Request) {
     if (sourceId) {
       try {
         await supabase.from('sources').delete().eq('id', sourceId)
+      } catch {
+        // best-effort rollback; ignore if it fails
+      }
+    }
+    // Attempt to restore previous location if it was deleted before a failed insert
+    if (previousLocation.length) {
+      try {
+        await supabase.from('clinic_locations').insert(previousLocation)
       } catch {
         // best-effort rollback; ignore if it fails
       }
