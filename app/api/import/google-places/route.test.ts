@@ -349,6 +349,15 @@ const factEvidenceInsertKeys = [
   'evidence_snippet'
 ] as const satisfies ReadonlyArray<keyof TablesInsert<'fact_evidence'>>
 
+const clinicGooglePlacesUpsertKeys = [
+  'clinic_id',
+  'place_id',
+  'rating',
+  'user_ratings_total',
+  'last_checked_at',
+  'updated_at'
+] as const satisfies ReadonlyArray<keyof TablesInsert<'clinic_google_places'>>
+
 function expectExactKeys(
   payload: Record<string, unknown>,
   expectedKeys: readonly string[]
@@ -380,6 +389,9 @@ function seedSuccessfulSingleImport(options?: {
     error: null
   })
   mockDb.queue('clinic_locations', 'insert', {
+    error: null
+  })
+  mockDb.queue('clinic_google_places', 'upsert', {
     error: null
   })
   mockDb.queue('clinic_services', 'delete', {
@@ -722,6 +734,57 @@ describe('POST /api/import/google-places', () => {
       })
     })
 
+    it('upserts clinic_google_places with place_id, rating, and review count', async () => {
+      seedSuccessfulSingleImport()
+
+      const response = await singlePOST(
+        makeSingleRequest({
+          clinicId: 'clinic-123',
+          googlePlacesData: fullGooglePlacesData
+        })
+      )
+
+      expect(response.status).toBe(200)
+
+      const googlePlacesUpserts = getOperations('clinic_google_places', 'upsert')
+      expect(googlePlacesUpserts).toHaveLength(1)
+      expectExactKeys(
+        googlePlacesUpserts[0].payload as Record<string, unknown>,
+        clinicGooglePlacesUpsertKeys
+      )
+      expect(googlePlacesUpserts[0].payload).toMatchObject({
+        clinic_id: 'clinic-123',
+        place_id: 'place-123',
+        rating: 4.8,
+        user_ratings_total: 210
+      })
+      expect((googlePlacesUpserts[0].options as any)?.onConflict).toBe('clinic_id,place_id')
+      expect((googlePlacesUpserts[0].payload as any).last_checked_at).toEqual(expect.any(String))
+      expect((googlePlacesUpserts[0].payload as any).updated_at).toEqual(expect.any(String))
+    })
+
+    it('upserts clinic_google_places with null rating and review count when absent from payload', async () => {
+      seedSuccessfulSingleImport({ factCount: 3 })
+
+      const response = await singlePOST(
+        makeSingleRequest({
+          clinicId: 'clinic-456',
+          googlePlacesData: minimalGooglePlacesData
+        })
+      )
+
+      expect(response.status).toBe(200)
+
+      const googlePlacesUpserts = getOperations('clinic_google_places', 'upsert')
+      expect(googlePlacesUpserts).toHaveLength(1)
+      expect(googlePlacesUpserts[0].payload).toMatchObject({
+        clinic_id: 'clinic-456',
+        place_id: 'place-456',
+        rating: 4.3,
+        user_ratings_total: 12
+      })
+    })
+
     it('creates fact evidence rows when an existing source document is found', async () => {
       seedSuccessfulSingleImport({ withEvidenceDocument: true })
 
@@ -1031,12 +1094,40 @@ describe('POST /api/import/google-places', () => {
       })
     })
 
+    it('returns 500 when clinic_google_places upsert fails', async () => {
+      mockDb.queue('sources', 'insert', {
+        data: { id: 'source-1' },
+        error: null
+      })
+      mockDb.queue('clinics', 'update', {
+        error: null
+      })
+      mockDb.queue('clinic_google_places', 'upsert', {
+        error: new Error('google places upsert failed')
+      })
+
+      const response = await singlePOST(
+        makeSingleRequest({
+          clinicId: 'clinic-123',
+          googlePlacesData: fullGooglePlacesData
+        })
+      )
+
+      expect(response.status).toBe(500)
+      await expect(response.json()).resolves.toMatchObject({
+        error: 'google places upsert failed'
+      })
+    })
+
     it('returns 500 when location insert fails', async () => {
       mockDb.queue('sources', 'insert', {
         data: { id: 'source-1' },
         error: null
       })
       mockDb.queue('clinics', 'update', {
+        error: null
+      })
+      mockDb.queue('clinic_google_places', 'upsert', {
         error: null
       })
       mockDb.queue('clinic_locations', 'delete', {
@@ -1065,6 +1156,9 @@ describe('POST /api/import/google-places', () => {
         error: null
       })
       mockDb.queue('clinics', 'update', {
+        error: null
+      })
+      mockDb.queue('clinic_google_places', 'upsert', {
         error: null
       })
       mockDb.queue('clinic_locations', 'delete', {

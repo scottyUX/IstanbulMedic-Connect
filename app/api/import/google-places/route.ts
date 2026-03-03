@@ -119,7 +119,23 @@ export async function POST(request: Request) {
 
     if (clinicError) throw clinicError
 
-    // 4. Upsert clinic location
+    // 4. Upsert clinic_google_places (dedicated table for easy sorting by rating/reviews)
+    const { error: googlePlacesError } = await supabase
+      .from('clinic_google_places')
+      .upsert({
+        clinic_id: clinicId,
+        place_id: gp.place_id,
+        rating: gp.rating ?? null,
+        user_ratings_total: gp.user_ratings_total ?? null,
+        last_checked_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'clinic_id,place_id'
+      })
+
+    if (googlePlacesError) throw googlePlacesError
+
+    // 5. Upsert clinic location
     await supabase
       .from('clinic_locations')
       .delete()
@@ -141,7 +157,7 @@ export async function POST(request: Request) {
 
     if (locationError) throw locationError
 
-    // 5. Insert/update services
+    // 6. Insert/update services
     if (claims.services?.claimed && claims.services.claimed.length > 0) {
       await supabase
         .from('clinic_services')
@@ -165,7 +181,7 @@ export async function POST(request: Request) {
       if (servicesError) throw servicesError
     }
 
-    // 6. Store facts
+    // 7. Store facts
     await upsertFact(clinicId, 'google_place_id', gp.place_id, 'string', sourceId)
     await upsertFact(clinicId, 'google_rating', gp.rating, 'number', sourceId)
     await upsertFact(clinicId, 'google_review_count', gp.user_ratings_total, 'number', sourceId)
@@ -174,7 +190,7 @@ export async function POST(request: Request) {
       await upsertFact(clinicId, 'opening_hours', gp.opening_hours, 'json', sourceId)
     }
 
-    // 7. Import reviews
+    // 8. Import reviews
     if (gp.reviews && gp.reviews.length > 0) {
       const reviews = gp.reviews.map((review: any) => ({
         clinic_id: clinicId,
@@ -188,7 +204,7 @@ export async function POST(request: Request) {
       await supabase.from('clinic_reviews').insert(reviews)
     }
 
-    // 8. Store primary media
+    // 9. Store primary media
     if (gp.photos && gp.photos.length > 0) {
       const media = gp.photos.slice(0, 5).map((photo: any, idx: number) => ({
         clinic_id: clinicId,
@@ -202,7 +218,7 @@ export async function POST(request: Request) {
       await supabase.from('clinic_media').insert(media)
     }
 
-    // 9. Store raw payload as source document
+    // 10. Store raw payload as source document
     await supabase.from('source_documents').insert({
       source_id: sourceId,
       doc_type: 'html',
