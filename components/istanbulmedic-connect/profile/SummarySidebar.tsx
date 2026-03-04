@@ -86,7 +86,7 @@ export const SummarySidebar = ({
             <Button
               variant="leila-link"
               className="w-full font-medium text-base"
-              href="/leila"
+              href="/langchain"
               onClick={onTalkToLeila}
             >
               Talk to Leila

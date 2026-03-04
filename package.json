@@ -10,8 +10,6 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
     "db:types": "npx supabase gen types typescript --project-id ioofmlovhjvnnqvczeri > lib/supabase/database.types.ts"
   },
   "dependencies": {
@@ -20,6 +18,9 @@
     "@copilotkit/react-core": "^1.51.3",
     "@copilotkit/react-ui": "^1.51.3",
     "@copilotkit/runtime": "^1.51.3",
+    "@langchain/core": "^1.1.20",
+    "@langchain/langgraph": "^1.1.4",
+    "@langchain/openai": "^1.2.6",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -39,6 +40,7 @@
     "embla-carousel": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.33.0",
+    "langchain": "^1.2.19",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "react": "19.2.3",
@@ -49,8 +51,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -62,6 +64,7 @@
     "eslint-config-next": "16.1.6",
     "jsdom": "^28.1.0",
     "react-is": "^18.3.1",
+    "supabase": "^2.75.5",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"
