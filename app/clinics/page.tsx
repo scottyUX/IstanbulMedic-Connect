@@ -1,6 +1,7 @@
 import { getClinics, type ClinicsQuery, type ClinicSortOption } from "@/lib/api/clinics"
 import { ExploreClinicsPage } from "@/components/istanbulmedic-connect/ExploreClinicsPage"
 import type { FilterState } from "@/components/istanbulmedic-connect/types"
+import { SORT_CONFIG } from "@/lib/filterConfig"
 
 interface ClinicsPageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
@@ -51,17 +52,14 @@ const parseNumber = (value?: string | string[], fallback?: number) => {
 
 const parseSort = (value?: string | string[]): ClinicSortOption => {
   const raw = Array.isArray(value) ? value[0] : value
-  switch (raw) {
-    case "Alphabetical":
-    case "Highest Rated":
-    case "Most Transparent":
-    case "Price: Low to High":
-    case "Price: High to Low":
-    case "Best Match":
-      return raw
-    default:
-      return "Alphabetical"
+  const enabledSorts = (Object.keys(SORT_CONFIG) as ClinicSortOption[])
+    .filter((sortOption) => SORT_CONFIG[sortOption])
+
+  if (raw && enabledSorts.includes(raw as ClinicSortOption)) {
+    return raw as ClinicSortOption
   }
+
+  return "Alphabetical"
 }
 
 const buildFilters = (searchParams?: { [key: string]: string | string[] | undefined }) => {

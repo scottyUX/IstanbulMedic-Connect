@@ -209,6 +209,7 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
   const pageSize = Math.max(1, Math.min(query.pageSize ?? 12, 50));
   const page = Math.max(1, query.page ?? 1);
   const sort = query.sort ?? 'Best Match';
+  const isHighestRatedSort = sort === 'Highest Rated';
 
   const searchQuery = normalizeString(query.searchQuery);
   const locationQuery = normalizeString(query.location);
@@ -430,12 +431,9 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
       queryBuilder = queryBuilder.order('display_name', { ascending: true });
       break;
     case 'Highest Rated':
-      // Sort by Google Places rating (highest first, nulls last)
-      queryBuilder = queryBuilder.order('rating', {
-        referencedTable: 'clinic_google_places',
-        ascending: false,
-        nullsFirst: false,
-      });
+      // Highest Rated is sorted at the clinic level after fetch to avoid
+      // relation-order semantics that do not reliably reorder parent rows.
+      queryBuilder = queryBuilder.order('display_name', { ascending: true });
       break;
     case 'Most Transparent':
     case 'Best Match':
@@ -454,7 +452,9 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
       break;
   }
 
-  const { data: clinics, error, count } = await queryBuilder.range(from, to);
+  const { data: clinics, error, count } = isHighestRatedSort
+    ? await queryBuilder
+    : await queryBuilder.range(from, to);
 
   if (error) {
     console.error('Error fetching clinics:', error);
@@ -463,8 +463,34 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
 
   if (!clinics) return { clinics: [], total: 0, page, pageSize };
 
+  const mappedClinics = clinics.map(mapClinicRow);
+
+  if (isHighestRatedSort) {
+    const sortedClinics = [...mappedClinics].sort((a, b) => {
+      const aRating = a.rating ?? -1;
+      const bRating = b.rating ?? -1;
+      if (bRating !== aRating) return bRating - aRating;
+
+      const aReviews = a.reviewCount ?? -1;
+      const bReviews = b.reviewCount ?? -1;
+      if (bReviews !== aReviews) return bReviews - aReviews;
+
+      const byName = a.name.localeCompare(b.name);
+      if (byName !== 0) return byName;
+
+      return a.id.localeCompare(b.id);
+    });
+
+    return {
+      clinics: sortedClinics.slice(from, to + 1),
+      total: count ?? sortedClinics.length,
+      page,
+      pageSize,
+    };
+  }
+
   return {
-    clinics: clinics.map(mapClinicRow),
+    clinics: mappedClinics,
     total: count ?? 0,
     page,
     pageSize,

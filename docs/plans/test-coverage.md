@@ -152,6 +152,8 @@ Consider Playwright or Cypress for:
 - [ ] Filter interactions
 - [ ] Auth flows
 
+Note (March 4, 2026): older project notes reference Playwright coverage, but the current repo state does not contain `playwright.config.ts`, an `e2e/` directory, or `test:e2e` npm scripts. Re-add the Playwright setup and critical-flow specs.
+
 ---
 
 ## Suggested Next Steps

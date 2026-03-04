@@ -376,7 +376,8 @@ Will create realistic test data in `supabase/seed.sql`:
 After implementation:
 1. Run `npm run build` - Ensure no TypeScript errors
 2. Run `npm test` - Ensure existing tests pass
-3. Run `npm run test:e2e` - Ensure E2E tests pass
+3. Re-add Playwright test files/scripts, then run E2E tests for critical flows.
+   - Note: As of March 4, 2026, this repo state does not include `playwright.config.ts`, an `e2e/` directory, or `test:e2e` scripts in `package.json`, even though older session docs mention them.
 4. Manual testing:
    - Apply each filter individually → verify results change
    - Apply multiple filters → verify AND logic works
@@ -455,7 +456,14 @@ Currently using `clinic_google_places` table directly for rating data:
 - `rating` - Google Places rating (numeric, 1-5)
 - `user_ratings_total` - Total review count from Google
 
-This provides clean columns for sorting (`ORDER BY rating DESC`) and filtering.
+This provides clean columns for filtering (min rating/min reviews), but direct parent-list sorting from embedded relation fields in a `from('clinics')` query is not reliable in PostgREST.
+
+Current app behavior for "Highest Rated":
+- Fetch matching clinics
+- Sort at clinic level in application code by `rating DESC`, `reviewCount DESC`, `name ASC`, `id ASC`
+- Apply pagination after sorting
+
+This is deterministic and correct, but less efficient than DB-side sorting on large datasets.
 
 ### Future Implementation (Multi-Source Aggregation)
 When additional review platforms are added (Trustpilot, WhatClinic, RealSelf, etc.):
@@ -490,6 +498,6 @@ When additional review platforms are added (Trustpilot, WhatClinic, RealSelf, et
    - WhatClinic: 25% weight
 
 ### Why This Approach
-- **Now**: Simple, clean columns for sorting/filtering. No complex JOINs or JSON parsing.
+- **Now**: Simple, clean columns for filtering. Deterministic app-side sorting for correctness.
 - **Later**: Database view handles aggregation at query time. Application code stays simple.
-- **Migration path**: When adding sources, create the view and update one query. No major refactor needed.      
+- **Migration path**: Add a clinic-level rating view (one row per clinic), sort/paginate in DB, then swap one query. No major refactor needed.

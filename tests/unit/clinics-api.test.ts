@@ -219,11 +219,8 @@ describe('getClinics', () => {
 
     // Test Highest Rated sort
     await getClinics({ sort: 'Highest Rated' });
-    expect(mockBuilder.order).toHaveBeenCalledWith('rating', {
-      referencedTable: 'clinic_google_places',
-      ascending: false,
-      nullsFirst: false,
-    });
+    expect(mockBuilder.order).toHaveBeenCalledWith('display_name', { ascending: true });
+    expect(mockBuilder.range).not.toHaveBeenCalled();
 
     vi.clearAllMocks();
     mockSupabase.from.mockReturnValue(mockBuilder);
@@ -231,6 +228,36 @@ describe('getClinics', () => {
     // Test Price: Low to High sort
     await getClinics({ sort: 'Price: Low to High' });
     expect(mockBuilder.order).toHaveBeenCalledWith('display_name', { ascending: true });
+  });
+
+  it('sorts Highest Rated deterministically and paginates after sorting', async () => {
+    const clinicRows = [
+      {
+        ...sampleClinicRow,
+        id: 'clinic-c',
+        display_name: 'Clinic C',
+        clinic_google_places: [{ rating: 4.9, user_ratings_total: 100 }],
+      },
+      {
+        ...sampleClinicRow,
+        id: 'clinic-b',
+        display_name: 'Clinic B',
+        clinic_google_places: [{ rating: 4.9, user_ratings_total: 500 }],
+      },
+      {
+        ...sampleClinicRow,
+        id: 'clinic-a',
+        display_name: 'Clinic A',
+        clinic_google_places: [{ rating: 4.7, user_ratings_total: 2000 }],
+      },
+    ];
+    const mockBuilder = createMockQueryBuilder(clinicRows, null, 3);
+    mockSupabase.from.mockReturnValue(mockBuilder);
+
+    const result = await getClinics({ sort: 'Highest Rated', page: 1, pageSize: 2 });
+
+    expect(result.clinics.map((c) => c.id)).toEqual(['clinic-b', 'clinic-c']);
+    expect(result.total).toBe(3);
   });
 
   it('handles clinic with no scores gracefully', async () => {

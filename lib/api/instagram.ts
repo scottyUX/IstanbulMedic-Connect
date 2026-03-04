@@ -107,8 +107,8 @@ function transformToInstagramVM(
     url: p.url,
     caption: p.caption ?? undefined,
     hashtags: p.hashtags ?? [],
-    likesCount: p.likes_count ?? 0,
-    commentsCount: p.comments_count ?? 0,
+    likesCount: (p.likes_count != null && p.likes_count >= 0) ? p.likes_count : undefined,
+    commentsCount: (p.comments_count != null && p.comments_count >= 0) ? p.comments_count : undefined,
     firstComment: p.first_comment_text ?? undefined,
     timestamp: p.posted_at ?? p.captured_at,
     displayUrl: p.display_url ?? undefined,
@@ -177,11 +177,23 @@ export async function getClinicInstagramData(clinicId: string): Promise<Instagra
       return null;
     }
 
-    // 2. Fetch recent posts from clinic_instagram_posts (if table exists)
-    // Posts will be null until the clinic_instagram_posts migration is applied
-    // and the database types are regenerated. Once available, add a query here:
-    // const { data: postsData } = await supabase.from('clinic_instagram_posts')...
-    const posts: InstagramPostRow[] | null = null;
+    // 2. Fetch recent posts from clinic_instagram_posts
+    let posts: InstagramPostRow[] | null = null;
+    try {
+      const { data: postsData, error: postsError } = await supabase
+        .from('clinic_instagram_posts')
+        .select('*')
+        .eq('clinic_id', clinicId)
+        .order('posted_at', { ascending: false })
+        .limit(12);
+
+      if (!postsError && postsData) {
+        posts = postsData as InstagramPostRow[];
+      }
+    } catch {
+      // Posts query failed - table may not exist yet
+      console.debug('Could not fetch Instagram posts');
+    }
 
     // 3. Fetch engagement facts from clinic_facts
     let facts: FactRow[] | null = null;

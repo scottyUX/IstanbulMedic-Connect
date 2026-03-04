@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { InstagramIntelligenceSection } from '@/components/istanbulmedic-connect/profile/InstagramIntelligenceSection';
 import type { InstagramIntelligenceVM } from '@/components/istanbulmedic-connect/types';
 
@@ -46,22 +45,7 @@ describe('InstagramIntelligenceSection', () => {
     expect(screen.getByText(/Signals from the clinic's social media profiles/)).toBeInTheDocument();
   });
 
-  it('renders Instagram tab', () => {
-    render(<InstagramIntelligenceSection />);
-    expect(screen.getByRole('tab', { name: /Instagram/i })).toBeInTheDocument();
-  });
-
-  it('renders TikTok tab', () => {
-    render(<InstagramIntelligenceSection />);
-    expect(screen.getByRole('tab', { name: /TikTok/i })).toBeInTheDocument();
-  });
-
-  it('renders Facebook tab', () => {
-    render(<InstagramIntelligenceSection />);
-    expect(screen.getByRole('tab', { name: /Facebook/i })).toBeInTheDocument();
-  });
-
-  it('shows Instagram content by default', () => {
+  it('shows Instagram content', () => {
     render(<InstagramIntelligenceSection data={createInstagramData()} />);
     expect(screen.getByTestId('instagram-tab-content')).toBeInTheDocument();
   });
@@ -69,22 +53,6 @@ describe('InstagramIntelligenceSection', () => {
   it('passes data to Instagram tab content', () => {
     render(<InstagramIntelligenceSection data={createInstagramData({ username: 'testclinic' })} />);
     expect(screen.getByText('@testclinic')).toBeInTheDocument();
-  });
-
-  it('renders TikTok tab that can be clicked', () => {
-    render(<InstagramIntelligenceSection />);
-    const tiktokTab = screen.getByRole('tab', { name: /TikTok/i });
-    expect(tiktokTab).toBeInTheDocument();
-    // Verify tab is clickable (not disabled)
-    expect(tiktokTab).not.toBeDisabled();
-  });
-
-  it('renders Facebook tab that can be clicked', () => {
-    render(<InstagramIntelligenceSection />);
-    const facebookTab = screen.getByRole('tab', { name: /Facebook/i });
-    expect(facebookTab).toBeInTheDocument();
-    // Verify tab is clickable (not disabled)
-    expect(facebookTab).not.toBeDisabled();
   });
 
   it('handles null data prop', () => {
@@ -100,17 +68,5 @@ describe('InstagramIntelligenceSection', () => {
   it('renders with follower count', () => {
     render(<InstagramIntelligenceSection data={createInstagramData({ followersCount: 50000 })} />);
     expect(screen.getByText('50000 followers')).toBeInTheDocument();
-  });
-
-  it('shows social section heading and unavailable states when non-instagram tabs are selected', async () => {
-    const user = userEvent.setup();
-    render(<InstagramIntelligenceSection data={createInstagramData()} />);
-    expect(screen.getByText('Social Presence & Brand Signals')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: /TikTok/i }));
-    expect(screen.getByText('TikTok data is not available yet.')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: /Facebook/i }));
-    expect(screen.getByText('Facebook data is not available yet.')).toBeInTheDocument();
   });
 });

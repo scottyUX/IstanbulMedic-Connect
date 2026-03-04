@@ -28,6 +28,11 @@ interface ExploreClinicsPageProps {
   initialSort: ClinicSortOption
 }
 
+const ENABLED_SORT_OPTIONS = (Object.keys(SORT_CONFIG) as ClinicSortOption[])
+  .filter((sortOption) => SORT_CONFIG[sortOption])
+
+const DEFAULT_SORT_OPTION: ClinicSortOption = ENABLED_SORT_OPTIONS[0] ?? "Alphabetical"
+
 const buildQueryString = (filters: FilterState, sortBy: ClinicSortOption, page: number) => {
   const params = new URLSearchParams()
 
@@ -64,7 +69,7 @@ const buildQueryString = (filters: FilterState, sortBy: ClinicSortOption, page: 
     params.set("minReviews", String(filters.minReviews))
   }
 
-  if (sortBy && sortBy !== "Best Match") {
+  if (sortBy && sortBy !== DEFAULT_SORT_OPTION) {
     params.set("sort", sortBy)
   }
 
@@ -85,8 +90,11 @@ export const ExploreClinicsPage = ({
   initialSort,
 }: ExploreClinicsPageProps) => {
   const router = useRouter()
+  const normalizedInitialSort = ENABLED_SORT_OPTIONS.includes(initialSort)
+    ? initialSort
+    : DEFAULT_SORT_OPTION
   const [filters, setFilters] = useState<FilterState>(initialFilters)
-  const [sortBy, setSortBy] = useState<ClinicSortOption>(initialSort)
+  const [sortBy, setSortBy] = useState<ClinicSortOption>(normalizedInitialSort)
   const isFirstRender = useRef(true)
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
@@ -174,13 +182,11 @@ export const ExploreClinicsPage = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(SORT_CONFIG) as (keyof typeof SORT_CONFIG)[])
-                    .filter((key) => SORT_CONFIG[key])
-                    .map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
+                  {ENABLED_SORT_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

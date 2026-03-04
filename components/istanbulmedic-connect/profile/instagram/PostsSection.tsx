@@ -48,11 +48,15 @@ function PostCard({ post }: { post: InstagramPostVM }) {
       <div className="absolute inset-0 flex items-center justify-center gap-4 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
         <div className="flex items-center gap-1 text-white">
           <Heart className="h-5 w-5" fill="white" />
-          <span className="text-sm font-semibold">{formatNumber(post.likesCount)}</span>
+          <span className="text-sm font-semibold">
+            {post.likesCount != null ? formatNumber(post.likesCount) : "—"}
+          </span>
         </div>
         <div className="flex items-center gap-1 text-white">
           <MessageCircle className="h-5 w-5" fill="white" />
-          <span className="text-sm font-semibold">{formatNumber(post.commentsCount)}</span>
+          <span className="text-sm font-semibold">
+            {post.commentsCount != null ? formatNumber(post.commentsCount) : "—"}
+          </span>
         </div>
       </div>
     </a>

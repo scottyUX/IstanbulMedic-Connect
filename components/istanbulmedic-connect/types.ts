@@ -52,8 +52,8 @@ export interface InstagramPostVM {
   url: string
   caption?: string
   hashtags: string[]
-  likesCount: number
-  commentsCount: number
+  likesCount?: number
+  commentsCount?: number
   firstComment?: string
   latestComments?: InstagramComment[]
   timestamp: string
