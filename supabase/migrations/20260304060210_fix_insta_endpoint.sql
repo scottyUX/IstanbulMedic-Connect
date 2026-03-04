@@ -1,6 +1,6 @@
 CREATE TYPE instagram_post_type AS ENUM ('Image', 'Video', 'Sidecar');
 
-CREATE TABLE clinic_instagram_posts (
+CREATE TABLE public.clinic_instagram_posts (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   clinic_id        uuid NOT NULL REFERENCES clinics(id) ON DELETE CASCADE,
   source_id        uuid NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
@@ -63,3 +63,21 @@ COMMENT ON COLUMN clinic_social_media.posts_count IS 'Total posts at time of las
 COMMENT ON COLUMN clinic_social_media.highlights_count IS 'Number of story highlights';
 COMMENT ON COLUMN clinic_social_media.is_private IS 'Whether the account is private';
 COMMENT ON COLUMN clinic_social_media.business_category IS 'Instagram business category e.g. Medical & health';
+
+-- clinic_social_media: profile-level fields missing from original scraper mapping
+ALTER TABLE clinic_social_media
+  ADD COLUMN IF NOT EXISTS profile_pic_url text,
+  ADD COLUMN IF NOT EXISTS biography       text,
+  ADD COLUMN IF NOT EXISTS full_name       varchar,
+  ADD COLUMN IF NOT EXISTS external_urls   text[] DEFAULT '{}';
+
+COMMENT ON COLUMN clinic_social_media.profile_pic_url IS 'Profile picture URL at time of scrape';
+COMMENT ON COLUMN clinic_social_media.biography       IS 'Instagram biography text';
+COMMENT ON COLUMN clinic_social_media.full_name       IS 'Display name from Instagram profile';
+COMMENT ON COLUMN clinic_social_media.external_urls   IS 'External URLs listed on the profile';
+
+-- clinic_instagram_posts: direct media URL needed for the posts grid
+ALTER TABLE clinic_instagram_posts
+  ADD COLUMN IF NOT EXISTS display_url text;
+
+COMMENT ON COLUMN clinic_instagram_posts.display_url IS 'Direct image/video URL for the post (used for posts grid display)';

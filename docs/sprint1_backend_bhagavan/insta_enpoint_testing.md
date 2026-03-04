@@ -65,7 +65,8 @@ npm test
 | Successful import | 6 | 200 response, summary counts, posts upserted, clinic website update (both branches) |
 | Fact generation | 7 | Correct facts written to DB, values, confidence scores, omission when no posts |
 | Comment sanitisation | 8 | Empty/null/undefined `latestComments`, whitespace `firstComment`, mixed posts, fact exclusion |
-| Post upsert shape | 2 | Hashtag lowercasing, field mapping |
+| Post upsert shape | 4 | Hashtag lowercasing, field mapping, `display_url` stored, null `display_url` fallback |
+| Social media upsert payload | 6 | `profile_pic_url`, `biography`, `full_name`, `external_urls` stored; empty-array and null fallbacks |
 | Error handling | 5 | DB failure at each stage, error message in response, malformed JSON body |
 | Edge cases | 5 | No external URLs, sparse claims, no hashtags, zero engagement, avg likes calculation |
 
@@ -73,7 +74,7 @@ npm test
 
 ```
 Test Files  1 passed (1)
-     Tests  38 passed (38)
+     Tests  47 passed (47)
 ```
 
 ---

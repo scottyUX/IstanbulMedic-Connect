@@ -49,6 +49,7 @@ const minimalInstagramData = {
     fullName: 'IstanbulMedic',
     biography: 'IstanbulMedic is accredited medical travel expert in Turkey.',
     externalUrls: ['https://linktr.ee/istanbulmedic'],
+    profilePicUrl: 'https://example.com/profile.jpg',
     followersCount: 2140,
     postsCount: 100,
     verified: false,
@@ -454,6 +455,79 @@ describe('POST /api/import/instagram', () => {
       expect(row.post_type).toBe('Image')
       expect(row.likes_count).toBe(10)
       expect(row.comments_count).toBe(2)
+    })
+
+    it('includes display_url in post rows', async () => {
+      mockSupabaseSuccess()
+      await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
+      const postRows = mockUpsert.mock.calls[2][0]
+      expect(postRows[0].display_url).toBe(samplePost.displayUrl)
+    })
+
+    it('stores null display_url when displayUrl is missing', async () => {
+      const dataNoDisplayUrl = {
+        ...fullInstagramData,
+        posts: [{ ...samplePost, displayUrl: undefined }],
+      }
+      mockSupabaseSuccess()
+      await POST(makeRequest({ clinicId: 'clinic-123', instagramData: dataNoDisplayUrl }))
+      const postRows = mockUpsert.mock.calls[2][0]
+      expect(postRows[0].display_url).toBeNull()
+    })
+  })
+
+  // ── Social media upsert payload ────────────────────────────────────────────
+
+  describe('social media upsert payload', () => {
+    it('includes profile_pic_url in social media upsert', async () => {
+      mockSupabaseSuccess()
+      await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
+      // upsert call order: 0=sources, 1=clinic_social_media, 2=clinic_instagram_posts
+      const socialRow = mockUpsert.mock.calls[1][0]
+      expect(socialRow.profile_pic_url).toBe('https://example.com/profile.jpg')
+    })
+
+    it('includes biography in social media upsert', async () => {
+      mockSupabaseSuccess()
+      await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
+      const socialRow = mockUpsert.mock.calls[1][0]
+      expect(socialRow.biography).toBe(fullInstagramData.instagram.biography)
+    })
+
+    it('includes full_name in social media upsert', async () => {
+      mockSupabaseSuccess()
+      await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
+      const socialRow = mockUpsert.mock.calls[1][0]
+      expect(socialRow.full_name).toBe('IstanbulMedic')
+    })
+
+    it('includes external_urls array in social media upsert', async () => {
+      mockSupabaseSuccess()
+      await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
+      const socialRow = mockUpsert.mock.calls[1][0]
+      expect(socialRow.external_urls).toEqual(['https://linktr.ee/istanbulmedic'])
+    })
+
+    it('defaults external_urls to empty array when externalUrls is absent', async () => {
+      const dataNoUrls = {
+        ...fullInstagramData,
+        instagram: { ...fullInstagramData.instagram, externalUrls: [] },
+      }
+      mockSupabaseSuccess()
+      await POST(makeRequest({ clinicId: 'clinic-123', instagramData: dataNoUrls }))
+      const socialRow = mockUpsert.mock.calls[1][0]
+      expect(socialRow.external_urls).toEqual([])
+    })
+
+    it('stores null profile_pic_url when profilePicUrl is absent', async () => {
+      const dataNoProfilePic = {
+        ...fullInstagramData,
+        instagram: { ...fullInstagramData.instagram, profilePicUrl: undefined },
+      }
+      mockSupabaseSuccess()
+      await POST(makeRequest({ clinicId: 'clinic-123', instagramData: dataNoProfilePic }))
+      const socialRow = mockUpsert.mock.calls[1][0]
+      expect(socialRow.profile_pic_url).toBeNull()
     })
   })
 

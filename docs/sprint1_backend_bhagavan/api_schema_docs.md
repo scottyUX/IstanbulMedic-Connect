@@ -333,6 +333,10 @@ Social media accounts.
 | highlights_count | integer | Number of story highlights |
 | is_private | boolean | Whether the account is private |
 | business_category | varchar | e.g. "Medical & health" |
+| profile_pic_url | text | Profile picture URL at time of scrape |
+| biography | text | Instagram biography text |
+| full_name | varchar | Display name from Instagram profile |
+| external_urls | text[] | External URLs listed on the profile |
 | verified | boolean | Verified account |
 | last_checked_at | timestamptz | Last update |
 | created_at | timestamptz | Record creation |
@@ -356,6 +360,7 @@ Snapshot of Instagram posts at time of scrape. Engagement counts are point-in-ti
 | short_code | varchar | Used to reconstruct URL: `instagram.com/p/{short_code}` |
 | post_type | enum | `Image`, `Video`, or `Sidecar` (carousel) |
 | url | text | Full post URL |
+| display_url | text | Direct image/video URL for the post (used for posts grid display) |
 | caption | text | Post caption text |
 | hashtags | text[] | Hashtags without `#` prefix, lowercased |
 | first_comment_text | text | Text of the `firstComment` field returned by the scraper (may be own account). Null if no comments. |
@@ -694,8 +699,8 @@ Import Instagram profile and post data for a single clinic.
 
 1. ✅ Creates or upserts `source` record (keyed on `content_hash`)
 2. ✅ Creates `source_document` with full raw JSON
-3. ✅ Upserts `clinic_social_media` record (including Instagram-specific fields)
-4. ✅ Upserts `clinic_instagram_posts` records including `first_comment_text` and sanitised `comments_data`
+3. ✅ Upserts `clinic_social_media` record (including `profile_pic_url`, `biography`, `full_name`, `external_urls`, and other Instagram-specific fields)
+4. ✅ Upserts `clinic_instagram_posts` records including `display_url`, `first_comment_text`, and sanitised `comments_data`
 5. ✅ Extracts profile facts and post-derived facts with confidence scores
 6. ✅ Links evidence to each fact via `fact_evidence`
 7. ✅ Updates clinic `website_url` if currently empty
@@ -910,7 +915,7 @@ WHERE clinic_id = '550e8400-e29b-41d4-a716-446655440001'
 | `20260210211529_create_initial_tables` | 2026-02-10 | Initial schema: clinics, locations, services, packages, pricing, team, credentials, languages, sources, documents, facts, evidence, reviews, mentions, scoring, media, social media, Google Places |
 | `20260214120000_add_schema_enhancements` | 2026-02-14 | Added `opening_hours` and `payment_methods` to `clinic_locations`; `photo_url` to `clinic_team`; `years_in_operation` and `procedures_performed` to `clinics` |
 | `20260215042850_upsert_clinic_facts_function` | 2026-02-15 | Added `upsert_clinic_facts(facts_data jsonb)` PL/pgSQL function |
-| `20260220192408_update_for_new_insta_endpoint` | 2026-02-22 | Added `follows_count`, `posts_count`, `highlights_count`, `is_private`, `business_category` to `clinic_social_media`; Added `clinic_instagram_posts` table with `instagram_post_type` enum, 5 indexes including GIN indexes on `hashtags` and `comments_data`; updated `first_comment_text` and `comments_data` columns to `clinic_instagram_posts`; added `idx_instagram_posts_comments` GIN index; added `instagram_top_commented_posts_sample` fact |
+| `20260220192408_update_for_new_insta_endpoint` | 2026-02-22 | Added `follows_count`, `posts_count`, `highlights_count`, `is_private`, `business_category`, `profile_pic_url`, `biography`, `full_name`, `external_urls` to `clinic_social_media`; Added `clinic_instagram_posts` table with `instagram_post_type` enum, 5 indexes including GIN indexes on `hashtags` and `comments_data`; added `first_comment_text`, `comments_data`, and `display_url` columns to `clinic_instagram_posts`; added `idx_instagram_posts_comments` GIN index; added `instagram_top_commented_posts_sample` fact |
 
 ### Migration Management
 
