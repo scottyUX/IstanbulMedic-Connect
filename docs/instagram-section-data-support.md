@@ -144,3 +144,97 @@ The scraper collects some data that the UI doesn't currently surface:
 - Post `displayUrl` - Could show recent post images
 
 These could be added to a richer social section in the future.
+
+---
+
+## Implementation Status (Updated 2026-03-03)
+
+Based on this analysis, the Instagram section was simplified to a **minimal, patient-focused UI** that only shows data we can actually support.
+
+### Current UI Structure
+
+```
+┌─────────────────────────────────────────────────────┐
+│  [Avatar]  @username  ✓                             │
+│            2.1K followers · 100 posts               │
+│            ~4 likes · ~1 comments per post          │
+│                                                     │
+│  "Bio text here..."                                 │
+│                                                     │
+│  ⓘ Based on recent posts                            │
+├─────────────────────────────────────────────────────┤
+│  [post] [post] [post] [post] [post] [post]          │
+│         (hover shows ❤️ likes  💬 comments)         │
+│                                                     │
+│           View all posts on Instagram →             │
+└─────────────────────────────────────────────────────┘
+```
+
+### Components Kept (Minimal)
+
+| Component | Purpose |
+|-----------|---------|
+| `ProfileHeader.tsx` | Avatar, @handle, verified badge, followers/posts count, avg likes/comments per post, bio, "Based on recent posts" note |
+| `PostsSection.tsx` | Grid of recent posts with hover overlay (likes/comments), link to Instagram |
+| `InstagramTabContent.tsx` | Combines ProfileHeader + PostsSection |
+
+### Components Removed
+
+| Component | Why Removed | How to Re-add |
+|-----------|-------------|---------------|
+| `KeyInsightsRow.tsx` | Relied on benchmark comparisons | Need industry benchmark data source |
+| `HashtagsSection.tsx` | Not essential for patient decision-making | Import and add to InstagramTabContent |
+| `InstagramMetricsRow.tsx` | Redundant - stats now inline in ProfileHeader | Import and add to InstagramTabContent |
+| `EngagementSection.tsx` | Redundant - engagement now inline in ProfileHeader | Import and add to InstagramTabContent |
+| Follower Growth Chart | Requires `followerHistory[]` - no historical data | Implement periodic re-scraping |
+| Posting Activity Chart | Requires `postActivityHistory[]` - no historical data | Implement monthly aggregation |
+| Benchmark comparisons | No industry benchmark data source | Need industry averages by category |
+
+### Type Changes
+
+The following fields were removed from `InstagramIntelligenceVM` in `types.ts`:
+
+```ts
+// REMOVED - would require periodic re-scraping:
+followerHistory?: { month: string; followers: number }[]
+postActivityHistory?: { month: string; posts: number }[]
+
+// REMOVED - would require benchmark data source:
+engagement.benchmark?: {
+  engagementTotalPerPost?: number
+  engagementRate?: number
+  commentsPerPost?: number
+}
+```
+
+### Data Currently Displayed
+
+| UI Element | Data Field | Source |
+|------------|------------|--------|
+| Avatar | `profilePicUrl` | Scraped |
+| @handle | `username` | Scraped |
+| Verified badge | `verified` | Scraped |
+| Followers count | `followersCount` | Scraped |
+| Posts count | `postsCount` | Scraped |
+| Avg likes per post | `engagement.likesPerPost` | Calculated from 200 posts |
+| Avg comments per post | `engagement.commentsPerPost` | Calculated from 200 posts |
+| Bio | `biography` | Scraped |
+| Post images | `posts[].displayUrl` | Scraped |
+| Post likes/comments | `posts[].likesCount`, `posts[].commentsCount` | Scraped |
+
+### To Restore Removed Features
+
+1. **Hashtags section:**
+   - Re-create `HashtagsSection.tsx`
+   - Add `topHashtags` and `inferredServices` to data model
+   - Import and add to `InstagramTabContent.tsx`
+
+2. **Historical data (charts):**
+   - Set up periodic Instagram scraping (e.g., weekly/monthly)
+   - Store snapshots in a time-series table
+   - Aggregate data to populate `followerHistory` and `postActivityHistory`
+
+3. **Benchmark comparisons:**
+   - Source industry benchmark data (by category like "Medical & Health")
+   - Store benchmarks in a lookup table
+   - Populate `engagement.benchmark` field from lookup

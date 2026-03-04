@@ -79,7 +79,7 @@ export const FEATURE_CONFIG = {
   profileTransparency: false,
   profileAIInsights: false,
   profileCommunitySignals: false,
-  profileInstagram: false,
+  profileInstagram: true,
   profileLanguages: false,
   profilePaymentMethods: false,
   profileServices: false,

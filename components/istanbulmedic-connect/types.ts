@@ -30,17 +30,58 @@ export interface FilterState {
   minReviews: number | null     // null = "Any"
 }
 
+/** Instagram post type from backend */
+export type InstagramPostType = "Image" | "Video" | "Sidecar"
+
+/** Comment on an Instagram post */
+export interface InstagramComment {
+  id: string
+  text: string
+  ownerUsername: string
+  timestamp: string
+  likesCount: number
+  repliesCount?: number
+  replies?: InstagramComment[]
+}
+
+/** Instagram post data from clinic_instagram_posts table */
+export interface InstagramPostVM {
+  id: string
+  type: InstagramPostType
+  shortCode: string
+  url: string
+  caption?: string
+  hashtags: string[]
+  likesCount: number
+  commentsCount: number
+  firstComment?: string
+  latestComments?: InstagramComment[]
+  timestamp: string
+  displayUrl?: string
+  alt?: string
+}
+
+/** Top hashtag with frequency count */
+export interface TopHashtag {
+  tag: string
+  count: number
+}
+
 /** View model for Instagram intelligence data (from import results / DB) */
 export interface InstagramIntelligenceVM {
   profileUrl?: string
   username?: string
   fullName?: string
   biography?: string
+  profilePicUrl?: string
 
   followersCount?: number
+  followsCount?: number
   postsCount?: number
+  highlightsCount?: number
   verified?: boolean
   isBusinessAccount?: boolean
+  isPrivate?: boolean
   businessCategoryName?: string
 
   externalUrls?: string[]
@@ -58,21 +99,35 @@ export interface InstagramIntelligenceVM {
   firstSeenAt?: string
   lastSeenAt?: string
 
-  /** Monthly follower counts (e.g. [{ month: "2025-07", followers: 7800 }]) */
-  followerHistory?: { month: string; followers: number }[]
-  /** Monthly post counts (e.g. [{ month: "2025-07", posts: 42 }]) */
-  postActivityHistory?: { month: string; posts: number }[]
+  /** Sample posts from the profile (top posts by engagement) */
+  posts?: InstagramPostVM[]
 
-  /** Engagement metrics (clinic vs benchmark) */
+  /** Top hashtags used by this profile */
+  topHashtags?: TopHashtag[]
+
+  /** Inferred services from hashtag analysis */
+  inferredServices?: string[]
+
+  // NOTE: The following fields were removed because the Instagram scraper
+  // only captures a single snapshot - no historical data is available:
+  //
+  // - followerHistory: { month: string; followers: number }[]
+  //   Would require periodic re-scraping to build over time
+  //
+  // - postActivityHistory: { month: string; posts: number }[]
+  //   Would require monthly aggregation over time
+  //
+  // - engagement.benchmark: { engagementTotalPerPost, engagementRate, commentsPerPost }
+  //   Would require an industry benchmark data source
+  //
+  // See docs/instagram-section-data-support.md for full analysis
+
+  /** Engagement metrics (calculated from recent posts) */
   engagement?: {
     engagementTotalPerPost?: number
     engagementRate?: number
     commentsPerPost?: number
-    benchmark?: {
-      engagementTotalPerPost?: number
-      engagementRate?: number
-      commentsPerPost?: number
-    }
+    likesPerPost?: number
   }
 
   confidence?: {
