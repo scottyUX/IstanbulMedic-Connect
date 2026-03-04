@@ -1,28 +1,38 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { cn } from "@/lib/utils"
+import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
 interface Section {
   id: string
   label: string
+  configKey?: keyof typeof FEATURE_CONFIG
 }
 
-const SECTIONS: Section[] = [
-  { id: "overview", label: "Overview" },
-  { id: "location", label: "Location" },
-  { id: "pricing", label: "Pricing" },
-  { id: "packages", label: "Packages" },
-  { id: "doctors", label: "Doctors" },
-  { id: "transparency", label: "Safety" },
-  { id: "ai-insights", label: "AI Insights" },
-  { id: "reviews", label: "Reviews" },
-  { id: "community", label: "Community" },
-  { id: "instagram-intel", label: "Social" },
+const ALL_SECTIONS: Section[] = [
+  { id: "overview", label: "Overview", configKey: "profileOverview" },
+  { id: "location", label: "Location", configKey: "locationMap" },
+  { id: "pricing", label: "Pricing", configKey: "profilePricing" },
+  { id: "packages", label: "Packages", configKey: "profilePackages" },
+  { id: "doctors", label: "Doctors", configKey: "profileDoctors" },
+  { id: "transparency", label: "Safety", configKey: "profileTransparency" },
+  { id: "ai-insights", label: "AI Insights", configKey: "profileAIInsights" },
+  { id: "reviews", label: "Reviews", configKey: "reviews" },
+  { id: "community", label: "Community", configKey: "profileCommunitySignals" },
+  { id: "instagram-intel", label: "Social", configKey: "profileInstagram" },
 ]
 
 export function SectionNav() {
-  const [activeSection, setActiveSection] = useState<string>("overview")
+  // Filter sections based on feature config
+  const SECTIONS = useMemo(() =>
+    ALL_SECTIONS.filter(section =>
+      !section.configKey || FEATURE_CONFIG[section.configKey]
+    ),
+    []
+  )
+
+  const [activeSection, setActiveSection] = useState<string>(SECTIONS[0]?.id ?? "location")
 
   // Determine which section is active based on scroll position.
   // We find the last section whose top edge has scrolled past the

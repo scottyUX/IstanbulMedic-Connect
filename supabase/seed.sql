@@ -288,6 +288,28 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440004', 'youtube', 'IzmirCosmeticCenter', 2100, false, '2025-02-07 09:45:00+00');
 
 -- ============================================
+-- UPDATE INSTAGRAM WITH EXTENDED PROFILE DATA
+-- (for testing Instagram section rendering)
+-- ============================================
+
+UPDATE clinic_social_media SET
+  full_name = 'Istanbul Hair Masters',
+  biography = '🏆 JCI Accredited Hair Transplant Clinic
+📍 Istanbul, Turkey
+✨ 15+ years experience | 50,000+ procedures
+🌍 Serving patients worldwide
+📞 Free consultation',
+  profile_pic_url = 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=150&w=150',
+  external_urls = ARRAY['https://istanbulhairmasters.com', 'https://linktr.ee/istanbulhairmasters'],
+  follows_count = 342,
+  posts_count = 856,
+  highlights_count = 12,
+  is_private = false,
+  business_category = 'Medical & Health'
+WHERE clinic_id = '550e8400-e29b-41d4-a716-446655440001'
+  AND platform = 'instagram';
+
+-- ============================================
 -- CLINIC MEDIA
 -- ============================================
 

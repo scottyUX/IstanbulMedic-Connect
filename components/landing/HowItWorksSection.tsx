@@ -7,6 +7,7 @@ import Container from '@/components/ui/container';
 import PageTitle from '@/components/ui/PageTitle';
 import PageSubtitle from '@/components/ui/PageSubtitle';
 import { CONSULTATION_LINK } from '@/lib/constants';
+import { FEATURE_CONFIG } from '@/lib/filterConfig';
 
 type Step = {
     number: number;
@@ -16,6 +17,7 @@ type Step = {
     imageAlt: string;
     ctaLabel?: string;
     ctaHref?: string;
+    configKey?: keyof typeof FEATURE_CONFIG;
 };
 
 const steps: Step[] = [
@@ -28,6 +30,7 @@ const steps: Step[] = [
         imageAlt: 'Create your secure profile',
         ctaLabel: 'Create your profile',
         ctaHref: CONSULTATION_LINK,
+        configKey: 'createProfile',
     },
     {
         number: 2,
@@ -48,6 +51,7 @@ const steps: Step[] = [
         imageAlt: 'Receive personalized offers',
         ctaLabel: 'Get my free plan',
         ctaHref: CONSULTATION_LINK,
+        configKey: 'personalizedOffers',
     },
     {
         number: 4,
@@ -62,6 +66,11 @@ const steps: Step[] = [
 ];
 
 export default function HowItWorksSection() {
+    // Filter steps based on feature config and renumber
+    const visibleSteps = steps
+        .filter(step => !step.configKey || FEATURE_CONFIG[step.configKey])
+        .map((step, index) => ({ ...step, number: index + 1 }));
+
     return (
         <Section className="bg-white py-20 sm:py-28">
             <Container className="pl-16 pr-6 sm:pl-28 sm:pr-8 lg:pl-40 lg:pr-12">
@@ -77,7 +86,7 @@ export default function HowItWorksSection() {
                 </header>
 
                 <div className="mt-16 flex flex-col gap-20 sm:gap-24">
-                    {steps.map((step) => (
+                    {visibleSteps.map((step) => (
                         <div
                             key={step.number}
                             className="grid grid-cols-1 items-center gap-4 lg:grid-cols-2 lg:gap-4"
