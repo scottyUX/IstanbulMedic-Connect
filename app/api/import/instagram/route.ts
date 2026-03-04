@@ -58,6 +58,7 @@ interface InstagramClaimsData {
     fullName: string
     biography: string
     externalUrls: string[]
+    profilePicUrl?: string
     followersCount: number
     postsCount: number
     verified: boolean
@@ -319,6 +320,10 @@ export async function POST(request: Request) {
         highlights_count: igProfile?.highlights_count ?? null,
         is_private: igProfile?.is_private ?? false,
         business_category: instagramData.instagram.businessCategoryName ?? null,
+        profile_pic_url: instagramData.instagram.profilePicUrl ?? null,
+        biography:       instagramData.instagram.biography ?? null,
+        full_name:       instagramData.instagram.fullName ?? null,
+        external_urls:   instagramData.instagram.externalUrls ?? [],
       }, { onConflict: 'clinic_id,platform,account_handle' })
       .select()
       .single()
@@ -396,6 +401,7 @@ export async function POST(request: Request) {
         first_comment_text: p.firstComment?.trim() || null,
         comments_data:      (p.latestComments ?? []).map(sanitiseComment),
         // ────────────────────────
+        display_url:        p.displayUrl ?? null,
         posted_at:          p.timestamp ?? null,
       }))
 

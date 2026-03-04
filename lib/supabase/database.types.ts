@@ -122,6 +122,47 @@ export type Database = {
           },
         ]
       }
+      clinic_google_places: {
+        Row: {
+          clinic_id: string
+          created_at: string | null
+          id: string
+          last_checked_at: string | null
+          place_id: string
+          rating: number | null
+          updated_at: string | null
+          user_ratings_total: number | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string | null
+          id?: string
+          last_checked_at?: string | null
+          place_id: string
+          rating?: number | null
+          updated_at?: string | null
+          user_ratings_total?: number | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string | null
+          id?: string
+          last_checked_at?: string | null
+          place_id?: string
+          rating?: number | null
+          updated_at?: string | null
+          user_ratings_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_google_places_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_languages: {
         Row: {
           clinic_id: string
