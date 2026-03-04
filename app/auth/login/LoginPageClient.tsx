@@ -25,7 +25,7 @@ const LoginPageClient = () => {
 
   // Redirect if already authenticated
   if (!loading && isAuthenticated) {
-    router.push("/leila")
+    router.push("/langchain")
     return null
   }
 
@@ -102,4 +102,3 @@ const LoginPageClient = () => {
 }
 
 export default LoginPageClient
-
