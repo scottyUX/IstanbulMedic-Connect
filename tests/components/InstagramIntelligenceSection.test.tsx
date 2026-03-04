@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { InstagramIntelligenceSection } from '@/components/istanbulmedic-connect/profile/InstagramIntelligenceSection';
 import type { InstagramIntelligenceVM } from '@/components/istanbulmedic-connect/types';
 
@@ -19,8 +20,7 @@ vi.mock('@/components/istanbulmedic-connect/profile/instagram/InstagramTabConten
   ),
 }));
 
-// TODO: Unskip when FEATURE_CONFIG.profileInstagram is enabled
-describe.skip('InstagramIntelligenceSection', () => {
+describe('InstagramIntelligenceSection', () => {
   const createInstagramData = (
     overrides: Partial<InstagramIntelligenceVM> = {}
   ): InstagramIntelligenceVM => ({
@@ -100,5 +100,17 @@ describe.skip('InstagramIntelligenceSection', () => {
   it('renders with follower count', () => {
     render(<InstagramIntelligenceSection data={createInstagramData({ followersCount: 50000 })} />);
     expect(screen.getByText('50000 followers')).toBeInTheDocument();
+  });
+
+  it('shows social section heading and unavailable states when non-instagram tabs are selected', async () => {
+    const user = userEvent.setup();
+    render(<InstagramIntelligenceSection data={createInstagramData()} />);
+    expect(screen.getByText('Social Presence & Brand Signals')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /TikTok/i }));
+    expect(screen.getByText('TikTok data is not available yet.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /Facebook/i }));
+    expect(screen.getByText('Facebook data is not available yet.')).toBeInTheDocument();
   });
 });

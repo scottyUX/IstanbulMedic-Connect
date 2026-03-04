@@ -11,8 +11,12 @@ import {
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
 }));
+vi.mock('@/lib/api/instagram', () => ({
+  getClinicInstagramData: vi.fn(),
+}));
 
 import { createClient } from '@/lib/supabase/server';
+import { getClinicInstagramData } from '@/lib/api/instagram';
 
 // Helper to create a mock query builder with chainable methods
 const createMockQueryBuilder = (data: unknown = [], error: unknown = null, count: number | null = null) => {
@@ -215,9 +219,10 @@ describe('getClinics', () => {
 
     // Test Highest Rated sort
     await getClinics({ sort: 'Highest Rated' });
-    expect(mockBuilder.order).toHaveBeenCalledWith('overall_score', {
-      foreignTable: 'clinic_scores',
+    expect(mockBuilder.order).toHaveBeenCalledWith('rating', {
+      referencedTable: 'clinic_google_places',
       ascending: false,
+      nullsFirst: false,
     });
 
     vi.clearAllMocks();
@@ -299,6 +304,7 @@ describe('getClinicById', () => {
     vi.clearAllMocks();
     mockSupabase = createMockSupabase();
     (createClient as Mock).mockResolvedValue(mockSupabase);
+    (getClinicInstagramData as Mock).mockResolvedValue(null);
   });
 
   const sampleFullClinic = {
@@ -337,6 +343,7 @@ describe('getClinicById', () => {
       { rating: '4.5/5', review_text: 'Great experience' },
       { rating: '5/5', review_text: 'Excellent!' },
     ],
+    clinic_google_places: [{ rating: 4.7, user_ratings_total: 150 }],
   };
 
   it('returns null when clinic not found', async () => {
@@ -365,23 +372,22 @@ describe('getClinicById', () => {
     expect(result!.proceduresPerformed).toBe(5000);
   });
 
-  it('gets rating from clinic_facts', async () => {
+  it('gets rating from clinic_google_places', async () => {
     const mockBuilder = createMockQueryBuilder(sampleFullClinic, null);
     mockSupabase.from.mockReturnValue(mockBuilder);
 
     const result = await getClinicById('clinic-1');
 
-    // Rating comes from clinic_facts google_rating
     expect(result!.rating).toBe(4.7);
     expect(result!.totalReviewCount).toBe(150);
   });
 
-  it('handles clinic with no rating facts', async () => {
-    const clinicNoFacts = {
+  it('handles clinic with no google places rating', async () => {
+    const clinicNoGooglePlaces = {
       ...sampleFullClinic,
-      clinic_facts: [],
+      clinic_google_places: [],
     };
-    const mockBuilder = createMockQueryBuilder(clinicNoFacts, null);
+    const mockBuilder = createMockQueryBuilder(clinicNoGooglePlaces, null);
     mockSupabase.from.mockReturnValue(mockBuilder);
 
     const result = await getClinicById('clinic-1');
@@ -451,6 +457,23 @@ describe('getClinicById', () => {
     expect(result!.packages).toBeDefined();
     expect(result!.reviews).toBeDefined();
     expect(result!.scoreComponents).toBeDefined();
+  });
+
+  it('includes instagram data from getClinicInstagramData', async () => {
+    const mockBuilder = createMockQueryBuilder(sampleFullClinic, null);
+    mockSupabase.from.mockReturnValue(mockBuilder);
+    (getClinicInstagramData as Mock).mockResolvedValue({
+      username: 'testclinic',
+      followersCount: 25000,
+    });
+
+    const result = await getClinicById('clinic-1');
+
+    expect(getClinicInstagramData).toHaveBeenCalledWith('clinic-1');
+    expect(result?.instagram).toEqual({
+      username: 'testclinic',
+      followersCount: 25000,
+    });
   });
 });
 

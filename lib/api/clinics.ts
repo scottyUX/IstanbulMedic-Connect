@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/supabase/database.types';
+import type { InstagramIntelligenceVM } from '@/components/istanbulmedic-connect/types';
+import { getClinicInstagramData } from './instagram';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -89,6 +91,8 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   proceduresPerformed: number | null;
   /** Total review count from clinic_facts (actual Google total, not scraped count) */
   totalReviewCount: number;
+  /** Instagram profile and posts data (null if no Instagram data exists) */
+  instagram: InstagramIntelligenceVM | null;
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -570,6 +574,9 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     });
   const imageUrl = imageMedia[0]?.url ?? null;
 
+  // Fetch Instagram data (returns null if no Instagram profile exists)
+  const instagram = await getClinicInstagramData(clinic.id);
+
   return {
     id: clinic.id,
     name: clinic.display_name,
@@ -605,6 +612,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     yearsInOperation: clinic.years_in_operation,
     proceduresPerformed: clinic.procedures_performed,
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
+    instagram,
   };
 }
 

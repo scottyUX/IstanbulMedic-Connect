@@ -15,7 +15,6 @@ import { InstagramIntelligenceSection } from "./InstagramIntelligenceSection"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
 import type { ClinicDetail } from "@/lib/api/clinics"
-import type { InstagramIntelligenceVM } from "@/components/istanbulmedic-connect/types"
 import {
   toNumber,
   transformOpeningHours,
@@ -43,141 +42,6 @@ const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
   internal_note: "other",
 }
 
-// TODO: Replace with real data from Supabase once clinic_social_profiles table is created
-// This is MOCK DATA for UI development purposes only
-const MOCK_INSTAGRAM_DATA: InstagramIntelligenceVM = {
-  profileUrl: "https://www.instagram.com/istanbulmedic",
-  username: "istanbulmedic",
-  fullName: "IstanbulMedic",
-  biography: "IstanbulMedic is accredited medical travel expert in Turkey.",
-  profilePicUrl: "https://scontent-sjc6-1.cdninstagram.com/v/t51.2885-19/40276107_1026305597540543_875196665705791488_n.jpg",
-  followersCount: 2139,
-  followsCount: 77,
-  postsCount: 100,
-  highlightsCount: 9,
-  verified: false,
-  isBusinessAccount: true,
-  isPrivate: false,
-  businessCategoryName: "Medical & Health",
-  externalUrls: ["https://linktr.ee/istanbulmedic"],
-  extracted: {
-    positioningClaims: ["accredited"],
-    servicesClaimed: ["medical travel"],
-    languagesClaimed: [],
-    geographyClaimed: ["Kadikoy"],
-    addressText: "Caferaga Mahallesi, Moda Caddesi No: 72 Daire:5, Kadikoy",
-    websiteCandidates: ["https://linktr.ee/istanbulmedic"],
-    linkAggregatorDetected: "linktr.ee",
-  },
-  firstSeenAt: "2026-02-15T00:00:00Z",
-  lastSeenAt: "2026-02-22T00:00:00Z",
-  posts: [
-    {
-      id: "3779400337086510946",
-      type: "Image",
-      shortCode: "DRzIJUcCHdi",
-      url: "https://www.instagram.com/p/DRzIJUcCHdi/",
-      caption: "Real patient with a real growth. Your journey can be next.",
-      hashtags: ["istanbulmedic", "medicaltravel", "hairtransplant"],
-      likesCount: 4,
-      commentsCount: 0,
-      timestamp: "2025-12-03T11:00:50.000Z",
-      displayUrl: "/results/new1_after.jpg",
-      alt: "Hair transplant results",
-    },
-    {
-      id: "3779400337086510947",
-      type: "Image",
-      shortCode: "DRzIJUcCHdj",
-      url: "https://www.instagram.com/p/DRzIJUcCHdj/",
-      caption: "Before and after transformation",
-      hashtags: ["hairtransplant", "fue", "istanbul"],
-      likesCount: 12,
-      commentsCount: 2,
-      timestamp: "2025-11-28T14:30:00.000Z",
-      displayUrl: "/results/new2_after.jpg",
-      alt: "Before and after hair transplant",
-    },
-    {
-      id: "3779400337086510948",
-      type: "Video",
-      shortCode: "DRzIJUcCHdk",
-      url: "https://www.instagram.com/p/DRzIJUcCHdk/",
-      caption: "Watch the procedure in action",
-      hashtags: ["hairtransplant", "fue", "procedure"],
-      likesCount: 8,
-      commentsCount: 1,
-      timestamp: "2025-11-20T09:15:00.000Z",
-      displayUrl: "/results/new3_after.jpg",
-      alt: "Hair transplant procedure video",
-    },
-    {
-      id: "3779400337086510949",
-      type: "Image",
-      shortCode: "DRzIJUcCHdl",
-      url: "https://www.instagram.com/p/DRzIJUcCHdl/",
-      caption: "Our state-of-the-art facility",
-      hashtags: ["clinic", "istanbul", "medicaltourism"],
-      likesCount: 15,
-      commentsCount: 3,
-      timestamp: "2025-11-15T16:45:00.000Z",
-      displayUrl: "/results/new4_after.jpg",
-      alt: "Clinic facility",
-    },
-    {
-      id: "3779400337086510950",
-      type: "Sidecar",
-      shortCode: "DRzIJUcCHdm",
-      url: "https://www.instagram.com/p/DRzIJUcCHdm/",
-      caption: "Multiple angles of amazing results",
-      hashtags: ["hairtransplant", "results", "transformation"],
-      likesCount: 20,
-      commentsCount: 4,
-      timestamp: "2025-11-10T11:00:00.000Z",
-      displayUrl: "/results/new5_after.jpg",
-      alt: "Multiple angle results",
-    },
-    {
-      id: "3779400337086510951",
-      type: "Image",
-      shortCode: "DRzIJUcCHdn",
-      url: "https://www.instagram.com/p/DRzIJUcCHdn/",
-      caption: "Happy patient testimonial",
-      hashtags: ["testimonial", "happypatient", "hairtransplant"],
-      likesCount: 18,
-      commentsCount: 2,
-      timestamp: "2025-11-05T13:30:00.000Z",
-      displayUrl: "/results/new6_after.jpg",
-      alt: "Patient testimonial",
-    },
-  ],
-  topHashtags: [
-    { tag: "hairtransplant", count: 85 },
-    { tag: "istanbulmedic", count: 78 },
-    { tag: "medicaltravel", count: 72 },
-    { tag: "fue", count: 45 },
-    { tag: "hairrestoration", count: 38 },
-    { tag: "istanbul", count: 35 },
-    { tag: "turkey", count: 30 },
-    { tag: "beforeafter", count: 28 },
-  ],
-  inferredServices: ["hair_transplant", "medical_travel"],
-  // NOTE: followerHistory and postActivityHistory removed - scraper only captures snapshot
-  // NOTE: engagement.benchmark removed - no industry benchmark data source
-  engagement: {
-    engagementTotalPerPost: 4.2,
-    engagementRate: 0.002,
-    commentsPerPost: 0.17,
-    likesPerPost: 4.0,
-  },
-  confidence: {
-    positioning: 85,
-    services: 80,
-    languages: 0,
-    geography: 75,
-    contact: 90,
-  },
-}
 
 export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
   // Transform database data to component format
@@ -464,7 +328,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
           )}
 
           {FEATURE_CONFIG.profileInstagram && (
-            <InstagramIntelligenceSection data={MOCK_INSTAGRAM_DATA} />
+            <InstagramIntelligenceSection data={clinic.instagram} />
           )}
         </div>
       </div>
