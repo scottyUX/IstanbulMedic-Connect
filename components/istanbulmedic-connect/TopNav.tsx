@@ -163,7 +163,7 @@ export const TopNav = () => {
           </Button>
           <Button
             variant="leila-link"
-            href="/leila"
+            href="/langchain"
             aria-label="Talk to Leila (AI Assistant)"
             className="shrink-0"
           >
@@ -270,7 +270,7 @@ export const TopNav = () => {
                       </Button>
                       <Button
                         variant="leila-link"
-                        href="/leila"
+                        href="/langchain"
                         onClick={() => setOpen(false)}
                         className="w-full"
                       >
