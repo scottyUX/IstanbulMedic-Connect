@@ -57,8 +57,8 @@ export function InstagramTabContent({
   if (!data?.username && !data?.profileUrl) {
     return (
       <EmptyState
-        title="Instagram data is not available yet."
-        description="Connect this profile to view insights."
+        title="Instagram data is not available for this clinic at the moment."
+        description=""
       />
     )
   }
