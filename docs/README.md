@@ -1,35 +1,36 @@
-# Documentation
-
-This folder contains implementation notes, example payloads, and “golden” reference docs used for building data ingestion and agent tooling.
-
-## Data sources
-
-See [`docs/data-sources/`](./data-sources/README.md) for:
-- Google Places example payload + mapping guide
-- Instagram (Apify) example payload + mapping guide
-
-## Issue templates
-
-- `docs/github-issue-clinic-data-scraping.md`
-- `docs/github-issue-langchain-agent.md`
-
-# Documentation
-
-This directory contains project documentation organized by topic.
+# IstanbulMedic-Connect Documentation
 
 ## Structure
 
-### Data Sources (`data-sources/`)
+```
+docs/
+├── architecture/          # System architecture & design decisions
+├── data-sources/          # External data source integrations
+├── features/              # Feature-specific documentation
+│   └── instagram/         # Instagram integration docs
+├── plans/                 # Implementation plans
+├── reviews/               # Code reviews & PR analysis
+├── schemas/               # Database & data schemas
+├── sessions/              # Session summaries & notes
+└── sprints/               # Sprint-specific documentation
+    ├── sprint1-backend/
+    └── sprint1-frontend/
+```
 
-Documentation and examples for external data sources used in clinic data aggregation:
+## Quick Links
 
-- **Google Places API** - Location and business information
-- **Instagram (Apify)** - Social media profile data
+### Architecture
+- [Data Layer Architecture](./architecture/data-layer-architecture.md)
+- [Server vs Client Components](./architecture/server-vs-client-components.md)
+- [Backend Schema Mapping](./architecture/backend-schema-mapping.md)
 
-See [`data-sources/README.md`](./data-sources/README.md) for details.
+### Features
+- [Instagram Integration](./features/instagram/README.md)
 
-## Other Documentation
+### Data Sources
+- [Data Sources Overview](./data-sources/README.md)
+- [Google Places Mapping](./data-sources/google-places-data-mapping.md)
 
-- **`QUICKSTART.md`** - Quick start guide for the project
-- **`TESTING_PHASE1.md`** - Testing documentation for Phase 1 features (historical reference)
-- **`../README.md`** - Main project README
+### Plans
+- [Filter Implementation](./plans/filters.md)
+- [Test Coverage Plan](./plans/test-coverage.md)

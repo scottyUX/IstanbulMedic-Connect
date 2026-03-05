@@ -17,6 +17,7 @@ import type {
   TreatmentType,
 } from "@/components/istanbulmedic-connect/types"
 import type { ClinicSortOption } from "@/lib/api/clinics"
+import { SORT_CONFIG } from "@/lib/filterConfig"
 
 interface ExploreClinicsPageProps {
   initialClinics: Clinic[]
@@ -26,6 +27,11 @@ interface ExploreClinicsPageProps {
   initialFilters: FilterState
   initialSort: ClinicSortOption
 }
+
+const ENABLED_SORT_OPTIONS = (Object.keys(SORT_CONFIG) as ClinicSortOption[])
+  .filter((sortOption) => SORT_CONFIG[sortOption])
+
+const DEFAULT_SORT_OPTION: ClinicSortOption = ENABLED_SORT_OPTIONS[0] ?? "Alphabetical"
 
 const buildQueryString = (filters: FilterState, sortBy: ClinicSortOption, page: number) => {
   const params = new URLSearchParams()
@@ -55,7 +61,15 @@ const buildQueryString = (filters: FilterState, sortBy: ClinicSortOption, page: 
     params.set("minScore", String(filters.aiMatchScore))
   }
 
-  if (sortBy && sortBy !== "Best Match") {
+  if (filters.minRating !== null) {
+    params.set("minRating", String(filters.minRating))
+  }
+
+  if (filters.minReviews !== null) {
+    params.set("minReviews", String(filters.minReviews))
+  }
+
+  if (sortBy && sortBy !== DEFAULT_SORT_OPTION) {
     params.set("sort", sortBy)
   }
 
@@ -76,8 +90,11 @@ export const ExploreClinicsPage = ({
   initialSort,
 }: ExploreClinicsPageProps) => {
   const router = useRouter()
+  const normalizedInitialSort = ENABLED_SORT_OPTIONS.includes(initialSort)
+    ? initialSort
+    : DEFAULT_SORT_OPTION
   const [filters, setFilters] = useState<FilterState>(initialFilters)
-  const [sortBy, setSortBy] = useState<ClinicSortOption>(initialSort)
+  const [sortBy, setSortBy] = useState<ClinicSortOption>(normalizedInitialSort)
   const isFirstRender = useRef(true)
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
@@ -165,11 +182,11 @@ export const ExploreClinicsPage = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Best Match">Best Match</SelectItem>
-                  <SelectItem value="Highest Rated">Highest Rated</SelectItem>
-                  <SelectItem value="Most Transparent">Most Transparent</SelectItem>
-                  <SelectItem value="Price: Low to High">Price: Low to High</SelectItem>
-                  <SelectItem value="Price: High to Low">Price: High to Low</SelectItem>
+                  {ENABLED_SORT_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -189,6 +206,7 @@ export const ExploreClinicsPage = ({
                 trustScore={clinic.trustScore}
                 description={clinic.description}
                 rating={clinic.rating}
+                reviewCount={clinic.reviewCount}
                 aiInsight={clinic.aiInsight}
                 onViewProfile={() => router.push(`/clinics/${clinic.id}`)}
               />
