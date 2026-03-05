@@ -6,10 +6,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -255,6 +257,7 @@ function derivePostFacts(posts: InstagramPost[], clinicId: string) {
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
+  const supabase = getSupabaseAdmin()
   try {
     const body = await request.json()
     const { clinicId, instagramData } = body as {
