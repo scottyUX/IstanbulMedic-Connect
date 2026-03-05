@@ -21,6 +21,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const SUPABASE_NOT_CONFIGURED_MESSAGE =
   'Authentication is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local. Get them from https://app.supabase.com → Project Settings → API.';
 
+function resolveAuthRedirectOrigin() {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const fallbackOrigin = window.location.origin;
+
+  if (!configuredSiteUrl) {
+    return fallbackOrigin;
+  }
+
+  try {
+    return new URL(configuredSiteUrl).origin;
+  } catch {
+    return fallbackOrigin;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -84,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setProfile(null);
         }
-      } catch (error) {
+      } catch {
         setIsAuthenticated(false);
         setUser(null);
         setProfile(null);
@@ -163,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${resolveAuthRedirectOrigin()}/auth/callback?next=/langchain`,
         },
       });
 
@@ -186,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setProfile(null);
       router.push('/');
-    } catch (error) {
+    } catch {
       // Still clear local state even if signOut fails
       setIsAuthenticated(false);
       setUser(null);

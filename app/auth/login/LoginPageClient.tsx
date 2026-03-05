@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -23,9 +23,13 @@ const LoginPageClient = () => {
 
   const error = manualError ?? queryError
 
-  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.replace("/langchain")
+    }
+  }, [isAuthenticated, loading, router])
+
   if (!loading && isAuthenticated) {
-    router.push("/langchain")
     return null
   }
 

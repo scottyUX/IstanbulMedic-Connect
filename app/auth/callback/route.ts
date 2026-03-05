@@ -5,8 +5,14 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const requestedNext = searchParams.get('next');
-  const normalizedNext =
-    requestedNext && requestedNext.startsWith('/') ? requestedNext : '/langchain';
+  const isSafeNext =
+    Boolean(requestedNext) &&
+    requestedNext!.startsWith('/') &&
+    !requestedNext!.startsWith('//') &&
+    !requestedNext!.startsWith('/auth') &&
+    !requestedNext!.startsWith('/api/auth');
+
+  const normalizedNext = isSafeNext ? requestedNext! : '/langchain';
   const next = normalizedNext.startsWith('/leila') ? '/langchain' : normalizedNext;
 
   if (code) {
