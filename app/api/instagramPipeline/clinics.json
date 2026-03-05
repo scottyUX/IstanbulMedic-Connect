@@ -1,14 +1,107 @@
-{
-  "apiToken": "YOUR_APIFY_API_TOKEN",
-  "endpoint": "http://localhost:3000/api/instagram",
-  "clinics": [
+{"clinics": [
     {
-      "clinicId": "YOUR_CLINIC_UUID_HERE",
-      "instagramUrl": "https://www.instagram.com/istanbulmedic/"
+      "clinicName": "Dr Serkan Aygın Hair Transplant Clinic - Istanbul Turkey",
+      "instagramUrl": "https://www.instagram.com/drserkanaygin/"
     },
     {
-      "clinicId": "YOUR_CLINIC_UUID_HERE",
-      "instagramUrl": "https://www.instagram.com/anotherclinic/"
+      "clinicName": "Vera Clinic | Hair Transplant Clinic in Turkey",
+      "instagramUrl": "https://www.instagram.com/veraclinic/"
+    },
+    {
+      "clinicName": "Cosmedica Hair Transplantation Clinic",
+      "instagramUrl": "https://www.instagram.com/cosmedicaclinic/"
+    },
+    {
+      "clinicName": "NIMCLINIC",
+      "instagramUrl": "https://www.instagram.com/nimclinic/"
+    },
+    {
+      "clinicName": "Smile Hair Clinic Hair Transplant Turkey Istanbul",
+      "instagramUrl": "https://www.instagram.com/smilehairclinic/"
+    },
+    {
+      "clinicName": "ASMED Medical Center",
+      "instagramUrl": "https://www.instagram.com/asmedhairtransplant/?hl=en"
+    },
+    {
+      "clinicName": "Hermest Hair Clinic | Hair Transplant Turkey Istanbul",
+      "instagramUrl": "https://www.instagram.com/hermest.turkey/"
+    },
+    {
+      "clinicName": "Dr. Cinik Clinic",
+      "instagramUrl": "https://www.instagram.com/drcinik.global/"
+    },
+    {
+      "clinicName": "Clinicana Hair Transplant & Esthetic Surgeries",
+      "instagramUrl": "https://www.instagram.com/clinicana_hair_transplant/"
+    },
+    {
+      "clinicName": "Dr. Resul Yaman Hair Clinic",
+      "instagramUrl": "https://www.instagram.com/drresulyaman/"
+    },
+    {
+      "clinicName": "Estetik International",
+      "instagramUrl": "https://www.instagram.com/estetikinternationalturkiye/"
+    },
+    {
+      "clinicName": "Sapphire Hair Transplant Clinic Istanbul",
+      "instagramUrl": "https://www.instagram.com/sapphirehairclinic/"
+    },
+    {
+      "clinicName": "Este Favor | Hair Transplant Turkey | Greffe de cheveux en Turquie | Trasplante Capilar Turquia |",
+      "instagramUrl": "https://www.instagram.com/estefavor/"
+    },
+    {
+      "clinicName": "SULE CLINIC - Hair Transplant Turkey istanbul",
+      "instagramUrl": "https://www.instagram.com/suleclinic/"
+    },
+    {
+      "clinicName": "HEVA CLINIC",
+      "instagramUrl": "https://www.instagram.com/hevaclinic/"
+    },
+    {
+      "clinicName": "Lenus Clinic",
+      "instagramUrl": "https://www.instagram.com/lenusclinic/"
+    },
+    {
+      "clinicName": "AEK Hair Clinic",
+      "instagramUrl": "https://www.instagram.com/draliemrekaradeniz/"
+    },
+    {
+      "clinicName": "Dr. Servet Terziler",
+      "instagramUrl": "https://www.instagram.com/drterziler/"
+    },
+    {
+      "clinicName": "Memorial Şişli Hastanesi",
+      "instagramUrl": "https://www.instagram.com/memorialsisliradyoloji/"
+    },
+    {
+      "clinicName": "Este Medical - Hair Transplant Clinc Istanbul Türkiye",
+      "instagramUrl": "https://www.instagram.com/estemedicalgroupistanbul/"
+    },
+    {
+      "clinicName": "EsteNove - Best Hair Transplant in Turkey",
+      "instagramUrl": "https://www.instagram.com/estenoveturkey/"
+    },
+    {
+      "clinicName": "Doku Clinic",
+      "instagramUrl": "https://www.instagram.com/dokumedical/"
+    },
+    {
+      "clinicName": "Esthetic Hair Turkey",
+      "instagramUrl": "https://www.instagram.com/esthetichairturkey/"
+    },
+    {
+      "clinicName": "Longevita",
+      "instagramUrl": "https://www.instagram.com/longevitahairtransplant/"
+    },
+    {
+      "clinicName": "HLC Clinic, Hair Transplant Turkey",
+      "instagramUrl": "https://www.instagram.com/hlc_clinic/"
+    },
+    {
+    "clinicName": "AHD Clinic",
+      "instagramUrl": "https://www.instagram.com/ahdclinicturkey/"
     }
   ]
 }
