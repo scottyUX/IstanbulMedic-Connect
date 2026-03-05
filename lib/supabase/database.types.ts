@@ -7,33 +7,43 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
+      analyses: {
+        Row: {
+          analyzed_at: string
+          commit_sha: string | null
+          id: string
+          repo_url: string
+          report_json: Json
+          result_id: string
+          summary_json: Json | null
+        }
+        Insert: {
+          analyzed_at?: string
+          commit_sha?: string | null
+          id?: string
+          repo_url: string
+          report_json: Json
+          result_id: string
+          summary_json?: Json | null
+        }
+        Update: {
+          analyzed_at?: string
+          commit_sha?: string | null
+          id?: string
+          repo_url?: string
+          report_json?: Json
+          result_id?: string
+          summary_json?: Json | null
+        }
+        Relationships: []
+      }
       clinic_credentials: {
         Row: {
           clinic_id: string
@@ -159,6 +169,78 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_instagram_posts: {
+        Row: {
+          caption: string | null
+          captured_at: string
+          clinic_id: string
+          comments_count: number | null
+          comments_data: Json | null
+          display_url: string | null
+          first_comment_text: string | null
+          hashtags: string[] | null
+          id: string
+          instagram_post_id: string
+          likes_count: number | null
+          post_type: Database["public"]["Enums"]["instagram_post_type"]
+          posted_at: string | null
+          short_code: string
+          source_id: string
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          captured_at?: string
+          clinic_id: string
+          comments_count?: number | null
+          comments_data?: Json | null
+          display_url?: string | null
+          first_comment_text?: string | null
+          hashtags?: string[] | null
+          id?: string
+          instagram_post_id: string
+          likes_count?: number | null
+          post_type: Database["public"]["Enums"]["instagram_post_type"]
+          posted_at?: string | null
+          short_code: string
+          source_id: string
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          captured_at?: string
+          clinic_id?: string
+          comments_count?: number | null
+          comments_data?: Json | null
+          display_url?: string | null
+          first_comment_text?: string | null
+          hashtags?: string[] | null
+          id?: string
+          instagram_post_id?: string
+          likes_count?: number | null
+          post_type?: Database["public"]["Enums"]["instagram_post_type"]
+          posted_at?: string | null
+          short_code?: string
+          source_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_instagram_posts_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_instagram_posts_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
             referencedColumns: ["id"]
           },
         ]
@@ -601,6 +683,74 @@ export type Database = {
           },
         ]
       }
+      clinic_social_media: {
+        Row: {
+          account_handle: string
+          biography: string | null
+          business_category: string | null
+          clinic_id: string
+          created_at: string | null
+          external_urls: string[] | null
+          follower_count: number | null
+          follows_count: number | null
+          full_name: string | null
+          highlights_count: number | null
+          id: string
+          is_private: boolean | null
+          last_checked_at: string | null
+          platform: Database["public"]["Enums"]["social_platform_enum"]
+          posts_count: number | null
+          profile_pic_url: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          account_handle: string
+          biography?: string | null
+          business_category?: string | null
+          clinic_id: string
+          created_at?: string | null
+          external_urls?: string[] | null
+          follower_count?: number | null
+          follows_count?: number | null
+          full_name?: string | null
+          highlights_count?: number | null
+          id?: string
+          is_private?: boolean | null
+          last_checked_at?: string | null
+          platform: Database["public"]["Enums"]["social_platform_enum"]
+          posts_count?: number | null
+          profile_pic_url?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          account_handle?: string
+          biography?: string | null
+          business_category?: string | null
+          clinic_id?: string
+          created_at?: string | null
+          external_urls?: string[] | null
+          follower_count?: number | null
+          follows_count?: number | null
+          full_name?: string | null
+          highlights_count?: number | null
+          id?: string
+          is_private?: boolean | null
+          last_checked_at?: string | null
+          platform?: Database["public"]["Enums"]["social_platform_enum"]
+          posts_count?: number | null
+          profile_pic_url?: string | null
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_social_media_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_team: {
         Row: {
           clinic_id: string
@@ -814,7 +964,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      upsert_clinic_facts: {
+        Args: { facts_data: Json }
+        Returns: {
+          clinic_id: string
+          computed_by: Database["public"]["Enums"]["computed_by_enum"]
+          confidence: number
+          fact_key: string
+          fact_value: Json
+          first_seen_at: string
+          id: string
+          is_conflicting: boolean
+          last_seen_at: string
+          value_type: Database["public"]["Enums"]["value_type_enum"]
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "clinic_facts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       clinic_credential_types:
@@ -861,6 +1031,7 @@ export type Database = {
       computed_by_enum: "extractor" | "human" | "inquiry" | "model"
       doc_type_enum: "html" | "pdf" | "post" | "comment" | "review"
       doctor_involvement_levels: "high" | "medium" | "low"
+      instagram_post_type: "Image" | "Video" | "Sidecar"
       mention_topic_enum:
         | "pricing"
         | "results"
@@ -875,6 +1046,13 @@ export type Database = {
         | "before_after"
       score_band_enum: "A" | "B" | "C" | "D"
       sentiment_enum: "negative" | "neutral" | "positive"
+      social_platform_enum:
+        | "instagram"
+        | "tiktok"
+        | "x"
+        | "reddit"
+        | "youtube"
+        | "facebook"
       source_type_enum:
         | "clinic_website"
         | "registry"
@@ -1011,9 +1189,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       clinic_credential_types: [
@@ -1064,6 +1239,7 @@ export const Constants = {
       computed_by_enum: ["extractor", "human", "inquiry", "model"],
       doc_type_enum: ["html", "pdf", "post", "comment", "review"],
       doctor_involvement_levels: ["high", "medium", "low"],
+      instagram_post_type: ["Image", "Video", "Sidecar"],
       mention_topic_enum: [
         "pricing",
         "results",
@@ -1079,6 +1255,14 @@ export const Constants = {
       ],
       score_band_enum: ["A", "B", "C", "D"],
       sentiment_enum: ["negative", "neutral", "positive"],
+      social_platform_enum: [
+        "instagram",
+        "tiktok",
+        "x",
+        "reddit",
+        "youtube",
+        "facebook",
+      ],
       source_type_enum: [
         "clinic_website",
         "registry",
@@ -1094,4 +1278,3 @@ export const Constants = {
     },
   },
 } as const
-

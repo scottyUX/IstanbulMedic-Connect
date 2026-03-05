@@ -18,6 +18,7 @@ import { IconActionLink } from "@/components/ui/icon-action-link"
 import { PriceRatingBlock } from "@/components/ui/price-rating-block"
 import { VerificationBadge } from "@/components/ui/verification-badge"
 import { CONSULTATION_LINK } from "@/lib/constants"
+import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
 interface SummarySidebarProps {
   transparencyScore: number
@@ -59,7 +60,7 @@ export const SummarySidebar = ({
       <Card variant="sidebar">
         <CardHeader className="pb-6">
           <PriceRatingBlock
-            price={priceEstimate}
+            price={FEATURE_CONFIG.profilePricing ? priceEstimate : undefined}
             priceLabel="est. starting"
             rating={rating}
             reviewCount={reviewCount}
@@ -68,17 +69,19 @@ export const SummarySidebar = ({
         </CardHeader>
         <CardContent>
           <div className="grid gap-3">
-            <Button
-              variant="teal-primary"
-              size="xl"
-              className="w-full font-medium"
-              href={bookConsultationHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={onBookConsultation}
-            >
-              Book Consultation
-            </Button>
+            {FEATURE_CONFIG.bookConsultation && (
+              <Button
+                variant="teal-primary"
+                size="xl"
+                className="w-full font-medium"
+                href={bookConsultationHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onBookConsultation}
+              >
+                Book Consultation
+              </Button>
+            )}
 
             <Button
               variant="leila-link"
@@ -90,39 +93,49 @@ export const SummarySidebar = ({
             </Button>
           </div>
 
-          <div className="mt-6 pt-4">
-            <Separator className="mb-4" />
-            <FeeLineItem
-              label="Consultation fee"
-              value={consultationFee}
-              onLabelClick={() => setFeeModalOpen("consultation")}
-            />
-            <FeeLineItem
-              label="Service charge"
-              value={serviceCharge}
-              onLabelClick={() => setFeeModalOpen("service")}
-            />
-            <FeeLineItem
-              label="Total (estimate)"
-              value={totalEstimate}
-              prominent
-            />
-          </div>
+          {FEATURE_CONFIG.profilePricing && (
+            <div className="mt-6 pt-4">
+              <Separator className="mb-4" />
+              <FeeLineItem
+                label="Consultation fee"
+                value={consultationFee}
+                onLabelClick={() => setFeeModalOpen("consultation")}
+              />
+              <FeeLineItem
+                label="Service charge"
+                value={serviceCharge}
+                onLabelClick={() => setFeeModalOpen("service")}
+              />
+              <FeeLineItem
+                label="Total (estimate)"
+                value={totalEstimate}
+                prominent
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <VerificationBadge label="Verified by Istanbul Medic" className="mt-6" />
+      {FEATURE_CONFIG.profileTransparency && (
+        <VerificationBadge label="Verified by Istanbul Medic" className="mt-6" />
+      )}
 
       <div className="mt-6 space-y-3">
-        <IconActionLink icon={<Plus className="h-4 w-4" />} onClick={onAddToCompare}>
-          Add to Compare
-        </IconActionLink>
-        <IconActionLink icon={<Bookmark className="h-4 w-4" />} onClick={onSave}>
-          Save Clinic
-        </IconActionLink>
-        <IconActionLink icon={<Share2 className="h-4 w-4" />} onClick={onShare}>
-          Share
-        </IconActionLink>
+        {FEATURE_CONFIG.compare && (
+          <IconActionLink icon={<Plus className="h-4 w-4" />} onClick={onAddToCompare}>
+            Add to Compare
+          </IconActionLink>
+        )}
+        {FEATURE_CONFIG.saveClinic && (
+          <IconActionLink icon={<Bookmark className="h-4 w-4" />} onClick={onSave}>
+            Save Clinic
+          </IconActionLink>
+        )}
+        {FEATURE_CONFIG.share && (
+          <IconActionLink icon={<Share2 className="h-4 w-4" />} onClick={onShare}>
+            Share
+          </IconActionLink>
+        )}
       </div>
 
       <Dialog

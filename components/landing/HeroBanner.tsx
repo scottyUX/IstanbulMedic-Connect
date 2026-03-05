@@ -7,6 +7,7 @@ import { FadeInUp } from '@/components/ui/motionPrimitives';
 import { Button } from '@/components/ui/button';
 import { preventOrphans } from '@/lib/preventOrphans';
 import { CONSULTATION_LINK } from '@/lib/constants';
+import { FEATURE_CONFIG } from '@/lib/filterConfig';
 
 const DEFAULT_TITLE = 'Find the Right Clinic\nCompare with Confidence\nEngage on Your Terms';
 const DEFAULT_SUBTITLE =
@@ -70,15 +71,17 @@ export default function HeroBanner({
                             >
                                 {ctaFindLabel}
                             </Button>
-                            <Button
-                                href={CONSULTATION_LINK}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                size="xl"
-                                className="min-h-14 border-2 border-white bg-transparent px-10 text-lg text-white hover:bg-white/15"
-                            >
-                                {ctaProfileLabel}
-                            </Button>
+                            {FEATURE_CONFIG.createProfile && (
+                                <Button
+                                    href={CONSULTATION_LINK}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    size="xl"
+                                    className="min-h-14 border-2 border-white bg-transparent px-10 text-lg text-white hover:bg-white/15"
+                                >
+                                    {ctaProfileLabel}
+                                </Button>
+                            )}
                             </div>
                         </FadeInUp>
                     </div>

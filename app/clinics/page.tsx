@@ -1,6 +1,7 @@
 import { getClinics, type ClinicsQuery, type ClinicSortOption } from "@/lib/api/clinics"
 import { ExploreClinicsPage } from "@/components/istanbulmedic-connect/ExploreClinicsPage"
 import type { FilterState } from "@/components/istanbulmedic-connect/types"
+import { SORT_CONFIG } from "@/lib/filterConfig"
 
 interface ClinicsPageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
@@ -29,6 +30,8 @@ const DEFAULT_FILTERS: FilterState = {
     "Ministry Licensed": false,
   },
   aiMatchScore: 75,
+  minRating: null,
+  minReviews: null,
 }
 
 const parseList = (value?: string | string[]) => {
@@ -49,15 +52,14 @@ const parseNumber = (value?: string | string[], fallback?: number) => {
 
 const parseSort = (value?: string | string[]): ClinicSortOption => {
   const raw = Array.isArray(value) ? value[0] : value
-  switch (raw) {
-    case "Highest Rated":
-    case "Most Transparent":
-    case "Price: Low to High":
-    case "Price: High to Low":
-      return raw
-    default:
-      return "Best Match"
+  const enabledSorts = (Object.keys(SORT_CONFIG) as ClinicSortOption[])
+    .filter((sortOption) => SORT_CONFIG[sortOption])
+
+  if (raw && enabledSorts.includes(raw as ClinicSortOption)) {
+    return raw as ClinicSortOption
   }
+
+  return "Alphabetical"
 }
 
 const buildFilters = (searchParams?: { [key: string]: string | string[] | undefined }) => {
@@ -69,6 +71,8 @@ const buildFilters = (searchParams?: { [key: string]: string | string[] | undefi
   const languages = parseList(searchParams.languages)
   const accreditations = parseList(searchParams.accreditations)
   const aiMatchScore = parseNumber(searchParams.minScore, DEFAULT_FILTERS.aiMatchScore) ?? DEFAULT_FILTERS.aiMatchScore
+  const minRating = parseNumber(searchParams.minRating) ?? null
+  const minReviews = parseNumber(searchParams.minReviews) ?? null
 
   const filters: FilterState = {
     ...DEFAULT_FILTERS,
@@ -96,6 +100,8 @@ const buildFilters = (searchParams?: { [key: string]: string | string[] | undefi
       "Ministry Licensed": accreditations.includes("Ministry Licensed"),
     },
     aiMatchScore,
+    minRating,
+    minReviews,
   }
 
   const query: ClinicsQuery = {
@@ -104,7 +110,10 @@ const buildFilters = (searchParams?: { [key: string]: string | string[] | undefi
     treatments,
     languages,
     accreditations,
-    minTrustScore: aiMatchScore,
+    // minTrustScore disabled for now - clinics without scores were being excluded
+    // minTrustScore: aiMatchScore,
+    minRating: minRating ?? undefined,
+    minReviews: minReviews ?? undefined,
   }
 
   return { filters, query }
