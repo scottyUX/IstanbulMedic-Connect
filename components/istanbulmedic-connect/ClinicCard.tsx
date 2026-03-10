@@ -54,6 +54,7 @@ export const ClinicCard = ({
       radius="xl"
       className="group flex h-full flex-col overflow-hidden cursor-pointer"
       onClick={onViewProfile}
+      data-testid="clinic-card"
     >
       <CardContent className="p-6">
         {/* Image Section */}
@@ -118,7 +119,7 @@ export const ClinicCard = ({
             <span className="truncate">{location}</span>
           </div>
           {typeof rating === "number" ? (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground" data-testid="clinic-rating">
               <Star className="h-3.5 w-3.5 fill-current text-[#FFD700]" />
               <span className="font-medium">{rating.toFixed(1)}</span>
               {typeof reviewCount === "number" && reviewCount > 0 && (

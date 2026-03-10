@@ -52,7 +52,7 @@ export const HeroSection = ({
           {/* Header Section */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-start justify-between">
-              <h1 className="im-heading-1 text-foreground">
+              <h1 className="im-heading-1 text-foreground" data-testid="clinic-name">
                 {clinicName}
               </h1>
               {(FEATURE_CONFIG.share || FEATURE_CONFIG.saveClinic) && (
