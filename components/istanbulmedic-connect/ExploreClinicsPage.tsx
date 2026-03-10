@@ -178,7 +178,7 @@ export const ExploreClinicsPage = ({
             <span className="im-text-body im-text-muted">Sort by:</span>
             <div className="relative">
               <Select value={sortBy} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-[180px] h-9 bg-white" aria-label="Sort clinics">
+                <SelectTrigger className="w-[180px] h-9 bg-white" aria-label="Sort clinics" data-testid="sort-dropdown">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -194,7 +194,7 @@ export const ExploreClinicsPage = ({
         </div>
 
         {/* Clinic Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" data-testid="clinics-grid">
           {clinics.length > 0 ? (
             clinics.map((clinic) => (
               <ClinicCard
