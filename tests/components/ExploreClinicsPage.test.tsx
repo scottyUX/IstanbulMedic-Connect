@@ -287,5 +287,25 @@ describe('ExploreClinicsPage', () => {
         expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('treatments=Hair+Transplant'));
       });
     });
+
+    it('does not keep English in the URL after clearing filters', async () => {
+      const filtersWithLanguage = {
+        ...defaultFilters,
+        languages: {
+          ...defaultFilters.languages,
+          English: true,
+        },
+      };
+
+      render(<ExploreClinicsPage {...defaultProps} initialFilters={filtersWithLanguage} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Clear all/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Show results/i }));
+
+      await waitFor(() => {
+        expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('languages=English'));
+      });
+    });
   });
 });

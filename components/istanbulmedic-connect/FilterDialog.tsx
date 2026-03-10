@@ -89,7 +89,7 @@ export function FilterDialog({
             },
             budgetRange: [500, 12000],
             languages: {
-                English: true,
+                English: false,
                 Turkish: false,
                 Arabic: false,
                 German: false,
