@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu } from "lucide-react"
+import { Menu, User } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import Container from "@/components/ui/container"
@@ -11,7 +11,6 @@ import Logo from "@/components/common/Logo"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
-import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
 const NAV_ITEMS = [
   { label: "Home", href: "/" },
@@ -29,7 +28,7 @@ export const TopNav = () => {
   const prefetchedRoutes = useRef<Set<string>>(new Set())
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated } = useAuth()
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
@@ -169,30 +168,13 @@ export const TopNav = () => {
           >
             Talk to Leila
           </Button>
-          {FEATURE_CONFIG.auth && (
-            isAuthenticated ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setOpen(false)
-                  logout()
-                }}
-                aria-label="Log out"
-                className="shrink-0"
-              >
-                Log out
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                href="/auth/login"
-                aria-label="Login or sign up"
-                className="shrink-0"
-              >
-                Login / Sign up
-              </Button>
-            )
-          )}
+          <Link
+            href={isAuthenticated ? "/profile" : "/auth/login"}
+            aria-label={isAuthenticated ? "View your profile" : "Login or sign up"}
+            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#17375B] bg-white hover:bg-[#17375B] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#17375B] group"
+          >
+            <User className="h-4 w-4 text-[#17375B] group-hover:text-white transition-colors duration-200" />
+          </Link>
         </div>
 
         {/* Mobile toggle + panel */}
@@ -276,29 +258,17 @@ export const TopNav = () => {
                       >
                         Talk to Leila
                       </Button>
-                      {FEATURE_CONFIG.auth && (
-                        isAuthenticated ? (
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setOpen(false)
-                              logout()
-                            }}
-                            className="w-full"
-                          >
-                            Log out
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            href="/auth/login"
-                            onClick={() => setOpen(false)}
-                            className="w-full"
-                          >
-                            Login / Sign up
-                          </Button>
-                        )
-                      )}
+                      <Link
+                        href={isAuthenticated ? "/profile" : "/auth/login"}
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-3 rounded-2xl px-4 py-3 font-semibold text-[#0F2446] hover:text-[#0D1E32]"
+                        aria-label={isAuthenticated ? "View your profile" : "Login or sign up"}
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#17375B] bg-white">
+                          <User className="h-4 w-4 text-[#17375B]" />
+                        </span>
+                        {isAuthenticated ? "My Profile" : "Login / Sign up"}
+                      </Link>
                     </nav>
                   </motion.div>
                 </>
