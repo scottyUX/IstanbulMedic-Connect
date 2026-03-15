@@ -9,19 +9,16 @@ test.describe('Clinic Profile Flow', () => {
     const firstClinicCard = page.locator('[data-testid="clinic-card"]').first();
     await expect(firstClinicCard).toBeVisible();
 
-    // Get the clinic name before clicking
-    const clinicName = await firstClinicCard.locator('h3').textContent();
+    // Click on the clinic name (h3) to avoid hitting the Compare checkbox area
+    const clinicNameLink = firstClinicCard.locator('h3');
 
-    // Click on the first clinic card and wait for navigation
+    // Click and wait for navigation
     await Promise.all([
       page.waitForURL(/\/clinics\/[^/]+$/),
-      firstClinicCard.click(),
+      clinicNameLink.click(),
     ]);
 
-    // Wait for the page to fully load (client components)
-    await page.waitForLoadState('networkidle');
-
-    // Verify the clinic profile loads - wait longer for client hydration
+    // Verify the clinic profile loads
     const profileContainer = page.locator('[data-testid="clinic-profile"]');
     await expect(profileContainer).toBeVisible({ timeout: 10000 });
 
@@ -35,10 +32,13 @@ test.describe('Clinic Profile Flow', () => {
     await page.goto('/clinics');
     const firstClinicCard = page.locator('[data-testid="clinic-card"]').first();
     await expect(firstClinicCard).toBeVisible();
-    await firstClinicCard.click();
 
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
+    // Click on the clinic name and wait for navigation
+    const clinicNameLink = firstClinicCard.locator('h3');
+    await Promise.all([
+      page.waitForURL(/\/clinics\/[^/]+$/),
+      clinicNameLink.click(),
+    ]);
 
     // Wait for profile page to load with extended timeout
     await expect(page.locator('[data-testid="clinic-profile"]')).toBeVisible({ timeout: 10000 });
@@ -60,10 +60,13 @@ test.describe('Clinic Profile Flow', () => {
     await page.goto('/clinics');
     const firstClinicCard = page.locator('[data-testid="clinic-card"]').first();
     await expect(firstClinicCard).toBeVisible();
-    await firstClinicCard.click();
 
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
+    // Click on the clinic name and wait for navigation
+    const clinicNameLink = firstClinicCard.locator('h3');
+    await Promise.all([
+      page.waitForURL(/\/clinics\/[^/]+$/),
+      clinicNameLink.click(),
+    ]);
 
     // Wait for profile to load with extended timeout
     await expect(page.locator('[data-testid="clinic-profile"]')).toBeVisible({ timeout: 10000 });
@@ -81,10 +84,13 @@ test.describe('Clinic Profile Flow', () => {
     await page.goto('/clinics');
     const firstClinicCard = page.locator('[data-testid="clinic-card"]').first();
     await expect(firstClinicCard).toBeVisible();
-    await firstClinicCard.click();
 
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
+    // Click on the clinic name and wait for navigation
+    const clinicNameLink = firstClinicCard.locator('h3');
+    await Promise.all([
+      page.waitForURL(/\/clinics\/[^/]+$/),
+      clinicNameLink.click(),
+    ]);
 
     // Wait for profile to load with extended timeout
     await expect(page.locator('[data-testid="clinic-profile"]')).toBeVisible({ timeout: 10000 });

@@ -82,11 +82,8 @@ test.describe('Clinic Filter Flow', () => {
     const searchInput = page.locator('[data-testid="search-input"]').first();
     await searchInput.fill('istanbul');
 
-    // Wait for debounced update
-    await page.waitForTimeout(500);
-
-    // URL should include search query
-    await expect(page).toHaveURL(/q=istanbul/i);
+    // Wait for debounced URL update (component has 400ms debounce)
+    await expect(page).toHaveURL(/q=istanbul/i, { timeout: 10000 });
   });
 
   test('location input filters results', async ({ page }) => {
@@ -94,11 +91,8 @@ test.describe('Clinic Filter Flow', () => {
     const locationInput = page.locator('[data-testid="location-input"]').first();
     await locationInput.fill('Turkey');
 
-    // Wait for debounced update
-    await page.waitForTimeout(500);
-
-    // URL should include location filter
-    await expect(page).toHaveURL(/location=Turkey/i);
+    // Wait for debounced URL update (component has 400ms debounce)
+    await expect(page).toHaveURL(/location=Turkey/i, { timeout: 10000 });
   });
 
   test('filter badge shows count when filters active', async ({ page }) => {
