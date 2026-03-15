@@ -1,11 +1,17 @@
 import { runInstagramScraper } from "../instagramService";
 import { extractInstagramClaims } from "../extractionInstagram";
 import * as fs from "fs";
+import * as path from "path";
+import dotenv from "dotenv";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 const TEST_CONFIG = {
-  apiToken: "apify_token", 
-  instagramUrl: "https://www.instagram.com/istanbulmedic/", 
+  apiToken: process.env.APIFY_API_TOKEN as string,
+  instagramUrl: process.env.TEST_INSTAGRAM_URL || "https://www.instagram.com/istanbulmedic/",
 };
+
+if (!TEST_CONFIG.apiToken) throw new Error("Missing env variable: APIFY_API_TOKEN");
 
 async function testInstagramPipeline() {
   console.log("Starting Instagram pipeline test");
@@ -22,7 +28,7 @@ async function testInstagramPipeline() {
     console.log(`Scraper completed. Found ${rawData.profile.length} profile(s) and ${rawData.posts.length} post(s).`);
 
     // Save raw data
-    const rawDataPath = "./instagram-raw-data.json";
+    const rawDataPath = path.resolve(__dirname, "instagram-raw-data.json");
     fs.writeFileSync(rawDataPath, JSON.stringify(rawData, null, 2));
     console.log(`Raw data saved to: ${rawDataPath}`);
 
@@ -33,7 +39,7 @@ async function testInstagramPipeline() {
     console.log("Claims extracted successfully.");
 
     // Save extracted claims
-    const claimsPath = "./instagram-extracted-claims.json";
+    const claimsPath = path.resolve(__dirname, "instagram-extracted-claims.json");
     fs.writeFileSync(claimsPath, JSON.stringify(extractedClaims, null, 2));
     console.log(`Extracted claims saved to: ${claimsPath}`);
 
