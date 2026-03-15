@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { CheckCircle2, Circle, Lock, ChevronRight, User, Stethoscope, Sparkles, Share2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -46,18 +47,12 @@ const PHASES = [
   },
 ] as const
 
-// Mock completion state — will be driven by real PatientProfile data later
-const COMPLETION: Record<string, number> = {
-  "get-started": 0,
-  "treatment-profile": 0,
-  "ai-insights": 0,
-  "share-connect": 0,
-}
+type Completion = Record<string, number>
 
-function getPhaseStatus(phaseId: string, phaseNumber: number) {
-  const pct = COMPLETION[phaseId] ?? 0
+function getPhaseStatus(phaseId: string, phaseNumber: number, completion: Completion) {
+  const pct = completion[phaseId] ?? 0
   const prevPhaseId = PHASES[phaseNumber - 2]?.id
-  const prevComplete = phaseNumber === 1 || (COMPLETION[prevPhaseId] ?? 0) === 100
+  const prevComplete = phaseNumber === 1 || (completion[prevPhaseId] ?? 0) === 100
 
   if (pct === 100) return "complete"
   if (pct > 0) return "in-progress"
@@ -67,12 +62,12 @@ function getPhaseStatus(phaseId: string, phaseNumber: number) {
 
 // --- Progress stepper ---
 
-function Stepper() {
+function Stepper({ completion }: { completion: Completion }) {
   return (
     <div className="w-full overflow-x-auto pb-2">
       <div className="flex min-w-[480px] items-center justify-between">
         {PHASES.map((phase, index) => {
-          const status = getPhaseStatus(phase.id, phase.number)
+          const status = getPhaseStatus(phase.id, phase.number, completion)
           const isLast = index === PHASES.length - 1
 
           return (
@@ -125,9 +120,9 @@ function Stepper() {
 
 // --- Phase row card ---
 
-function PhaseCard({ phase }: { phase: (typeof PHASES)[number] }) {
-  const status = getPhaseStatus(phase.id, phase.number)
-  const pct = COMPLETION[phase.id] ?? 0
+function PhaseCard({ phase, completion }: { phase: (typeof PHASES)[number]; completion: Completion }) {
+  const status = getPhaseStatus(phase.id, phase.number, completion)
+  const pct = completion[phase.id] ?? 0
   const Icon = phase.icon
   const isLocked = status === "locked"
 
@@ -236,8 +231,45 @@ function PhaseCard({ phase }: { phase: (typeof PHASES)[number] }) {
 // --- Dashboard ---
 
 export function UserProfileDashboard() {
+  const [completion, setCompletion] = useState<Completion>({
+    "get-started": 0,
+    "treatment-profile": 0,
+    "ai-insights": 0,
+    "share-connect": 0,
+  })
+
+  useEffect(() => {
+    async function loadStatus() {
+      try {
+        const res = await fetch("/api/profile/status")
+        if (res.ok) {
+          const json = await res.json()
+          if (json.success) {
+            setCompletion((prev) => ({
+              ...prev,
+              "get-started": json.data.qualificationComplete ? 100 : 0,
+              "treatment-profile": json.data.treatmentComplete ? 100 : 0,
+            }))
+            return
+          }
+        }
+      } catch {
+        // fall through to localStorage
+      }
+      // Fallback: read from localStorage (unauthenticated or network error)
+      const phase1Done = window.localStorage.getItem("im.qualification.complete") === "true"
+      const phase2Done = window.localStorage.getItem("im.treatment-profile.complete") === "true"
+      setCompletion((prev) => ({
+        ...prev,
+        "get-started": phase1Done ? 100 : 0,
+        "treatment-profile": phase2Done ? 100 : 0,
+      }))
+    }
+    loadStatus()
+  }, [])
+
   const totalPhases = PHASES.length
-  const completedPhases = PHASES.filter((p) => getPhaseStatus(p.id, p.number) === "complete").length
+  const completedPhases = PHASES.filter((p) => getPhaseStatus(p.id, p.number, completion) === "complete").length
   const overallPct = Math.round((completedPhases / totalPhases) * 100)
 
   return (
@@ -272,13 +304,13 @@ export function UserProfileDashboard() {
 
         {/* Stepper */}
         <div className="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <Stepper />
+          <Stepper completion={completion} />
         </div>
 
         {/* Phase cards */}
         <div className="flex flex-col gap-3">
           {PHASES.map((phase) => (
-            <PhaseCard key={phase.id} phase={phase} />
+            <PhaseCard key={phase.id} phase={phase} completion={completion} />
           ))}
         </div>
 

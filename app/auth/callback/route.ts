@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const requestedNext = searchParams.get('next');
   const normalizedNext =
-    requestedNext && requestedNext.startsWith('/') ? requestedNext : '/langchain';
+    requestedNext && requestedNext.startsWith('/') ? requestedNext : '/profile';
   const next = normalizedNext.startsWith('/leila') ? '/langchain' : normalizedNext;
 
   if (code) {
