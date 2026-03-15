@@ -270,6 +270,7 @@ export function TreatmentProfile() {
       // 2. If signed in, fetch from DB and override localStorage
       try {
         const supabase = createClient()
+        if (!supabase) return
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           const res = await fetch("/api/profile/treatment")
