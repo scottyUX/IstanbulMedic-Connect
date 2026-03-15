@@ -12,11 +12,11 @@ test.describe('Clinic Profile Flow', () => {
     // Get the clinic name before clicking
     const clinicName = await firstClinicCard.locator('h3').textContent();
 
-    // Click on the first clinic card
-    await firstClinicCard.click();
-
-    // Verify we're on a clinic profile page
-    await expect(page).toHaveURL(/\/clinics\/[^/]+$/);
+    // Click on the first clinic card and wait for navigation
+    await Promise.all([
+      page.waitForURL(/\/clinics\/[^/]+$/),
+      firstClinicCard.click(),
+    ]);
 
     // Wait for the page to fully load (client components)
     await page.waitForLoadState('networkidle');
