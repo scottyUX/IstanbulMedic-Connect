@@ -50,6 +50,8 @@ interface InstagramPost {
   latestComments: InstagramComment[]
   timestamp: string
   displayUrl: string
+  /** Whether comments are disabled on this post (from scraper) */
+  isCommentsDisabled?: boolean
 }
 
 interface InstagramClaimsData {
@@ -94,6 +96,47 @@ interface ClinicFact {
   is_conflicting: boolean
   first_seen_at: string
   last_seen_at: string
+}
+
+// ── Helper functions ──────────────────────────────────────────────────────────
+
+/**
+ * Calculates the average posts per month from an array of posts with timestamps.
+ * Uses the time span between earliest and most recent post to calculate the rate.
+ */
+function calculatePostsPerMonth(posts: InstagramPost[]): number {
+  if (!posts?.length) return 0
+
+  const timestamps = posts
+    .map(p => p.timestamp)
+    .filter(Boolean)
+    .map(ts => new Date(ts).getTime())
+    .filter(t => !isNaN(t))
+    .sort((a, b) => a - b)
+
+  if (timestamps.length < 2) {
+    // With only one post, assume 1 post per month
+    return timestamps.length
+  }
+
+  const earliest = timestamps[0]
+  const latest = timestamps[timestamps.length - 1]
+  const monthsSpanned = (latest - earliest) / (1000 * 60 * 60 * 24 * 30)
+
+  // Minimum 1 month span to avoid division by zero or inflated rates
+  const effectiveMonths = Math.max(1, monthsSpanned)
+
+  return Math.round((posts.length / effectiveMonths) * 10) / 10
+}
+
+/**
+ * Calculates the ratio of posts with comments enabled (not disabled).
+ */
+function calculateCommentsEnabledRatio(posts: InstagramPost[]): number {
+  if (!posts?.length) return 1 // Default to enabled if no posts
+
+  const postsWithCommentsEnabled = posts.filter(p => !p.isCommentsDisabled).length
+  return postsWithCommentsEnabled / posts.length
 }
 
 // ── Comment helpers ───────────────────────────────────────────────────────────
@@ -348,11 +391,36 @@ export async function POST(request: Request) {
       last_seen_at: now,
     })
 
+    // ── Calculate raw metrics for signals card ──────────────────────────────────
+    const posts = instagramData.posts ?? []
+    const followers = instagramData.instagram.followersCount ?? 0
+
+    // Calculate engagement stats from posts
+    const totalLikes = posts.reduce((s, p) => s + (p.likesCount ?? 0), 0)
+    const totalComments = posts.reduce((s, p) => s + (p.commentsCount ?? 0), 0)
+    const avgLikes = posts.length > 0 ? totalLikes / posts.length : 0
+    const avgComments = posts.length > 0 ? totalComments / posts.length : 0
+
+    // Engagement rate: (avg likes + avg comments) / followers
+    const engagementRate = followers > 0
+      ? (avgLikes + avgComments) / followers
+      : 0
+
+    // Posts per month (calculated from post timestamps)
+    const postsPerMonth = calculatePostsPerMonth(posts)
+
+    // Comments enabled ratio (from isCommentsDisabled field)
+    const commentsEnabledRatio = calculateCommentsEnabledRatio(posts)
+
     const facts: any[] = [
       baseFact('instagram_followers_count', instagramData.instagram.followersCount, 'number', 1.0),
       baseFact('instagram_posts_count',     instagramData.instagram.postsCount,     'number', 1.0),
       baseFact('instagram_verified',        instagramData.instagram.verified,        'bool',   1.0),
       baseFact('instagram_is_business',     instagramData.instagram.isBusinessAccount, 'bool', 1.0),
+      // Raw metrics for Instagram signals card
+      baseFact('instagram_engagement_rate',         engagementRate,         'number', 1.0),
+      baseFact('instagram_posts_per_month',         postsPerMonth,          'number', 1.0),
+      baseFact('instagram_comments_enabled_ratio',  commentsEnabledRatio,   'number', 0.9),
     ]
 
     if (instagramData.extracted_claims.positioning?.claims)
@@ -383,7 +451,7 @@ export async function POST(request: Request) {
       facts.push(baseFact('display_name_variants_instagram',
         JSON.stringify(instagramData.extracted_claims.identity.display_name_variants), 'json', 0.9))
 
-    const postFacts = derivePostFacts(instagramData.posts ?? [], clinicId)
+    const postFacts = derivePostFacts(posts, clinicId)
     facts.push(...postFacts)
 
     // ── 4b. Upsert instagram posts (now with comments) ────────────────────────
@@ -500,6 +568,10 @@ function getEvidenceSnippet(factKey: string, data: InstagramClaimsData): string 
     instagram_website_mentions_in_posts:  `Extracted from post captions`,
     instagram_top_posts_sample:           `Top 5 posts by likes from profile`,
     instagram_top_commented_posts_sample: `Top 5 posts by comment count — includes full latestComments`,
+    // Raw metrics for signals card
+    instagram_engagement_rate:            `Computed from ${posts.length} posts and ${data.instagram.followersCount} followers`,
+    instagram_posts_per_month:            `Computed from ${posts.length} posts over time`,
+    instagram_comments_enabled_ratio:     `Computed from ${posts.length} posts`,
   }
   return snippets[factKey] ?? `Data from Instagram profile @${data.instagram.username}`
 }
@@ -525,6 +597,10 @@ function getEvidenceLocator(factKey: string): any {
     instagram_website_mentions_in_posts:  { field: 'posts[*].caption', derived: true },
     instagram_top_posts_sample:           { field: 'posts[*]', derived: true },
     instagram_top_commented_posts_sample: { field: 'posts[*].latestComments', derived: true },
+    // Raw metrics for signals card
+    instagram_engagement_rate:            { field: 'posts[*].likesCount + posts[*].commentsCount / instagram.followersCount', derived: true },
+    instagram_posts_per_month:            { field: 'posts[*].timestamp', derived: true },
+    instagram_comments_enabled_ratio:     { field: 'posts[*].isCommentsDisabled', derived: true },
   }
   return locators[factKey] ?? { field: 'unknown' }
 }

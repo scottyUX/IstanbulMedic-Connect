@@ -225,7 +225,7 @@ function SignalRow({
         onClick={onToggle}
         className="w-full flex items-center justify-between py-3 px-1 hover:bg-muted/50 transition-colors rounded-md"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-[140px]">
           <SignalIcon
             signalId={signal.id}
             className={isPositive ? "text-emerald-600" : "text-amber-600"}
@@ -236,28 +236,56 @@ function SignalRow({
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Percentile spectrum or boolean indicator */}
           {signal.type === "percentile" ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <PercentileSpectrum percentile={signal.percentile ?? 50} status={signal.status} />
-              <span className="text-xs font-medium text-muted-foreground">
-                {signal.metric}
-              </span>
-              <span
-                className={cn(
-                  "text-xs font-medium min-w-[70px] text-right hidden sm:inline",
-                  isPositive ? "text-emerald-600" : "text-amber-600"
-                )}
-              >
-                {signal.statusText}
-              </span>
+            <div className="flex items-center gap-4">
+              {/* Visual column - fixed width, content at end */}
+              <div className="w-20 sm:w-24 flex justify-end">
+                <PercentileSpectrum percentile={signal.percentile ?? 50} status={signal.status} />
+              </div>
+              {/* Metric column - fixed width, left aligned text */}
+              <div className="w-[75px] text-left">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {signal.metric}
+                </span>
+              </div>
+              {/* Status column - fixed width, right aligned text */}
+              <div className="w-[90px] text-right hidden sm:block">
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    isPositive ? "text-emerald-600" : "text-amber-600"
+                  )}
+                >
+                  {signal.statusText}
+                </span>
+              </div>
+            </div>
+          ) : signal.metric ? (
+            <div className="flex items-center gap-4">
+              {/* Visual column - same width as spectrum, icon at end */}
+              <div className="w-20 sm:w-24 flex justify-end">
+                <BooleanIndicator status={signal.status} />
+              </div>
+              {/* Metric column - same width, left aligned */}
+              <div className="w-[75px] text-left">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {signal.metric}
+                </span>
+              </div>
+              {/* Status column - same width, right aligned */}
+              <div className="w-[90px] text-right hidden sm:block">
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    isPositive ? "text-emerald-600" : "text-amber-600"
+                  )}
+                >
+                  {signal.statusText}
+                </span>
+              </div>
             </div>
           ) : (
             <div className="flex items-center gap-2 sm:gap-3">
               <BooleanIndicator status={signal.status} />
-              {signal.metric && (
-                <span className="text-xs font-medium text-muted-foreground">
-                  {signal.metric}
-                </span>
-              )}
               <span
                 className={cn(
                   "text-xs font-medium hidden sm:inline",
@@ -300,7 +328,7 @@ function SignalRow({
                   )}
                   {signal.percentile !== undefined && (
                     <p>
-                      This clinic ranks in the {signal.percentile}th percentile compared to others we track.
+                      This places them at {signal.percentile}% on the scale from lowest to highest among clinics we track.
                     </p>
                   )}
                 </div>

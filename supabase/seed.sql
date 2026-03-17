@@ -775,3 +775,104 @@ FROM (
     AND id <= '550e8400-e29b-41d4-a716-446655440119'
 ) x
 WHERE c.id = x.id;
+
+-- ============================================
+-- INSTAGRAM POSTS (for comments ratio sample size)
+-- ============================================
+
+-- Istanbul Hair Masters - 20 posts (18 with comments enabled = 90%)
+INSERT INTO clinic_instagram_posts (clinic_id, source_id, instagram_post_id, short_code, post_type, url, caption, hashtags, likes_count, comments_count, posted_at)
+SELECT
+  '550e8400-e29b-41d4-a716-446655440001',
+  '650e8400-e29b-41d4-a716-446655440007',
+  'post_ihm_' || i,
+  'ABC' || i,
+  'Image',
+  'https://instagram.com/p/ABC' || i,
+  'Hair transplant result #' || i,
+  ARRAY['hairtransplant', 'istanbul', 'fue'],
+  500 + (i * 50),
+  20 + (i * 3),
+  NOW() - (i || ' days')::interval
+FROM generate_series(1, 20) AS i;
+
+-- Ankara Smile - 15 posts (all with comments enabled = 100%)
+INSERT INTO clinic_instagram_posts (clinic_id, source_id, instagram_post_id, short_code, post_type, url, caption, hashtags, likes_count, comments_count, posted_at)
+SELECT
+  '550e8400-e29b-41d4-a716-446655440002',
+  '650e8400-e29b-41d4-a716-446655440007',
+  'post_asd_' || i,
+  'DEF' || i,
+  'Image',
+  'https://instagram.com/p/DEF' || i,
+  'Dental transformation #' || i,
+  ARRAY['dentistry', 'ankara', 'smile'],
+  300 + (i * 40),
+  15 + (i * 2),
+  NOW() - (i || ' days')::interval
+FROM generate_series(1, 15) AS i;
+
+-- Bodrum Aesthetic - 25 posts (9 with comments enabled = 35%)
+INSERT INTO clinic_instagram_posts (clinic_id, source_id, instagram_post_id, short_code, post_type, url, caption, hashtags, likes_count, comments_count, posted_at)
+SELECT
+  '550e8400-e29b-41d4-a716-446655440003',
+  '650e8400-e29b-41d4-a716-446655440007',
+  'post_bas_' || i,
+  'GHI' || i,
+  'Image',
+  'https://instagram.com/p/GHI' || i,
+  'Rhinoplasty result #' || i,
+  ARRAY['rhinoplasty', 'bodrum', 'plasticsurgery'],
+  800 + (i * 60),
+  40 + (i * 4),
+  NOW() - (i || ' days')::interval
+FROM generate_series(1, 25) AS i;
+
+-- Izmir Cosmetic - 10 posts (8 with comments enabled = 80%)
+INSERT INTO clinic_instagram_posts (clinic_id, source_id, instagram_post_id, short_code, post_type, url, caption, hashtags, likes_count, comments_count, posted_at)
+SELECT
+  '550e8400-e29b-41d4-a716-446655440004',
+  '650e8400-e29b-41d4-a716-446655440007',
+  'post_icc_' || i,
+  'JKL' || i,
+  'Image',
+  'https://instagram.com/p/JKL' || i,
+  'Cosmetic procedure #' || i,
+  ARRAY['cosmetic', 'izmir', 'aesthetic'],
+  200 + (i * 30),
+  10 + (i * 2),
+  NOW() - (i || ' days')::interval
+FROM generate_series(1, 10) AS i;
+
+-- ============================================
+-- INSTAGRAM SIGNAL FACTS
+-- Raw metrics for InstagramSignalsCard component
+-- ============================================
+
+-- Istanbul Hair Masters - Good engagement, active posting, mostly comments enabled, business account
+INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidence, computed_by, is_conflicting)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440001', 'instagram_engagement_rate', '0.023'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440001', 'instagram_posts_per_month', '8.5'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440001', 'instagram_comments_enabled_ratio', '0.90'::jsonb, 'number', 0.9, 'extractor', false);
+
+-- Ankara Smile Dental - Medium engagement, moderate posting, all comments enabled, business account
+INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidence, computed_by, is_conflicting)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440002', 'instagram_engagement_rate', '0.015'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440002', 'instagram_posts_per_month', '5.0'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440002', 'instagram_comments_enabled_ratio', '1.0'::jsonb, 'number', 0.9, 'extractor', false);
+
+-- Bodrum Aesthetic - High engagement, very active, some comments disabled (concern), business account
+INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidence, computed_by, is_conflicting)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440003', 'instagram_engagement_rate', '0.035'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440003', 'instagram_posts_per_month', '12.0'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440003', 'instagram_comments_enabled_ratio', '0.35'::jsonb, 'number', 0.9, 'extractor', false);
+
+-- Izmir Cosmetic - Low engagement (concern), low posting (concern), comments enabled, business account
+INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidence, computed_by, is_conflicting)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440004', 'instagram_engagement_rate', '0.005'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440004', 'instagram_posts_per_month', '2.0'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440004', 'instagram_comments_enabled_ratio', '0.80'::jsonb, 'number', 0.9, 'extractor', false);

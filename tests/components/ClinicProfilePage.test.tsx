@@ -98,7 +98,7 @@ describe('ClinicProfilePage', () => {
     yearsInOperation: null,
     proceduresPerformed: null,
     totalReviewCount: 0,
-    instagram: null,
+    instagramSignals: null,
     ...overrides,
   });
 
@@ -133,24 +133,38 @@ describe('ClinicProfilePage', () => {
     expect(elements.length).toBeGreaterThan(0);
   });
 
-  it('renders instagram data when present', () => {
+  it('renders instagram signals card when present', () => {
     const clinic = createMinimalClinic({
-      instagram: {
+      instagramSignals: {
         username: 'istanbulclinic',
+        followersCount: 25000,
+        lastUpdated: '2026-03-01T00:00:00Z',
+        signals: [
+          {
+            id: 'engagement',
+            label: 'Engagement',
+            status: 'positive',
+            type: 'percentile',
+            percentile: 72,
+            metric: '2.3%',
+            statusText: 'Above average',
+            explanation: 'Genuine engagement suggests real patients are following.',
+          },
+        ],
       },
     });
     render(<ClinicProfilePage clinic={clinic} />);
 
-    expect(screen.getByText('Social Presence & Brand Signals')).toBeInTheDocument();
+    expect(screen.getByText('Social Media Presence')).toBeInTheDocument();
     expect(screen.getByText('@istanbulclinic')).toBeInTheDocument();
   });
 
-  it('renders instagram empty state when instagram data is null', () => {
-    const clinic = createMinimalClinic({ instagram: null });
+  it('does not render instagram card when instagramSignals is null', () => {
+    const clinic = createMinimalClinic({ instagramSignals: null });
     render(<ClinicProfilePage clinic={clinic} />);
 
-    expect(screen.getByText('Social Presence & Brand Signals')).toBeInTheDocument();
-    expect(screen.getByText('No Instagram data')).toBeInTheDocument();
+    // The signals card should not be present when there's no data
+    expect(screen.queryByText('Social Media Presence')).not.toBeInTheDocument();
   });
 
   // TODO: Unskip when FEATURE_CONFIG.profileOverview is enabled
