@@ -854,25 +854,29 @@ INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidenc
 VALUES
   ('550e8400-e29b-41d4-a716-446655440001', 'instagram_engagement_rate', '0.023'::jsonb, 'number', 1.0, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440001', 'instagram_posts_per_month', '8.5'::jsonb, 'number', 1.0, 'extractor', false),
-  ('550e8400-e29b-41d4-a716-446655440001', 'instagram_comments_enabled_ratio', '0.90'::jsonb, 'number', 0.9, 'extractor', false);
+  ('550e8400-e29b-41d4-a716-446655440001', 'instagram_comments_enabled_ratio', '0.90'::jsonb, 'number', 0.9, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440001', 'instagram_is_business', 'true'::jsonb, 'bool', 1.0, 'extractor', false);
 
 -- Ankara Smile Dental - Medium engagement, moderate posting, all comments enabled, business account
 INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidence, computed_by, is_conflicting)
 VALUES
   ('550e8400-e29b-41d4-a716-446655440002', 'instagram_engagement_rate', '0.015'::jsonb, 'number', 1.0, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440002', 'instagram_posts_per_month', '5.0'::jsonb, 'number', 1.0, 'extractor', false),
-  ('550e8400-e29b-41d4-a716-446655440002', 'instagram_comments_enabled_ratio', '1.0'::jsonb, 'number', 0.9, 'extractor', false);
+  ('550e8400-e29b-41d4-a716-446655440002', 'instagram_comments_enabled_ratio', '1.0'::jsonb, 'number', 0.9, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440002', 'instagram_is_business', 'true'::jsonb, 'bool', 1.0, 'extractor', false);
 
 -- Bodrum Aesthetic - High engagement, very active, some comments disabled (concern), business account
 INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidence, computed_by, is_conflicting)
 VALUES
   ('550e8400-e29b-41d4-a716-446655440003', 'instagram_engagement_rate', '0.035'::jsonb, 'number', 1.0, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440003', 'instagram_posts_per_month', '12.0'::jsonb, 'number', 1.0, 'extractor', false),
-  ('550e8400-e29b-41d4-a716-446655440003', 'instagram_comments_enabled_ratio', '0.35'::jsonb, 'number', 0.9, 'extractor', false);
+  ('550e8400-e29b-41d4-a716-446655440003', 'instagram_comments_enabled_ratio', '0.35'::jsonb, 'number', 0.9, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440003', 'instagram_is_business', 'true'::jsonb, 'bool', 1.0, 'extractor', false);
 
 -- Izmir Cosmetic - Low engagement (concern), low posting (concern), comments enabled, business account
 INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidence, computed_by, is_conflicting)
 VALUES
   ('550e8400-e29b-41d4-a716-446655440004', 'instagram_engagement_rate', '0.005'::jsonb, 'number', 1.0, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440004', 'instagram_posts_per_month', '2.0'::jsonb, 'number', 1.0, 'extractor', false),
-  ('550e8400-e29b-41d4-a716-446655440004', 'instagram_comments_enabled_ratio', '0.80'::jsonb, 'number', 0.9, 'extractor', false);
+  ('550e8400-e29b-41d4-a716-446655440004', 'instagram_comments_enabled_ratio', '0.80'::jsonb, 'number', 0.9, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440004', 'instagram_is_business', 'true'::jsonb, 'bool', 1.0, 'extractor', false);

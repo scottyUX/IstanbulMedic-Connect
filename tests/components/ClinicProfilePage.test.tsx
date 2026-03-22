@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ClinicProfilePage } from '@/components/istanbulmedic-connect/profile/ClinicProfilePage';
 import type { ClinicDetail } from '@/lib/api/clinics';
-import type { InstagramIntelligenceVM } from '@/components/istanbulmedic-connect/types';
 
 // Mock Next.js components and hooks
 vi.mock('next/navigation', () => ({
@@ -27,14 +26,6 @@ vi.mock('next/font/google', () => ({
   Merriweather: () => ({
     className: 'mocked-merriweather',
   }),
-}));
-
-vi.mock('@/components/istanbulmedic-connect/profile/instagram/InstagramTabContent', () => ({
-  InstagramTabContent: ({ data }: { data?: InstagramIntelligenceVM | null }) => (
-    <div data-testid="instagram-tab-content">
-      {data?.username ? `@${data.username}` : 'No Instagram data'}
-    </div>
-  ),
 }));
 
 // Mock recharts to avoid rendering issues
