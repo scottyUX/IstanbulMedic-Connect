@@ -14,8 +14,8 @@ const EXPLANATIONS = {
     concern: "Disabling comments may indicate the clinic is hiding negative feedback. Consider this a yellow flag.",
   },
   verifiedBusiness: {
-    positive: "Business accounts require extra verification steps, adding a layer of legitimacy.",
-    concern: "Personal accounts aren't necessarily bad, but business accounts provide more accountability.",
+    positive: "Professional accounts (Business or Creator) require extra setup steps and provide more transparency features.",
+    concern: "Personal accounts aren't necessarily bad, but professional accounts provide more accountability.",
   },
   postingActivity: {
     positive: "Regular posting suggests the clinic is active and engaged with their audience.",
@@ -87,7 +87,7 @@ export async function getInstagramSignals(
     // 1. Get this clinic's Instagram profile
     const { data: profile, error: profileError } = await supabase
       .from('clinic_social_media')
-      .select('account_handle, follower_count, last_checked_at')
+      .select('account_handle, follower_count, last_checked_at, business_category')
       .eq('clinic_id', clinicId)
       .eq('platform', 'instagram')
       .maybeSingle();
@@ -225,13 +225,27 @@ export async function getInstagramSignals(
     });
 
     // Business account signal (boolean type)
-    const businessStatus: 'positive' | 'concern' = isBusiness ? 'positive' : 'concern';
+    // Determine account type: Business > Creator > Personal
+    const hasBusinessCategory = profile.business_category && profile.business_category.trim() !== '';
+    const accountType: 'business' | 'creator' | 'personal' = isBusiness
+      ? 'business'
+      : hasBusinessCategory
+        ? 'creator'
+        : 'personal';
+
+    // Business and Creator accounts are both "positive" (professional accounts)
+    const businessStatus: 'positive' | 'concern' = accountType !== 'personal' ? 'positive' : 'concern';
+    const accountTypeLabels = {
+      business: 'Business',
+      creator: 'Creator',
+      personal: 'Personal',
+    };
     signals.push({
       id: 'verifiedBusiness',
-      label: 'Business Account',
+      label: 'Account Type',
       status: businessStatus,
       type: 'boolean',
-      statusText: isBusiness ? 'Verified' : 'Personal',
+      statusText: accountTypeLabels[accountType],
       explanation: EXPLANATIONS.verifiedBusiness[businessStatus],
     });
 

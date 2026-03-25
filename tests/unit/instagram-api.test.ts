@@ -126,7 +126,7 @@ describe('getInstagramSignals', () => {
   });
 
   const createMockSupabase = (config: {
-    profile?: { account_handle: string; follower_count: number; last_checked_at: string } | null;
+    profile?: { account_handle: string; follower_count: number; last_checked_at: string; business_category?: string | null } | null;
     profileError?: Error | null;
     facts?: Array<{ fact_key: string; fact_value: unknown }>;
     factsError?: Error | null;
@@ -390,7 +390,33 @@ describe('getInstagramSignals', () => {
     const businessSignal = result?.signals.find(s => s.id === 'verifiedBusiness');
 
     expect(businessSignal?.status).toBe('positive');
-    expect(businessSignal?.statusText).toBe('Verified');
+    expect(businessSignal?.statusText).toBe('Business');
+  });
+
+  it('identifies creator account when has business_category but not isBusinessAccount', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
+        last_checked_at: '2026-03-01T00:00:00Z',
+        business_category: 'Hair Replacement Service',
+      },
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: 0.9 },
+        { fact_key: 'instagram_is_business', fact_value: false },
+      ],
+      allClinicFacts: [],
+      postsCount: 20,
+    });
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+
+    const result = await getInstagramSignals('clinic-1');
+    const businessSignal = result?.signals.find(s => s.id === 'verifiedBusiness');
+
+    expect(businessSignal?.status).toBe('positive'); // Creator accounts are also professional
+    expect(businessSignal?.statusText).toBe('Creator');
   });
 
   it('marks personal account when instagram_is_business is false', async () => {

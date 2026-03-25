@@ -10,7 +10,8 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440001', 'Istanbul Hair Masters', 'Istanbul Hair Masters Medical Tourism Ltd', 'active', 'Istanbul', 'Turkey', 'https://istanbulhairmasters.com', '+905551234567', 'info@istanbulhairmasters.com', '+902121234567'),
   ('550e8400-e29b-41d4-a716-446655440002', 'Ankara Smile Dental Clinic', 'Ankara Smile Dental Center Inc', 'active', 'Ankara', 'Turkey', 'https://ankarasmiledental.com', '+905552345678', 'contact@ankarasmiledental.com', '+903121234567'),
   ('550e8400-e29b-41d4-a716-446655440003', 'Bodrum Aesthetic Surgery', 'Bodrum Aesthetic Medical Ltd', 'under_review', 'Bodrum', 'Turkey', 'https://bodrumaesthetic.com', '+905553456789', 'hello@bodrumaesthetic.com', '+902521234567'),
-  ('550e8400-e29b-41d4-a716-446655440004', 'Izmir Cosmetic Center', 'Izmir Cosmetic Healthcare Inc', 'active', 'Izmir', 'Turkey', NULL, '+905554567890', 'info@izmircosmetic.com', '+902321234567');
+  ('550e8400-e29b-41d4-a716-446655440004', 'Izmir Cosmetic Center', 'Izmir Cosmetic Healthcare Inc', 'active', 'Izmir', 'Turkey', NULL, '+905554567890', 'info@izmircosmetic.com', '+902321234567'),
+  ('550e8400-e29b-41d4-a716-446655440005', 'AEK Hair Clinic', 'AEK Hair Clinic - Dr. Ali Emre Karadeniz', 'active', 'Istanbul', 'Turkey', 'https://www.aekhairclinic.com', '+905432154320', NULL, NULL);
 
 -- ============================================
 -- CLINIC LOCATIONS (with new city, country, postal_code fields)
@@ -296,7 +297,10 @@ VALUES
   -- Izmir Cosmetic Center (550e8400-e29b-41d4-a716-446655440004)
   ('550e8400-e29b-41d4-a716-446655440004', 'instagram', 'izmircosmetic', 19000, false, '2025-02-07 09:45:00+00'),
   ('550e8400-e29b-41d4-a716-446655440004', 'facebook', 'izmircosmetic', 5300, false, '2025-02-07 09:45:00+00'),
-  ('550e8400-e29b-41d4-a716-446655440004', 'youtube', 'IzmirCosmeticCenter', 2100, false, '2025-02-07 09:45:00+00');
+  ('550e8400-e29b-41d4-a716-446655440004', 'youtube', 'IzmirCosmeticCenter', 2100, false, '2025-02-07 09:45:00+00'),
+
+  -- AEK Hair Clinic (550e8400-e29b-41d4-a716-446655440005) - Real scraped data, Creator account example
+  ('550e8400-e29b-41d4-a716-446655440005', 'instagram', 'draliemrekaradeniz', 13892, false, '2026-03-25 00:37:00+00');
 
 -- ============================================
 -- UPDATE INSTAGRAM WITH EXTENDED PROFILE DATA
@@ -318,6 +322,22 @@ UPDATE clinic_social_media SET
   is_private = false,
   business_category = 'Medical & Health'
 WHERE clinic_id = '550e8400-e29b-41d4-a716-446655440001'
+  AND platform = 'instagram';
+
+-- AEK Hair Clinic - Creator account (has business_category but isBusinessAccount=false)
+UPDATE clinic_social_media SET
+  full_name = 'AEK Hair Clinic - Dr. Ali Emre Karadeniz',
+  biography = 'www.aekhairclinic.com
+📱💬 +90 543 215 43 20
+👇Our WhatsApp👇',
+  profile_pic_url = 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&h=150&w=150',
+  external_urls = ARRAY['https://api.whatsapp.com/send/?phone=905432154320&text=ISawYouOnInstagram'],
+  follows_count = 138,
+  posts_count = 133,
+  highlights_count = 7,
+  is_private = false,
+  business_category = 'Hair Replacement Service'
+WHERE clinic_id = '550e8400-e29b-41d4-a716-446655440005'
   AND platform = 'instagram';
 
 -- ============================================
@@ -844,6 +864,22 @@ SELECT
   NOW() - (i || ' days')::interval
 FROM generate_series(1, 10) AS i;
 
+-- AEK Hair Clinic - 15 sample posts (all with comments enabled = 100%, Creator account example)
+INSERT INTO clinic_instagram_posts (clinic_id, source_id, instagram_post_id, short_code, post_type, url, caption, hashtags, likes_count, comments_count, posted_at)
+SELECT
+  '550e8400-e29b-41d4-a716-446655440005',
+  '650e8400-e29b-41d4-a716-446655440007',
+  'post_aek_' || i,
+  'AEK' || i,
+  'Image',
+  'https://instagram.com/p/AEK' || i,
+  'Hair transplant result #' || i,
+  ARRAY['hairtransplant', 'istanbul', 'aekhairclinic'],
+  150 + (i * 20),
+  5 + i,
+  NOW() - (i || ' days')::interval
+FROM generate_series(1, 15) AS i;
+
 -- ============================================
 -- INSTAGRAM SIGNAL FACTS
 -- Raw metrics for InstagramSignalsCard component
@@ -880,3 +916,12 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440004', 'instagram_posts_per_month', '2.0'::jsonb, 'number', 1.0, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440004', 'instagram_comments_enabled_ratio', '0.80'::jsonb, 'number', 0.9, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440004', 'instagram_is_business', 'true'::jsonb, 'bool', 1.0, 'extractor', false);
+
+-- AEK Hair Clinic - Real scraped data, Creator account (has business_category but isBusinessAccount=false)
+-- Very low engagement (0.2%), low posting (1.3/mo), all comments enabled, NOT a business account
+INSERT INTO clinic_facts (clinic_id, fact_key, fact_value, value_type, confidence, computed_by, is_conflicting)
+VALUES
+  ('550e8400-e29b-41d4-a716-446655440005', 'instagram_engagement_rate', '0.002'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440005', 'instagram_posts_per_month', '1.3'::jsonb, 'number', 1.0, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440005', 'instagram_comments_enabled_ratio', '1.0'::jsonb, 'number', 0.9, 'extractor', false),
+  ('550e8400-e29b-41d4-a716-446655440005', 'instagram_is_business', 'false'::jsonb, 'bool', 1.0, 'extractor', false);
