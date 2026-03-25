@@ -249,10 +249,16 @@ export async function getInstagramSignals(
       explanation: EXPLANATIONS.verifiedBusiness[businessStatus],
     });
 
+    // Ensure timestamp is parsed as UTC (DB stores without timezone suffix)
+    let lastUpdated = profile.last_checked_at ?? new Date().toISOString();
+    if (lastUpdated && !lastUpdated.endsWith('Z') && !lastUpdated.includes('+')) {
+      lastUpdated = lastUpdated.replace(' ', 'T') + 'Z';
+    }
+
     return {
       username: profile.account_handle,
       followersCount: profile.follower_count ?? 0,
-      lastUpdated: profile.last_checked_at ?? new Date().toISOString(),
+      lastUpdated,
       signals,
     };
   } catch (error) {
