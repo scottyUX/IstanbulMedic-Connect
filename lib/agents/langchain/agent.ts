@@ -10,6 +10,8 @@ import {
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import { AgentState, LangchainMessage } from '@/types/langchain';
 import { databaseLookupTool } from './tools/databaseLookup';
+import { LEILA_SYSTEM_PROMPT, PROMPT_VERSION } from './prompts/leila-system-prompt';
+import { checkInputGuardrails, checkOutputGuardrails } from './guardrails';
 
 // ============================================================================
 // CONFIGURATION
@@ -26,49 +28,13 @@ const TEMPERATURE = 0.7; // Higher = more creative, Lower = more focused
 const MAX_TOOL_ROUNDS = 5; // Safety limit for tool-calling loops
 
 // ============================================================================
-// AGENT PROMPT (Similar to Leila's prompt structure)
+// AGENT PROMPT — sourced from versioned module
 // ============================================================================
 
-export const BASE_PROMPT = `You are Leila, a private and personal AI assistant specializing in hair restoration and hair transplant consultations. You are warm, empathetic, professional, and knowledgeable about hair transplant procedures, treatments, costs, recovery, and patient care.
+/** @deprecated Import directly from './prompts/leila-system-prompt' instead */
+export const BASE_PROMPT = LEILA_SYSTEM_PROMPT;
 
-YOUR ROLE:
-- Answer questions about hair transplants, procedures, and treatments
-- Help users understand their options and what to expect
-- Assist with scheduling consultations
-- Guide users through uploading photos for analysis
-- Provide information about costs, recovery time, and procedures
-- Remember user preferences and history throughout the conversation
-- Use the database lookup tool when you need to find specific information about clinics, pricing, reviews, services, or team members
-
-AVAILABLE TOOLS:
-- database_lookup: Use this tool to query the database. Key tables:
-  * clinics — core clinic info (display_name, primary_city, status, contact details)
-  * clinic_locations — addresses, cities, coordinates
-  * clinic_pricing — service prices (service_name, price_min, price_max, currency)
-  * clinic_packages — treatment packages (includes, excludes, nights, aftercare)
-  * clinic_reviews — patient reviews (review_text, rating)
-  * clinic_services — offered procedures (service_name, service_category)
-  * clinic_team — doctors/staff (name, credentials, role, years_experience)
-  * clinic_scores — quality scores (overall_score, band A/B/C/D)
-  * clinic_credentials — accreditations and licenses
-  * clinic_languages — language support (language, support_type)
-  * clinic_mentions — mentions from sources (mention_text, sentiment, topic)
-  * clinic_facts — computed facts about clinics (fact_key, fact_value)
-  Most tables have a clinic_id column you can use to filter by a specific clinic.
-
-CONVERSATION STYLE:
-- Be warm, friendly, and professional
-- Use clear, everyday language (avoid overly technical jargon unless asked)
-- Ask follow-up questions to better understand user needs
-- Be empathetic about hair loss concerns
-- Provide accurate information about procedures and expectations
-
-PRIVACY & GDPR:
-- Always remind users that conversations are private and GDPR secure
-- Never share user information unless explicitly requested
-- Respect user privacy and data protection
-
-When you need factual information from the database, use the database_lookup tool. When users ask to schedule consultations or need specific clinic information, use the tool to get accurate, up-to-date data.`;
+export { PROMPT_VERSION };
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -192,8 +158,22 @@ export class LangchainAgent {
 
     this.state.messages.push(userMessage);
 
+    // --- Input guardrails ---
+    const inputCheck = checkInputGuardrails(userMessage.text);
+    if (!inputCheck.passed) {
+      const guardedMessage: LangchainMessage = {
+        role: 'assistant',
+        text: inputCheck.safeResponse!,
+        createdAt: new Date().toISOString(),
+        metadata: { guardrail: inputCheck.violation },
+      };
+      this.state.messages.push(guardedMessage);
+      this.state.lastUpdated = new Date().toISOString();
+      return guardedMessage;
+    }
+
     // Prepare messages: system prompt + conversation history
-    const systemMessage = new SystemMessage(BASE_PROMPT);
+    const systemMessage = new SystemMessage(LEILA_SYSTEM_PROMPT);
     const conversationMessages = convertToLangChainMessages(this.state.messages);
     const allMessages: BaseMessage[] = [systemMessage, ...conversationMessages];
 
@@ -201,11 +181,20 @@ export class LangchainAgent {
     const resolvedMessages = await this.resolveToolCalls(allMessages);
     const lastMessage = resolvedMessages[resolvedMessages.length - 1];
 
+    let responseText = lastMessage.content.toString();
+
+    // --- Output guardrails ---
+    const outputCheck = checkOutputGuardrails(responseText);
+    if (!outputCheck.passed) {
+      responseText = outputCheck.safeResponse!;
+    }
+
     // Convert response to our format
     const assistantMessage: LangchainMessage = {
       role: 'assistant',
-      text: lastMessage.content.toString(),
+      text: responseText,
       createdAt: new Date().toISOString(),
+      ...(outputCheck.violation && { metadata: { guardrail: outputCheck.violation } }),
     };
 
     // Update state
@@ -237,8 +226,24 @@ export class LangchainAgent {
 
     this.state.messages.push(userMessage);
 
+    // --- Input guardrails ---
+    const inputCheck = checkInputGuardrails(userMessage.text);
+    if (!inputCheck.passed) {
+      const safeText = inputCheck.safeResponse!;
+      onChunk?.(safeText);
+      const guardedMessage: LangchainMessage = {
+        role: 'assistant',
+        text: safeText,
+        createdAt: new Date().toISOString(),
+        metadata: { guardrail: inputCheck.violation },
+      };
+      this.state.messages.push(guardedMessage);
+      this.state.lastUpdated = new Date().toISOString();
+      return guardedMessage;
+    }
+
     // Prepare messages
-    const systemMessage = new SystemMessage(BASE_PROMPT);
+    const systemMessage = new SystemMessage(LEILA_SYSTEM_PROMPT);
     const conversationMessages = convertToLangChainMessages(this.state.messages);
     const currentMessages: BaseMessage[] = [systemMessage, ...conversationMessages];
 
@@ -295,11 +300,19 @@ export class LangchainAgent {
       }
     }
 
+    // --- Output guardrails ---
+    let finalText = fullResponse;
+    const outputCheck = checkOutputGuardrails(fullResponse);
+    if (!outputCheck.passed) {
+      finalText = outputCheck.safeResponse!;
+    }
+
     // Create assistant message with full response
     const assistantMessage: LangchainMessage = {
       role: 'assistant',
-      text: fullResponse,
+      text: finalText,
       createdAt: new Date().toISOString(),
+      ...(outputCheck.violation && { metadata: { guardrail: outputCheck.violation } }),
     };
 
     // Update state
