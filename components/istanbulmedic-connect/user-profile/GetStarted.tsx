@@ -29,12 +29,12 @@ const STORAGE_KEY = "im.qualification"
 // --- Step definitions ---
 
 const AGE_OPTIONS: { value: AgeTier; label: string }[] = [
-  { value: "18_24", label: "18 – 24" },
-  { value: "25_34", label: "25 – 34" },
-  { value: "35_44", label: "35 – 44" },
-  { value: "45_54", label: "45 – 54" },
-  { value: "55_64", label: "55 – 64" },
-  { value: "65_plus", label: "65+" },
+  { value: "18-24", label: "18 – 24" },
+  { value: "25-34", label: "25 – 34" },
+  { value: "35-44", label: "35 – 44" },
+  { value: "45-54", label: "45 – 54" },
+  { value: "55-64", label: "55 – 64" },
+  { value: "65-plus", label: "65+" },
 ]
 
 const GENDER_OPTIONS: { value: Gender; label: string; sub?: string }[] = [
@@ -52,18 +52,18 @@ const HAIR_LOSS_OPTIONS: { value: string; label: string; sub: string }[] = [
 ]
 
 const BUDGET_OPTIONS: { value: BudgetTier; label: string; sub: string }[] = [
-  { value: "under_2000", label: "Under £2,000", sub: "Entry-level options" },
-  { value: "2000_5000", label: "£2,000 – £5,000", sub: "Mid-range clinics" },
-  { value: "5000_8000", label: "£5,000 – £8,000", sub: "Premium clinics" },
-  { value: "8000_12000", label: "£8,000 – £12,000", sub: "High-end specialists" },
-  { value: "12000_plus", label: "£12,000+", sub: "Top-tier / VIP experience" },
+  { value: "under-2000", label: "Under £2,000", sub: "Entry-level options" },
+  { value: "2000-5000", label: "£2,000 – £5,000", sub: "Mid-range clinics" },
+  { value: "5000-8000", label: "£5,000 – £8,000", sub: "Premium clinics" },
+  { value: "8000-12000", label: "£8,000 – £12,000", sub: "High-end specialists" },
+  { value: "12000-plus", label: "£12,000+", sub: "Top-tier / VIP experience" },
 ]
 
 const TIMELINE_OPTIONS: { value: Timeline; label: string; sub: string }[] = [
-  { value: "1_3_months", label: "Within 3 Months", sub: "Ready to schedule soon" },
-  { value: "3_6_months", label: "Within 6 Months", sub: "Planning ahead" },
-  { value: "6_12_months", label: "Within 1 Year", sub: "Long-term planning" },
-  { value: "12_plus_months", label: "Just Researching", sub: "Exploring options" },
+  { value: "1-3-months", label: "Within 3 Months", sub: "Ready to schedule soon" },
+  { value: "3-6-months", label: "Within 6 Months", sub: "Planning ahead" },
+  { value: "6-12-months", label: "Within 1 Year", sub: "Long-term planning" },
+  { value: "12-plus-months", label: "Just Researching", sub: "Exploring options" },
 ]
 
 const STEPS = [
@@ -183,6 +183,65 @@ function ProgressBar({ step, total }: { step: number; total: number }) {
   )
 }
 
+// --- Validation ---
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const PHONE_CODES: { code: string; label: string; country: string; digits: [number, number] }[] = [
+  { code: "+1",   label: "+1 US/CA",  country: "US / Canada",    digits: [10, 10] },
+  { code: "+44",  label: "+44 UK",    country: "United Kingdom",  digits: [10, 10] },
+  { code: "+49",  label: "+49 DE",    country: "Germany",         digits: [9,  11] },
+  { code: "+33",  label: "+33 FR",    country: "France",          digits: [9,   9] },
+  { code: "+34",  label: "+34 ES",    country: "Spain",           digits: [9,   9] },
+  { code: "+39",  label: "+39 IT",    country: "Italy",           digits: [9,  10] },
+  { code: "+31",  label: "+31 NL",    country: "Netherlands",     digits: [9,   9] },
+  { code: "+32",  label: "+32 BE",    country: "Belgium",         digits: [8,   9] },
+  { code: "+41",  label: "+41 CH",    country: "Switzerland",     digits: [9,   9] },
+  { code: "+43",  label: "+43 AT",    country: "Austria",         digits: [7,  13] },
+  { code: "+45",  label: "+45 DK",    country: "Denmark",         digits: [8,   8] },
+  { code: "+46",  label: "+46 SE",    country: "Sweden",          digits: [7,   9] },
+  { code: "+47",  label: "+47 NO",    country: "Norway",          digits: [8,   8] },
+  { code: "+358", label: "+358 FI",   country: "Finland",         digits: [6,  10] },
+  { code: "+353", label: "+353 IE",   country: "Ireland",         digits: [7,   9] },
+  { code: "+48",  label: "+48 PL",    country: "Poland",          digits: [9,   9] },
+  { code: "+380", label: "+380 UA",   country: "Ukraine",         digits: [9,   9] },
+  { code: "+7",   label: "+7 RU/KZ",  country: "Russia / KZ",    digits: [10, 10] },
+  { code: "+90",  label: "+90 TR",    country: "Turkey",          digits: [10, 10] },
+  { code: "+971", label: "+971 AE",   country: "UAE",             digits: [9,   9] },
+  { code: "+966", label: "+966 SA",   country: "Saudi Arabia",    digits: [9,   9] },
+  { code: "+974", label: "+974 QA",   country: "Qatar",           digits: [8,   8] },
+  { code: "+965", label: "+965 KW",   country: "Kuwait",          digits: [8,   8] },
+  { code: "+973", label: "+973 BH",   country: "Bahrain",         digits: [8,   8] },
+  { code: "+968", label: "+968 OM",   country: "Oman",            digits: [8,   8] },
+  { code: "+20",  label: "+20 EG",    country: "Egypt",           digits: [10, 10] },
+  { code: "+212", label: "+212 MA",   country: "Morocco",         digits: [9,   9] },
+  { code: "+213", label: "+213 DZ",   country: "Algeria",         digits: [9,   9] },
+  { code: "+91",  label: "+91 IN",    country: "India",           digits: [10, 10] },
+  { code: "+92",  label: "+92 PK",    country: "Pakistan",        digits: [10, 10] },
+  { code: "+880", label: "+880 BD",   country: "Bangladesh",      digits: [10, 10] },
+  { code: "+86",  label: "+86 CN",    country: "China",           digits: [11, 11] },
+  { code: "+81",  label: "+81 JP",    country: "Japan",           digits: [10, 11] },
+  { code: "+82",  label: "+82 KR",    country: "South Korea",     digits: [9,  10] },
+  { code: "+61",  label: "+61 AU",    country: "Australia",       digits: [9,   9] },
+  { code: "+64",  label: "+64 NZ",    country: "New Zealand",     digits: [8,  10] },
+  { code: "+27",  label: "+27 ZA",    country: "South Africa",    digits: [9,   9] },
+  { code: "+234", label: "+234 NG",   country: "Nigeria",         digits: [10, 10] },
+  { code: "+254", label: "+254 KE",   country: "Kenya",           digits: [9,   9] },
+  { code: "+55",  label: "+55 BR",    country: "Brazil",          digits: [10, 11] },
+  { code: "+52",  label: "+52 MX",    country: "Mexico",          digits: [10, 10] },
+  { code: "+54",  label: "+54 AR",    country: "Argentina",       digits: [10, 10] },
+  { code: "+57",  label: "+57 CO",    country: "Colombia",        digits: [10, 10] },
+  { code: "+56",  label: "+56 CL",    country: "Chile",           digits: [9,   9] },
+]
+
+const isValidPhone = (code: string, local: string): boolean => {
+  const digits = local.replace(/\D/g, '')
+  const entry = PHONE_CODES.find(p => p.code === code)
+  if (!entry) return digits.length >= 7 && digits.length <= 15
+  const [min, max] = entry.digits
+  return digits.length >= min && digits.length <= max
+}
+
 // --- Main component ---
 
 export function GetStarted() {
@@ -197,6 +256,9 @@ export function GetStarted() {
   const [highestStep, setHighestStep] = useState(0)
   const [isSignedIn, setIsSignedIn] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [contactTouched, setContactTouched] = useState<{ email?: boolean; whatsApp?: boolean }>({})
+  const [phoneCode, setPhoneCode] = useState("+44")
+  const [phoneLocal, setPhoneLocal] = useState("")
 
   // Restore from localStorage on mount + check auth session
   useEffect(() => {
@@ -207,6 +269,13 @@ export function GetStarted() {
           const parsed: QualificationData = JSON.parse(stored)
           setData(parsed)
           if (parsed.country) setCountry(parsed.country)
+          if (parsed.whatsApp) {
+            const matched = PHONE_CODES.find(p => parsed.whatsApp!.startsWith(p.code))
+            if (matched) {
+              setPhoneCode(matched.code)
+              setPhoneLocal(parsed.whatsApp.slice(matched.code.length).trimStart())
+            }
+          }
         }
         const alreadyComplete = window.localStorage.getItem("im.qualification.complete") === "true"
         if (alreadyComplete) {
@@ -261,6 +330,13 @@ export function GetStarted() {
                     preferredLanguage: db.preferredLanguage ?? undefined,
                   })
                   if (db.country) setCountry(db.country)
+                  if (db.whatsApp) {
+                    const matched = PHONE_CODES.find(p => db.whatsApp.startsWith(p.code))
+                    if (matched) {
+                      setPhoneCode(matched.code)
+                      setPhoneLocal(db.whatsApp.slice(matched.code.length).trimStart())
+                    }
+                  }
                   if (db.termsAccepted) setHighestStep(TOTAL_STEPS - 1)
                 }
               }
@@ -291,13 +367,47 @@ export function GetStarted() {
   }, [highestStep, hydrated])
 
 
+  // Reset contact field touched state when leaving the contact step
+  useEffect(() => {
+    if (STEPS[step]?.id !== "contact") setContactTouched({})
+  }, [step])
+
   // Scroll to top on step change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [step])
 
   const currentStep = STEPS[step]
-  const isLastStep = step === TOTAL_STEPS - 1
+  const sectionComplete = highestStep >= TOTAL_STEPS - 1
+
+  async function saveAndExit() {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      if (isSignedIn) {
+        const res = await fetch("/api/profile/qualification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...data,
+            country: country.trim() || data.country,
+            termsAccepted: true,
+          }),
+        })
+        if (!res.ok) {
+          const json = await res.json()
+          setSaveError(json.error ?? "Failed to save.")
+          setSaving(false)
+          return
+        }
+      }
+    } catch {
+      // localStorage already has the data — continue to dashboard
+    } finally {
+      setSaving(false)
+    }
+    router.push("/profile")
+  }
 
   // Determine if current step has a valid answer
   const canContinue = (() => {
@@ -307,7 +417,11 @@ export function GetStarted() {
     if (currentStep.id === "country") return country.trim().length > 1
     if (currentStep.id === "budget") return !!data.budgetTier
     if (currentStep.id === "timeline") return !!data.timeline
-    if (currentStep.id === "contact") return !!(data.fullName?.trim() && data.email?.trim())
+    if (currentStep.id === "contact") {
+      const emailOk = EMAIL_RE.test(data.email?.trim() ?? "")
+      const phoneOk = !phoneLocal.trim() || isValidPhone(phoneCode, phoneLocal.trim())
+      return !!(data.fullName?.trim() && emailOk && phoneOk)
+    }
     if (currentStep.id === "terms") return termsAccepted
     return false
   })()
@@ -525,20 +639,52 @@ export function GetStarted() {
                     type="email"
                     value={data.email ?? ""}
                     onChange={(e) => setData((prev) => ({ ...prev, email: e.target.value }))}
+                    onBlur={() => setContactTouched((prev) => ({ ...prev, email: true }))}
                     placeholder="john@example.com"
-                    className="w-full rounded-2xl border-2 border-slate-200 bg-white px-5 py-4 im-text-body text-foreground placeholder:text-slate-400 focus:border-[#17375B] focus:outline-none transition-colors"
+                    className={`w-full rounded-2xl border-2 bg-white px-5 py-4 im-text-body text-foreground placeholder:text-slate-400 focus:outline-none transition-colors ${contactTouched.email && !EMAIL_RE.test(data.email?.trim() ?? "") ? "border-red-400 focus:border-red-400" : "border-slate-200 focus:border-[#17375B]"}`}
                   />
+                  {contactTouched.email && !EMAIL_RE.test(data.email?.trim() ?? "") && (
+                    <p className="im-text-body-xs text-red-500">Please enter a valid email address.</p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="im-text-body-sm font-semibold text-foreground">WhatsApp Number</label>
-                  <input
-                    type="tel"
-                    value={data.whatsApp ?? ""}
-                    onChange={(e) => setData((prev) => ({ ...prev, whatsApp: e.target.value }))}
-                    placeholder="+1 (555) 123-4567"
-                    className="w-full rounded-2xl border-2 border-slate-200 bg-white px-5 py-4 im-text-body text-foreground placeholder:text-slate-400 focus:border-[#17375B] focus:outline-none transition-colors"
-                  />
-                  <p className="im-text-body-xs text-slate-400">Clinics prefer WhatsApp for quick communication</p>
+                  <label className="im-text-body-sm font-semibold text-foreground">
+                    WhatsApp Number <span className="font-normal text-slate-400">(optional)</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={phoneCode}
+                      onChange={(e) => {
+                        const newCode = e.target.value
+                        setPhoneCode(newCode)
+                        setData((prev) => ({ ...prev, whatsApp: phoneLocal ? newCode + phoneLocal : undefined }))
+                      }}
+                      className="rounded-2xl border-2 border-slate-200 bg-white px-3 py-4 im-text-body text-foreground focus:border-[#17375B] focus:outline-none transition-colors appearance-none w-[130px] shrink-0 text-center"
+                    >
+                      {PHONE_CODES.map((p) => (
+                        <option key={p.code} value={p.code}>{p.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="tel"
+                      value={phoneLocal}
+                      onChange={(e) => {
+                        const local = e.target.value
+                        setPhoneLocal(local)
+                        setData((prev) => ({ ...prev, whatsApp: local ? phoneCode + local : undefined }))
+                      }}
+                      onBlur={() => setContactTouched((prev) => ({ ...prev, whatsApp: true }))}
+                      data-testid="phone-local-input"
+                      className={`flex-1 rounded-2xl border-2 bg-white px-5 py-4 im-text-body text-foreground placeholder:text-slate-400 focus:outline-none transition-colors ${contactTouched.whatsApp && phoneLocal.trim() && !isValidPhone(phoneCode, phoneLocal.trim()) ? "border-red-400 focus:border-red-400" : "border-slate-200 focus:border-[#17375B]"}`}
+                    />
+                  </div>
+                  {contactTouched.whatsApp && phoneLocal.trim() && !isValidPhone(phoneCode, phoneLocal.trim()) ? (
+                    <p className="im-text-body-xs text-red-500">
+                      Please enter a valid number for {PHONE_CODES.find(p => p.code === phoneCode)?.country ?? phoneCode}.
+                    </p>
+                  ) : (
+                    <p className="im-text-body-xs text-slate-400">Clinics prefer WhatsApp for quick communication</p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="im-text-body-sm font-semibold text-foreground">Preferred Language</label>
@@ -569,18 +715,19 @@ export function GetStarted() {
                     <p className="im-text-body-sm font-semibold text-foreground">Your answers</p>
                   </div>
                   {[
-                    { label: "Name", value: data.fullName },
-                    { label: "Email", value: data.email },
-                    { label: "Age", value: data.ageTier?.replace(/_/g, "–") },
-                    { label: "Gender", value: data.gender?.replace(/_/g, " ") },
-                    { label: "Hair loss", value: data.hairLossPattern },
-                    { label: "Country", value: data.country },
-                    { label: "Budget", value: data.budgetTier?.replace(/_/g, " ") },
-                    { label: "Timeline", value: data.timeline?.replace(/_/g, " ") },
-                  ].map(({ label, value }) => value && (
+                    { label: "Name", value: data.fullName, capitalize: true },
+                    { label: "Email", value: data.email, capitalize: false },
+                    { label: "WhatsApp", value: data.whatsApp, capitalize: false },
+                    { label: "Age", value: AGE_OPTIONS.find(o => o.value === data.ageTier)?.label, capitalize: false },
+                    { label: "Gender", value: data.gender?.replace(/_/g, " "), capitalize: true },
+                    { label: "Hair loss", value: data.hairLossPattern, capitalize: true },
+                    { label: "Country", value: data.country, capitalize: true },
+                    { label: "Budget", value: BUDGET_OPTIONS.find(o => o.value === data.budgetTier)?.label, capitalize: false },
+                    { label: "Timeline", value: TIMELINE_OPTIONS.find(o => o.value === data.timeline)?.label, capitalize: false },
+                  ].map(({ label, value, capitalize }) => value && (
                     <div key={label} className="flex justify-between im-text-body-sm">
                       <span className="im-text-muted">{label}</span>
-                      <span className="font-medium text-foreground capitalize">{value}</span>
+                      <span className={`font-medium text-foreground${capitalize ? " capitalize" : ""}`}>{value}</span>
                     </div>
                   ))}
                 </div>
@@ -640,20 +787,32 @@ export function GetStarted() {
             Back
           </button>
 
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={!canContinue || saving}
-            className={cn(
-              "flex items-center gap-2 rounded-2xl px-6 py-3 im-text-body font-semibold transition-all",
-              canContinue && !saving
-                ? "bg-[#17375B] text-white hover:bg-[#102741]"
-                : "bg-slate-200 text-slate-400 cursor-not-allowed",
+          <div className="flex items-center gap-2">
+            {sectionComplete && currentStep.id !== "terms" && (
+              <button
+                type="button"
+                onClick={saveAndExit}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-2xl border-2 border-[#17375B] px-5 py-3 im-text-body font-semibold text-[#17375B] hover:bg-[#17375B]/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving ? "Saving…" : "Save & exit"}
+              </button>
             )}
-          >
-            {saving ? "Saving…" : currentStep.id === "terms" ? "Create my account" : "Continue"}
-            {!saving && <ArrowRight className="h-4 w-4" />}
-          </button>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={!canContinue || saving}
+              className={cn(
+                "flex items-center gap-2 rounded-2xl px-6 py-3 im-text-body font-semibold transition-all",
+                canContinue && !saving
+                  ? "bg-[#17375B] text-white hover:bg-[#102741]"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed",
+              )}
+            >
+              {saving ? "Saving…" : currentStep.id === "terms" ? "Create my account" : "Continue"}
+              {!saving && <ArrowRight className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
 
       </div>

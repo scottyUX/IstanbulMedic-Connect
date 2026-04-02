@@ -6,7 +6,7 @@ export async function GET() {
     const data = await getUserPhotos();
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = error instanceof Error ? error.message : (error as any)?.message ?? 'Unknown error';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
@@ -20,7 +20,7 @@ export async function DELETE(request: Request) {
     await deleteUserPhoto(view);
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = error instanceof Error ? error.message : (error as any)?.message ?? 'Unknown error';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

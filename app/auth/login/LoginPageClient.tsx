@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -18,6 +18,8 @@ const LoginPageClient = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [manualError, setManualError] = useState<string | null>(null)
   const [confirmationSent, setConfirmationSent] = useState(false)
+  const [signUpSuccess, setSignUpSuccess] = useState(false)
+  const justSignedUp = useRef(false)
 
   const next = searchParams.get("next") ?? "/profile"
 
@@ -29,12 +31,24 @@ const LoginPageClient = () => {
 
   const error = manualError ?? queryError
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (skip if we just signed up — let the timer handle it)
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    if (!loading && isAuthenticated && !justSignedUp.current) {
       router.push(next)
     }
   }, [loading, isAuthenticated, next, router])
+
+  // Pre-fill email from passport contact step when landing on signup
+  useEffect(() => {
+    if (tab !== "signup" || email) return
+    try {
+      const stored = window.localStorage.getItem("im.qualification")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (parsed?.email) setEmail(parsed.email)
+      }
+    } catch { /* ignore */ }
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,14 +70,18 @@ const LoginPageClient = () => {
           setIsLoading(false)
           return
         }
+        justSignedUp.current = true
         const { needsConfirmation } = await signUpWithEmail(email, password)
         if (needsConfirmation) {
+          justSignedUp.current = false
           setConfirmationSent(true)
         } else {
-          router.push(next)
+          setSignUpSuccess(true)
+          setTimeout(() => router.push(next), 1500)
         }
       }
     } catch (err) {
+      justSignedUp.current = false
       setManualError(err instanceof Error ? err.message : "Something went wrong. Please try again.")
     } finally {
       setIsLoading(false)
@@ -127,7 +145,7 @@ const LoginPageClient = () => {
               <button
                 key={t}
                 type="button"
-                onClick={() => { setTab(t); setManualError(null) }}
+                onClick={() => { setTab(t); setManualError(null); setPassword(""); setConfirmPassword("") }}
                 className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-all ${
                   tab === t
                     ? "bg-white text-[#17375B] shadow-sm"
@@ -138,6 +156,12 @@ const LoginPageClient = () => {
               </button>
             ))}
           </div>
+
+          {signUpSuccess && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-sm text-emerald-700 font-medium">Account created! Taking you to your profile…</p>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">

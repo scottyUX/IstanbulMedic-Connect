@@ -135,11 +135,11 @@ describe('getQualification', () => {
     )
 
     const result = await getQualification()
-    expect(result.ageTier).toBe('35_44')
+    expect(result.ageTier).toBe('35-44')
     expect(result.country).toBe('Germany')
     expect(result.hairLossPattern).toBe('advanced')
-    expect(result.budgetTier).toBe('5000_8000')
-    expect(result.timeline).toBe('6_12_months')
+    expect(result.budgetTier).toBe('5000-8000')
+    expect(result.timeline).toBe('6-12-months')
     expect(result.whatsApp).toBe('+49123456789')
     expect(result.preferredLanguage).toBe('de')
     expect(result.termsAccepted).toBe(true)
@@ -357,7 +357,7 @@ describe('upsertQualification', () => {
     const result = await upsertQualification({
       fullName: 'Alice Smith',
       email: 'alice@example.com',
-      ageTier: '25_34',
+      ageTier: '25-34',
       country: 'UK',
       termsAccepted: true,
     })

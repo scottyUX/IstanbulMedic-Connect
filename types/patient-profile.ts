@@ -6,26 +6,26 @@
 // --- Enums ---
 
 export type AgeTier =
-  | "18_24"
-  | "25_34"
-  | "35_44"
-  | "45_54"
-  | "55_64"
-  | "65_plus";
+  | "18-24"
+  | "25-34"
+  | "35-44"
+  | "45-54"
+  | "55-64"
+  | "65-plus";
 
 export type BudgetTier =
-  | "under_2000"
-  | "2000_5000"
-  | "5000_8000"
-  | "8000_12000"
-  | "12000_plus";
+  | "under-2000"
+  | "2000-5000"
+  | "5000-8000"
+  | "8000-12000"
+  | "12000-plus";
 
 export type Timeline =
   | "asap"
-  | "1_3_months"
-  | "3_6_months"
-  | "6_12_months"
-  | "12_plus_months";
+  | "1-3-months"
+  | "3-6-months"
+  | "6-12-months"
+  | "12-plus-months";
 
 export type PatientStage =
   | "onboarding"

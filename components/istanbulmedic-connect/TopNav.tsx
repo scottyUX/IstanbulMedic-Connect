@@ -24,6 +24,7 @@ const CONSULTATION_LINK = "https://cal.com/team/istanbul-medic/istanbul-medic-15
 export const TopNav = () => {
   const [open, setOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [logoutToast, setLogoutToast] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
@@ -35,6 +36,8 @@ export const TopNav = () => {
   const handleSignOut = async () => {
     setOpen(false)
     setUserMenuOpen(false)
+    setLogoutToast(true)
+    setTimeout(() => setLogoutToast(false), 3000)
     await logout()
   }
 
@@ -361,6 +364,21 @@ export const TopNav = () => {
           </div>
         </div>
       </Container>
+
+      {/* Logout success toast */}
+      <AnimatePresence>
+        {logoutToast && (
+          <motion.div
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 shadow-lg"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.2 }}
+          >
+            <p className="text-sm font-semibold text-emerald-700">You&apos;ve been signed out successfully.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }

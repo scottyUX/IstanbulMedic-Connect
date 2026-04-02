@@ -230,13 +230,28 @@ function PhaseCard({ phase, completion }: { phase: (typeof PHASES)[number]; comp
 
 // --- Dashboard ---
 
+function getLocalCompletion(): Completion {
+  try {
+    const phase1Done = window.localStorage.getItem("im.qualification.complete") === "true"
+    const phase2Done = window.localStorage.getItem("im.treatment-profile.complete") === "true"
+    return {
+      "get-started": phase1Done ? 100 : 0,
+      "treatment-profile": phase2Done ? 100 : 0,
+      "ai-insights": 0,
+      "share-connect": 0,
+    }
+  } catch {
+    return { "get-started": 0, "treatment-profile": 0, "ai-insights": 0, "share-connect": 0 }
+  }
+}
+
 export function UserProfileDashboard() {
-  const [completion, setCompletion] = useState<Completion>({
-    "get-started": 0,
-    "treatment-profile": 0,
-    "ai-insights": 0,
-    "share-connect": 0,
-  })
+  const [completion, setCompletion] = useState<Completion>(() =>
+    typeof window !== "undefined"
+      ? getLocalCompletion()
+      : { "get-started": 0, "treatment-profile": 0, "ai-insights": 0, "share-connect": 0 }
+  )
+  const [statusLoading, setStatusLoading] = useState(true)
 
   useEffect(() => {
     async function loadStatus() {
@@ -254,16 +269,12 @@ export function UserProfileDashboard() {
           }
         }
       } catch {
-        // fall through to localStorage
+        // fall through — localStorage values already loaded as initial state
+      } finally {
+        setStatusLoading(false)
       }
-      // Fallback: read from localStorage (unauthenticated or network error)
-      const phase1Done = window.localStorage.getItem("im.qualification.complete") === "true"
-      const phase2Done = window.localStorage.getItem("im.treatment-profile.complete") === "true"
-      setCompletion((prev) => ({
-        ...prev,
-        "get-started": phase1Done ? 100 : 0,
-        "treatment-profile": phase2Done ? 100 : 0,
-      }))
+      // Fallback: ensure localStorage values are reflected (already set as initial state, but re-sync)
+      setCompletion(getLocalCompletion())
     }
     loadStatus()
   }, [])
@@ -309,9 +320,17 @@ export function UserProfileDashboard() {
 
         {/* Phase cards */}
         <div className="flex flex-col gap-3">
-          {PHASES.map((phase) => (
-            <PhaseCard key={phase.id} phase={phase} completion={completion} />
-          ))}
+          {statusLoading
+            ? PHASES.map((phase) => (
+                <div
+                  key={phase.id}
+                  className="h-[88px] rounded-2xl border border-slate-200 bg-white shadow-sm animate-pulse"
+                />
+              ))
+            : PHASES.map((phase) => (
+                <PhaseCard key={phase.id} phase={phase} completion={completion} />
+              ))
+          }
         </div>
 
       </Container>

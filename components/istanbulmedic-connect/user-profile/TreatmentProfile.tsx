@@ -334,9 +334,11 @@ export function TreatmentProfile() {
   }, [highestStep, hydrated])
 
   // Revoke object URLs on unmount (only for locally-created object URLs, not storage URLs)
+  const photosRef = useRef(photos)
+  photosRef.current = photos
   useEffect(() => {
-    return () => { photos.forEach((p) => { if (p.file) URL.revokeObjectURL(p.previewUrl) }) }
-  }, [photos])
+    return () => { photosRef.current.forEach((p) => { if (p.file) URL.revokeObjectURL(p.previewUrl) }) }
+  }, [])
 
   // Scroll to top on step change
   useEffect(() => {
@@ -439,6 +441,31 @@ export function TreatmentProfile() {
     setDirection(-1)
     if (step === 0) router.push("/profile")
     else setStep((s) => s - 1)
+  }
+
+  const sectionComplete = highestStep >= TOTAL_STEPS - 1
+
+  async function saveAndExit() {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const res = await fetch("/api/profile/treatment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        setSaveError(json.error ?? "Failed to save.")
+        setSaving(false)
+        return
+      }
+    } catch {
+      // localStorage already has the data — continue to dashboard
+    } finally {
+      setSaving(false)
+    }
+    router.push("/profile")
   }
 
   function navigateTo(i: number) {
@@ -824,14 +851,22 @@ export function TreatmentProfile() {
               className="flex items-center gap-2 im-text-body-sm font-semibold text-slate-500 hover:text-[#0D1E32] transition-colors disabled:opacity-40">
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
-            <button type="button" onClick={goNext} disabled={!canContinue || saving}
-              className={cn(
-                "flex items-center gap-2 rounded-2xl px-6 py-3 im-text-body font-semibold transition-all",
-                canContinue && !saving ? "bg-[#17375B] text-white hover:bg-[#102741]" : "bg-slate-200 text-slate-400 cursor-not-allowed",
-              )}>
-              {saving ? "Saving…" : step === TOTAL_STEPS - 1 ? "Save & continue" : "Continue"}
-              {!saving && <ArrowRight className="h-4 w-4" />}
-            </button>
+            <div className="flex items-center gap-2">
+              {sectionComplete && step !== TOTAL_STEPS - 1 && (
+                <button type="button" onClick={saveAndExit} disabled={saving}
+                  className="flex items-center gap-2 rounded-2xl border-2 border-[#17375B] px-5 py-3 im-text-body font-semibold text-[#17375B] hover:bg-[#17375B]/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                  {saving ? "Saving…" : "Save & exit"}
+                </button>
+              )}
+              <button type="button" onClick={goNext} disabled={!canContinue || saving}
+                className={cn(
+                  "flex items-center gap-2 rounded-2xl px-6 py-3 im-text-body font-semibold transition-all",
+                  canContinue && !saving ? "bg-[#17375B] text-white hover:bg-[#102741]" : "bg-slate-200 text-slate-400 cursor-not-allowed",
+                )}>
+                {saving ? "Saving…" : step === TOTAL_STEPS - 1 ? "Save & continue" : "Continue"}
+                {!saving && <ArrowRight className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
         </div>

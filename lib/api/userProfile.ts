@@ -69,7 +69,7 @@ export async function upsertQualification(payload: QualificationPayload) {
   const { data: userRow, error: userError } = await supabase
     .from('users')
     .upsert(
-      { auth_id: user.id, name: payload.fullName, email: payload.email },
+      { auth_id: user.id, name: payload.fullName, email: payload.email, phone_number: payload.whatsApp ?? null },
       { onConflict: 'auth_id' }
     )
     .select('id')
@@ -103,11 +103,11 @@ export async function upsertQualification(payload: QualificationPayload) {
     .upsert(
       {
         user_id: userId,
-        age_tier: payload.ageTier ?? null,
+        age_tier: payload.ageTier?.replace(/-/g, '_') ?? null,
         country: payload.country ?? null,
         hair_loss_pattern: payload.hairLossPattern ?? null,
-        budget_tier: payload.budgetTier ?? null,
-        timeline: payload.timeline ?? null,
+        budget_tier: payload.budgetTier?.replace(/-/g, '_') ?? null,
+        timeline: payload.timeline?.replace(/-/g, '_') ?? null,
         whatsapp_number: payload.whatsApp ?? null,
         preferred_language: payload.preferredLanguage ?? 'en',
         terms_accepted: payload.termsAccepted,
@@ -144,11 +144,11 @@ export async function getQualification() {
     .maybeSingle();
 
   return {
-    ageTier: data?.age_tier ?? null,
+    ageTier: data?.age_tier?.replace(/_/g, '-') ?? null,
     country: data?.country ?? null,
     hairLossPattern: data?.hair_loss_pattern ?? null,
-    budgetTier: data?.budget_tier ?? null,
-    timeline: data?.timeline ?? null,
+    budgetTier: data?.budget_tier?.replace(/_/g, '-') ?? null,
+    timeline: data?.timeline?.replace(/_/g, '-') ?? null,
     whatsApp: data?.whatsapp_number ?? null,
     preferredLanguage: data?.preferred_language ?? profileRow?.preferred_language ?? 'en',
     termsAccepted: data?.terms_accepted ?? false,

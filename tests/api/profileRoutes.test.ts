@@ -64,7 +64,7 @@ describe('GET /api/profile/qualification', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('returns 200 with data on success', async () => {
-    const mockData = { ageTier: '25_34', country: 'UK', termsAccepted: true }
+    const mockData = { ageTier: '25-34', country: 'UK', termsAccepted: true }
     mockGetQualification.mockResolvedValue(mockData as never)
 
     const response = await qualificationGET()
@@ -103,7 +103,7 @@ describe('POST /api/profile/qualification', () => {
   it('returns 200 with userId on success', async () => {
     mockUpsertQualification.mockResolvedValue({ userId: 'user-abc' })
 
-    const payload = { ageTier: '25_34', termsAccepted: true }
+    const payload = { ageTier: '25-34', termsAccepted: true }
     const response = await qualificationPOST(makeRequest(payload))
     const body = await jsonBody(response)
 

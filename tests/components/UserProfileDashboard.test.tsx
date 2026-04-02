@@ -51,10 +51,12 @@ describe('UserProfileDashboard', () => {
 
   it('renders phase number labels in the stepper', async () => {
     render(<UserProfileDashboard />)
-    expect(screen.getByText('Phase 1')).toBeInTheDocument()
-    expect(screen.getByText('Phase 2')).toBeInTheDocument()
-    expect(screen.getByText('Phase 3')).toBeInTheDocument()
-    expect(screen.getByText('Phase 4')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Phase 1')).toBeInTheDocument()
+      expect(screen.getByText('Phase 2')).toBeInTheDocument()
+      expect(screen.getByText('Phase 3')).toBeInTheDocument()
+      expect(screen.getByText('Phase 4')).toBeInTheDocument()
+    })
   })
 
   // --- Initial state (nothing complete) ---
@@ -76,7 +78,7 @@ describe('UserProfileDashboard', () => {
 
   it('Phase 1 links to /profile/get-started', async () => {
     render(<UserProfileDashboard />)
-    const link = screen.getByRole('link', { name: /Get Started/i })
+    const link = await waitFor(() => screen.getByRole('link', { name: /Get Started/i }))
     expect(link).toHaveAttribute('href', '/profile/get-started')
   })
 
