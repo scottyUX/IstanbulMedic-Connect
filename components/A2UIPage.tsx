@@ -2,7 +2,7 @@
 
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
-import { createA2UIMessageRenderer } from "@copilotkit/a2ui-renderer";
+import { createA2UIMessageRenderer } from "@copilotkitnext/react";
 import type { ReactNode } from "react";
 
 import { a2uiViewerTheme } from "@/lib/a2ui/viewer-theme";

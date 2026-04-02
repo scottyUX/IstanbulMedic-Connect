@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { CopilotKit } from "@copilotkit/react-core";
-import { createA2UIMessageRenderer } from "@copilotkit/a2ui-renderer";
+import { createA2UIMessageRenderer } from "@copilotkitnext/react";
 import { a2uiViewerTheme } from "@/lib/a2ui/viewer-theme";
 import LeilaHero from "@/components/leila/LeilaHero";
 import LeilaNarrative from "@/components/leila/LeilaNarrative";
