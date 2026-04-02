@@ -80,19 +80,35 @@ test.describe('Clinic Filter Flow', () => {
   test('search input filters results', async ({ page }) => {
     // Type in search input (use first() since there may be mobile version)
     const searchInput = page.locator('[data-testid="search-input"]').first();
+
+    // Set up response listener BEFORE typing to avoid race condition
+    const responsePromise = page.waitForResponse(
+      (resp) => resp.url().includes('/clinics') && resp.status() === 200,
+      { timeout: 10000 }
+    );
+
     await searchInput.fill('istanbul');
 
-    // Wait for debounced URL update (component has 400ms debounce)
-    await expect(page).toHaveURL(/q=istanbul/i, { timeout: 10000 });
+    // Wait for the filter request to complete before checking URL
+    await responsePromise;
+    await expect(page).toHaveURL(/q=istanbul/i);
   });
 
   test('location input filters results', async ({ page }) => {
     // Type in location input (use first() since there may be mobile version)
     const locationInput = page.locator('[data-testid="location-input"]').first();
+
+    // Set up response listener BEFORE typing to avoid race condition
+    const responsePromise = page.waitForResponse(
+      (resp) => resp.url().includes('/clinics') && resp.status() === 200,
+      { timeout: 10000 }
+    );
+
     await locationInput.fill('Turkey');
 
-    // Wait for debounced URL update (component has 400ms debounce)
-    await expect(page).toHaveURL(/location=Turkey/i, { timeout: 10000 });
+    // Wait for the filter request to complete before checking URL
+    await responsePromise;
+    await expect(page).toHaveURL(/location=Turkey/i);
   });
 
   test('filter badge shows count when filters active', async ({ page }) => {
