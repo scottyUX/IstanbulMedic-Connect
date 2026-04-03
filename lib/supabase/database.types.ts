@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   public: {
     Tables: {
       analyses: {
@@ -959,6 +954,346 @@ export type Database = {
         }
         Relationships: []
       }
+      user_photos: {
+        Row: {
+          deleted: boolean | null
+          file_size_bytes: number | null
+          id: string
+          mime_type: string | null
+          photo_view: Database["public"]["Enums"]["photo_view"]
+          storage_url: string
+          uploaded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          deleted?: boolean | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          photo_view: Database["public"]["Enums"]["photo_view"]
+          storage_url: string
+          uploaded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          deleted?: boolean | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          photo_view?: Database["public"]["Enums"]["photo_view"]
+          storage_url?: string
+          uploaded_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_photos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_prior_surgeries: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          surgery_type: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          surgery_type: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          surgery_type?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_prior_surgeries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_prior_transplants: {
+        Row: {
+          clinic_country: string | null
+          created_at: string | null
+          estimated_grafts: number | null
+          id: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          clinic_country?: string | null
+          created_at?: string | null
+          estimated_grafts?: number | null
+          id?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          clinic_country?: string | null
+          created_at?: string | null
+          estimated_grafts?: number | null
+          id?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_prior_transplants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          date_of_birth: string | null
+          deleted: boolean | null
+          first_name: string
+          gender: string | null
+          id: string
+          last_name: string
+          nationality: string | null
+          preferred_language: string | null
+          profile_picture_url: string | null
+          timezone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          deleted?: boolean | null
+          first_name: string
+          gender?: string | null
+          id?: string
+          last_name: string
+          nationality?: string | null
+          preferred_language?: string | null
+          profile_picture_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          deleted?: boolean | null
+          first_name?: string
+          gender?: string | null
+          id?: string
+          last_name?: string
+          nationality?: string | null
+          preferred_language?: string | null
+          profile_picture_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_qualification: {
+        Row: {
+          age_tier: Database["public"]["Enums"]["age_tier"] | null
+          budget_tier: Database["public"]["Enums"]["budget_tier"] | null
+          consent_given: boolean
+          country: string | null
+          created_at: string | null
+          deleted: boolean | null
+          hair_loss_pattern:
+            | Database["public"]["Enums"]["hair_loss_pattern"]
+            | null
+          id: string
+          preferred_language: string | null
+          terms_accepted: boolean
+          timeline: Database["public"]["Enums"]["treatment_timeline"] | null
+          updated_at: string | null
+          user_id: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          age_tier?: Database["public"]["Enums"]["age_tier"] | null
+          budget_tier?: Database["public"]["Enums"]["budget_tier"] | null
+          consent_given?: boolean
+          country?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          hair_loss_pattern?:
+            | Database["public"]["Enums"]["hair_loss_pattern"]
+            | null
+          id?: string
+          preferred_language?: string | null
+          terms_accepted?: boolean
+          timeline?: Database["public"]["Enums"]["treatment_timeline"] | null
+          updated_at?: string | null
+          user_id: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          age_tier?: Database["public"]["Enums"]["age_tier"] | null
+          budget_tier?: Database["public"]["Enums"]["budget_tier"] | null
+          consent_given?: boolean
+          country?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          hair_loss_pattern?:
+            | Database["public"]["Enums"]["hair_loss_pattern"]
+            | null
+          id?: string
+          preferred_language?: string | null
+          terms_accepted?: boolean
+          timeline?: Database["public"]["Enums"]["treatment_timeline"] | null
+          updated_at?: string | null
+          user_id?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_qualification_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_treatment_profiles: {
+        Row: {
+          allergies: string[] | null
+          created_at: string | null
+          deleted: boolean | null
+          desired_density: Database["public"]["Enums"]["desired_density"] | null
+          donor_area_availability:
+            | Database["public"]["Enums"]["donor_area_availability"]
+            | null
+          donor_area_quality:
+            | Database["public"]["Enums"]["donor_area_quality"]
+            | null
+          had_prior_transplant: boolean | null
+          hair_loss_duration_years: number | null
+          id: string
+          medications: string[] | null
+          norwood_scale: number | null
+          other_conditions: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          allergies?: string[] | null
+          created_at?: string | null
+          deleted?: boolean | null
+          desired_density?:
+            | Database["public"]["Enums"]["desired_density"]
+            | null
+          donor_area_availability?:
+            | Database["public"]["Enums"]["donor_area_availability"]
+            | null
+          donor_area_quality?:
+            | Database["public"]["Enums"]["donor_area_quality"]
+            | null
+          had_prior_transplant?: boolean | null
+          hair_loss_duration_years?: number | null
+          id?: string
+          medications?: string[] | null
+          norwood_scale?: number | null
+          other_conditions?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          allergies?: string[] | null
+          created_at?: string | null
+          deleted?: boolean | null
+          desired_density?:
+            | Database["public"]["Enums"]["desired_density"]
+            | null
+          donor_area_availability?:
+            | Database["public"]["Enums"]["donor_area_availability"]
+            | null
+          donor_area_quality?:
+            | Database["public"]["Enums"]["donor_area_quality"]
+            | null
+          had_prior_transplant?: boolean | null
+          hair_loss_duration_years?: number | null
+          id?: string
+          medications?: string[] | null
+          norwood_scale?: number | null
+          other_conditions?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_treatment_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          auth_id: string | null
+          created_at: string | null
+          deleted: boolean | null
+          email: string | null
+          id: string
+          name: string | null
+          phone_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_id?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_id?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -987,6 +1322,13 @@ export type Database = {
       }
     }
     Enums: {
+      age_tier: "18_24" | "25_34" | "35_44" | "45_54" | "55_64" | "65_plus"
+      budget_tier:
+        | "under_2000"
+        | "2000_5000"
+        | "5000_8000"
+        | "8000_12000"
+        | "12000_plus"
       clinic_credential_types:
         | "license"
         | "accreditation"
@@ -1029,8 +1371,12 @@ export type Database = {
       clinic_service_name: "Hair Transplant" | "Rhinoplasty" | "Other"
       clinic_status: "active" | "inactive" | "under_review"
       computed_by_enum: "extractor" | "human" | "inquiry" | "model"
+      desired_density: "maximum" | "high" | "medium" | "low"
       doc_type_enum: "html" | "pdf" | "post" | "comment" | "review"
       doctor_involvement_levels: "high" | "medium" | "low"
+      donor_area_availability: "good" | "adequate" | "limited"
+      donor_area_quality: "excellent" | "good" | "adequate" | "poor"
+      hair_loss_pattern: "early" | "moderate" | "advanced" | "extensive"
       instagram_post_type: "Image" | "Video" | "Sidecar"
       mention_topic_enum:
         | "pricing"
@@ -1044,6 +1390,7 @@ export type Database = {
         | "response_time"
         | "package_accuracy"
         | "before_after"
+      photo_view: "front" | "left_side" | "right_side" | "top" | "donor_area"
       score_band_enum: "A" | "B" | "C" | "D"
       sentiment_enum: "negative" | "neutral" | "positive"
       social_platform_enum:
@@ -1063,6 +1410,11 @@ export type Database = {
         | "social_media"
         | "mystery_inquiry"
         | "internal_note"
+      treatment_timeline:
+        | "1_3_months"
+        | "3_6_months"
+        | "6_12_months"
+        | "12_plus_months"
       value_type_enum: "string" | "number" | "bool" | "json"
     }
     CompositeTypes: {
@@ -1191,6 +1543,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      age_tier: ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"],
+      budget_tier: [
+        "under_2000",
+        "2000_5000",
+        "5000_8000",
+        "8000_12000",
+        "12000_plus",
+      ],
       clinic_credential_types: [
         "license",
         "accreditation",
@@ -1237,8 +1597,12 @@ export const Constants = {
       clinic_service_name: ["Hair Transplant", "Rhinoplasty", "Other"],
       clinic_status: ["active", "inactive", "under_review"],
       computed_by_enum: ["extractor", "human", "inquiry", "model"],
+      desired_density: ["maximum", "high", "medium", "low"],
       doc_type_enum: ["html", "pdf", "post", "comment", "review"],
       doctor_involvement_levels: ["high", "medium", "low"],
+      donor_area_availability: ["good", "adequate", "limited"],
+      donor_area_quality: ["excellent", "good", "adequate", "poor"],
+      hair_loss_pattern: ["early", "moderate", "advanced", "extensive"],
       instagram_post_type: ["Image", "Video", "Sidecar"],
       mention_topic_enum: [
         "pricing",
@@ -1253,6 +1617,7 @@ export const Constants = {
         "package_accuracy",
         "before_after",
       ],
+      photo_view: ["front", "left_side", "right_side", "top", "donor_area"],
       score_band_enum: ["A", "B", "C", "D"],
       sentiment_enum: ["negative", "neutral", "positive"],
       social_platform_enum: [
@@ -1274,7 +1639,14 @@ export const Constants = {
         "mystery_inquiry",
         "internal_note",
       ],
+      treatment_timeline: [
+        "1_3_months",
+        "3_6_months",
+        "6_12_months",
+        "12_plus_months",
+      ],
       value_type_enum: ["string", "number", "bool", "json"],
     },
   },
 } as const
+
