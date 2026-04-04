@@ -81,16 +81,12 @@ test.describe('Clinic Filter Flow', () => {
     // Type in search input (use first() since there may be mobile version)
     const searchInput = page.locator('[data-testid="search-input"]').first();
 
-    // Set up response listener BEFORE typing to avoid race condition
-    const responsePromise = page.waitForResponse(
-      (resp) => resp.url().includes('/clinics') && resp.status() === 200,
-      { timeout: 10000 }
-    );
+    // Use pressSequentially to fire real key events — required for React's onChange on webkit
+    await searchInput.click();
+    await searchInput.pressSequentially('istanbul');
 
-    await searchInput.fill('istanbul');
-
-    // Wait for the filter request to complete before checking URL
-    await responsePromise;
+    // Wait for the URL to update after the 400ms debounce + router.push navigation
+    await page.waitForURL(/q=istanbul/i, { timeout: 10000 });
     await expect(page).toHaveURL(/q=istanbul/i);
   });
 
@@ -98,16 +94,12 @@ test.describe('Clinic Filter Flow', () => {
     // Type in location input (use first() since there may be mobile version)
     const locationInput = page.locator('[data-testid="location-input"]').first();
 
-    // Set up response listener BEFORE typing to avoid race condition
-    const responsePromise = page.waitForResponse(
-      (resp) => resp.url().includes('/clinics') && resp.status() === 200,
-      { timeout: 10000 }
-    );
+    // Use pressSequentially to fire real key events — required for React's onChange on webkit
+    await locationInput.click();
+    await locationInput.pressSequentially('Turkey');
 
-    await locationInput.fill('Turkey');
-
-    // Wait for the filter request to complete before checking URL
-    await responsePromise;
+    // Wait for the URL to update after the 400ms debounce + router.push navigation
+    await page.waitForURL(/location=Turkey/i, { timeout: 10000 });
     await expect(page).toHaveURL(/location=Turkey/i);
   });
 
