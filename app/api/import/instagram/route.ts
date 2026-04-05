@@ -172,8 +172,9 @@ function derivePostFacts(posts: InstagramPost[], clinicId: string) {
   const now = new Date().toISOString()
 
   // --- Engagement stats ---
-  const totalLikes    = posts.reduce((s, p) => s + (p.likesCount    ?? 0), 0)
-  const totalComments = posts.reduce((s, p) => s + (p.commentsCount ?? 0), 0)
+  // Note: Hidden likes return -1 from Instagram API; we treat them as 0 (clinic's choice to hide)
+  const totalLikes    = posts.reduce((s, p) => s + Math.max(p.likesCount ?? 0, 0), 0)
+  const totalComments = posts.reduce((s, p) => s + Math.max(p.commentsCount ?? 0, 0), 0)
   const avgLikes      = Math.round(totalLikes    / posts.length)
   const avgComments   = Math.round(totalComments / posts.length)
 
@@ -396,8 +397,9 @@ export async function POST(request: Request) {
     const followers = instagramData.instagram.followersCount ?? 0
 
     // Calculate engagement stats from posts
-    const totalLikes = posts.reduce((s, p) => s + (p.likesCount ?? 0), 0)
-    const totalComments = posts.reduce((s, p) => s + (p.commentsCount ?? 0), 0)
+    // Note: Hidden likes return -1 from Instagram API; we treat them as 0 (clinic's choice to hide)
+    const totalLikes = posts.reduce((s, p) => s + Math.max(p.likesCount ?? 0, 0), 0)
+    const totalComments = posts.reduce((s, p) => s + Math.max(p.commentsCount ?? 0, 0), 0)
     const avgLikes = posts.length > 0 ? totalLikes / posts.length : 0
     const avgComments = posts.length > 0 ? totalComments / posts.length : 0
 
