@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
 import { Heading, Text } from "@/components/ui/typography"
+import { InstagramSignalsCard, DEMO_INSTAGRAM_SIGNALS, DEMO_INSTAGRAM_SIGNALS_CONCERN } from "@/components/istanbulmedic-connect/profile/InstagramSignalsCard"
 
 const headingFont = Merriweather({
   subsets: ["latin"],
@@ -60,6 +61,7 @@ const NAV_SECTIONS = [
   { id: "separator", label: "Separator" },
   { id: "navigation", label: "Navigation" },
   { id: "typography", label: "Typography" },
+  { id: "instagram-signals", label: "Instagram Signals" },
 ] as const
 
 export default function DesignSystemPage() {
@@ -1457,6 +1459,115 @@ export default function DesignSystemPage() {
                     <li>Use semantic HTML headings for screen readers</li>
                   </ul>
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Instagram Signals Section */}
+        <Card id="instagram-signals" className="scroll-mt-24">
+          <CardHeader>
+            <CardTitle>Instagram Signals Card</CardTitle>
+            <CardDescription>Displays Instagram trust signals that contribute to the clinic trust score</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <p className="im-text-body-sm im-text-muted mb-6">
+              Component: <code className="bg-muted px-2 py-1 rounded">InstagramSignalsCard</code>
+            </p>
+
+            {/* Purpose */}
+            <div>
+              <h3 className="im-heading-4 mb-4">Purpose</h3>
+              <p className="im-text-body im-text-muted">
+                Shows patients the Instagram-derived trust signals that factor into a clinic&apos;s overall trust score.
+                This provides transparency about how social media presence is evaluated without showing misleading point values.
+              </p>
+            </div>
+
+            {/* Live Demo - Positive */}
+            <div>
+              <h3 className="im-heading-4 mb-4">Demo: Mostly Positive Signals</h3>
+              <div className="max-w-xl">
+                <InstagramSignalsCard data={DEMO_INSTAGRAM_SIGNALS} />
+              </div>
+            </div>
+
+            {/* Live Demo - Concern */}
+            <div>
+              <h3 className="im-heading-4 mb-4">Demo: Some Concerns</h3>
+              <div className="max-w-xl">
+                <InstagramSignalsCard data={DEMO_INSTAGRAM_SIGNALS_CONCERN} />
+              </div>
+            </div>
+
+            {/* Design Principles */}
+            <div>
+              <h3 className="im-heading-4 mb-4">Design Principles</h3>
+              <ul className="list-disc list-inside space-y-2 im-text-body-sm im-text-muted">
+                <li><strong>Visual first:</strong> Gauge bars and checkmarks for instant scanning</li>
+                <li><strong>Accordion explanations:</strong> &quot;Why this matters&quot; expands on tap - keeps UI clean</li>
+                <li><strong>Mobile-friendly:</strong> One accordion open at a time, clear tap targets</li>
+                <li><strong>Two states:</strong> Positive (green) or Concern (amber) - no confusing scales</li>
+                <li><strong>Transparent:</strong> Shows when data was last updated</li>
+              </ul>
+            </div>
+
+            {/* Signals Covered */}
+            <div>
+              <h3 className="im-heading-4 mb-4">Signals Covered</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Engagement Rate</h4>
+                  <p className="im-text-body-sm im-text-muted">Are real people interacting with their posts? Low engagement with high followers may indicate purchased followers.</p>
+                </div>
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Comments Enabled</h4>
+                  <p className="im-text-body-sm im-text-muted">Can people leave public comments? Disabled comments may mean they&apos;re hiding negative feedback.</p>
+                </div>
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Verified Business</h4>
+                  <p className="im-text-body-sm im-text-muted">Is this a verified business account? Adds a layer of legitimacy.</p>
+                </div>
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Posting Activity</h4>
+                  <p className="im-text-body-sm im-text-muted">How often do they post? Regular activity suggests an active, engaged clinic.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Data Structure */}
+            <div>
+              <h3 className="im-heading-4 mb-4">Data Structure</h3>
+              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+{`interface InstagramSignalsData {
+  username: string
+  followersCount: number
+  lastUpdated: string  // ISO date for transparency
+  signals: {
+    id: string              // "engagement", "commentsEnabled", etc.
+    label: string           // "Engagement"
+    status: "positive" | "concern"
+    type: "gauge" | "boolean"
+    value?: number          // 0-100 for gauge type
+    statusText: string      // "Good", "Low", "Enabled"
+    explanation: string     // Shown on accordion expand
+  }[]
+}`}
+              </pre>
+            </div>
+
+            {/* Usage Notes */}
+            <div>
+              <h3 className="im-heading-4 mb-4">Usage Notes</h3>
+              <div className="space-y-3 im-text-body-sm">
+                <ul className="list-disc list-inside space-y-2 im-text-muted ml-2">
+                  <li>Signals are derived from scraped Instagram data (posting frequency, engagement rate, etc.)</li>
+                  <li>Each signal has static &quot;why it matters&quot; explanations - different for positive vs concern states</li>
+                  <li>The summary banner gives patients a quick takeaway without reading every signal</li>
+                  <li>The footer links directly to Instagram so patients can verify for themselves</li>
+                  <li>&quot;Data last updated&quot; timestamp ensures patients know how fresh the data is</li>
+                  <li>To wire up real data: compute signals from <code className="bg-muted px-1 rounded">clinic_social_media</code> and <code className="bg-muted px-1 rounded">clinic_instagram_posts</code> tables</li>
+                </ul>
               </div>
             </div>
           </CardContent>

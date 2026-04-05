@@ -12,11 +12,11 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
 }));
 vi.mock('@/lib/api/instagram', () => ({
-  getClinicInstagramData: vi.fn(),
+  getInstagramSignals: vi.fn(),
 }));
 
 import { createClient } from '@/lib/supabase/server';
-import { getClinicInstagramData } from '@/lib/api/instagram';
+import { getInstagramSignals } from '@/lib/api/instagram';
 
 // Helper to create a mock query builder with chainable methods
 const createMockQueryBuilder = (data: unknown = [], error: unknown = null, count: number | null = null) => {
@@ -342,7 +342,7 @@ describe('getClinicById', () => {
     vi.clearAllMocks();
     mockSupabase = createMockSupabase();
     (createClient as Mock).mockResolvedValue(mockSupabase);
-    (getClinicInstagramData as Mock).mockResolvedValue(null);
+    (getInstagramSignals as Mock).mockResolvedValue(null);
   });
 
   const sampleFullClinic = {
@@ -497,20 +497,24 @@ describe('getClinicById', () => {
     expect(result!.scoreComponents).toBeDefined();
   });
 
-  it('includes instagram data from getClinicInstagramData', async () => {
+  it('includes instagramSignals from getInstagramSignals', async () => {
     const mockBuilder = createMockQueryBuilder(sampleFullClinic, null);
     mockSupabase.from.mockReturnValue(mockBuilder);
-    (getClinicInstagramData as Mock).mockResolvedValue({
+    (getInstagramSignals as Mock).mockResolvedValue({
       username: 'testclinic',
       followersCount: 25000,
+      lastUpdated: '2026-03-01T00:00:00Z',
+      signals: [],
     });
 
     const result = await getClinicById('clinic-1');
 
-    expect(getClinicInstagramData).toHaveBeenCalledWith('clinic-1');
-    expect(result?.instagram).toEqual({
+    expect(getInstagramSignals).toHaveBeenCalledWith('clinic-1');
+    expect(result?.instagramSignals).toEqual({
       username: 'testclinic',
       followersCount: 25000,
+      lastUpdated: '2026-03-01T00:00:00Z',
+      signals: [],
     });
   });
 });
