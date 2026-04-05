@@ -57,7 +57,8 @@ const buildQueryString = (filters: FilterState, sortBy: ClinicSortOption, page: 
     params.set("accreditations", selectedAccreditations.join(","))
   }
 
-  if (filters.aiMatchScore !== 0) {
+  // Only add minScore if it differs from the default (75)
+  if (filters.aiMatchScore !== 75) {
     params.set("minScore", String(filters.aiMatchScore))
   }
 

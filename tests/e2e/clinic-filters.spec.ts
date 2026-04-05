@@ -80,24 +80,26 @@ test.describe('Clinic Filter Flow', () => {
   test('search input filters results', async ({ page }) => {
     // Type in search input (use first() since there may be mobile version)
     const searchInput = page.locator('[data-testid="search-input"]').first();
-    await searchInput.fill('istanbul');
 
-    // Wait for debounced update
-    await page.waitForTimeout(500);
+    // Use pressSequentially to fire real key events — required for React's onChange on webkit
+    await searchInput.click();
+    await searchInput.pressSequentially('istanbul');
 
-    // URL should include search query
+    // Wait for the URL to update after the 400ms debounce + router.push navigation
+    await page.waitForURL(/q=istanbul/i, { timeout: 10000 });
     await expect(page).toHaveURL(/q=istanbul/i);
   });
 
   test('location input filters results', async ({ page }) => {
     // Type in location input (use first() since there may be mobile version)
     const locationInput = page.locator('[data-testid="location-input"]').first();
-    await locationInput.fill('Turkey');
 
-    // Wait for debounced update
-    await page.waitForTimeout(500);
+    // Use pressSequentially to fire real key events — required for React's onChange on webkit
+    await locationInput.click();
+    await locationInput.pressSequentially('Turkey');
 
-    // URL should include location filter
+    // Wait for the URL to update after the 400ms debounce + router.push navigation
+    await page.waitForURL(/location=Turkey/i, { timeout: 10000 });
     await expect(page).toHaveURL(/location=Turkey/i);
   });
 

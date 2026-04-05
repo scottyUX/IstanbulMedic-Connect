@@ -1,29 +1,24 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+// Helper to navigate to a clinic profile reliably
+async function navigateToClinicProfile(page: Page) {
+  await page.goto('/clinics');
+  const firstClinicCard = page.locator('[data-testid="clinic-card"]').first();
+  await expect(firstClinicCard).toBeVisible();
+
+  const clinicNameLink = firstClinicCard.locator('h3');
+  await clinicNameLink.click();
+
+  // Wait for URL to change first (confirms navigation started)
+  await expect(page).toHaveURL(/\/clinics\/[^/]+$/, { timeout: 10000 });
+
+  // Then wait for profile content to load
+  await expect(page.locator('[data-testid="clinic-profile"]')).toBeVisible({ timeout: 10000 });
+}
 
 test.describe('Clinic Profile Flow', () => {
   test('navigates from clinics list to clinic profile', async ({ page }) => {
-    // Start on clinics page
-    await page.goto('/clinics');
-
-    // Wait for clinic cards to load
-    const firstClinicCard = page.locator('[data-testid="clinic-card"]').first();
-    await expect(firstClinicCard).toBeVisible();
-
-    // Get the clinic name before clicking
-    const clinicName = await firstClinicCard.locator('h3').textContent();
-
-    // Click on the first clinic card
-    await firstClinicCard.click();
-
-    // Verify we're on a clinic profile page
-    await expect(page).toHaveURL(/\/clinics\/[^/]+$/);
-
-    // Wait for the page to fully load (client components)
-    await page.waitForLoadState('networkidle');
-
-    // Verify the clinic profile loads - wait longer for client hydration
-    const profileContainer = page.locator('[data-testid="clinic-profile"]');
-    await expect(profileContainer).toBeVisible({ timeout: 10000 });
+    await navigateToClinicProfile(page);
 
     // Verify the clinic name is displayed
     const profileName = page.locator('[data-testid="clinic-name"]');
@@ -31,17 +26,7 @@ test.describe('Clinic Profile Flow', () => {
   });
 
   test('clinic profile page renders key sections', async ({ page }) => {
-    // Go directly to clinics list first to get a valid clinic ID
-    await page.goto('/clinics');
-    const firstClinicCard = page.locator('[data-testid="clinic-card"]').first();
-    await expect(firstClinicCard).toBeVisible();
-    await firstClinicCard.click();
-
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
-
-    // Wait for profile page to load with extended timeout
-    await expect(page.locator('[data-testid="clinic-profile"]')).toBeVisible({ timeout: 10000 });
+    await navigateToClinicProfile(page);
 
     // Verify hero section elements
     const clinicName = page.locator('[data-testid="clinic-name"]');
@@ -56,17 +41,7 @@ test.describe('Clinic Profile Flow', () => {
   });
 
   test('clinic profile shows location information', async ({ page }) => {
-    // Navigate to a clinic profile
-    await page.goto('/clinics');
-    const firstClinicCard = page.locator('[data-testid="clinic-card"]').first();
-    await expect(firstClinicCard).toBeVisible();
-    await firstClinicCard.click();
-
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
-
-    // Wait for profile to load with extended timeout
-    await expect(page.locator('[data-testid="clinic-profile"]')).toBeVisible({ timeout: 10000 });
+    await navigateToClinicProfile(page);
 
     // Look for location section
     const locationSection = page.locator('#location');
@@ -77,17 +52,7 @@ test.describe('Clinic Profile Flow', () => {
   });
 
   test('can navigate back to clinics list', async ({ page }) => {
-    // Navigate to a clinic profile
-    await page.goto('/clinics');
-    const firstClinicCard = page.locator('[data-testid="clinic-card"]').first();
-    await expect(firstClinicCard).toBeVisible();
-    await firstClinicCard.click();
-
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
-
-    // Wait for profile to load with extended timeout
-    await expect(page.locator('[data-testid="clinic-profile"]')).toBeVisible({ timeout: 10000 });
+    await navigateToClinicProfile(page);
 
     // Navigate back using browser
     await page.goBack();
