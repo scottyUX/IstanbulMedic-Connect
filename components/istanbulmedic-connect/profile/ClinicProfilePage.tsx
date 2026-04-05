@@ -238,7 +238,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-base antialiased">
+    <div className="min-h-screen bg-background text-base antialiased" data-testid="clinic-profile">
       {/* Hero Section */}
       <HeroSection
         clinicName={clinic.name}
