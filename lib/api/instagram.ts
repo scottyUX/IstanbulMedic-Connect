@@ -24,21 +24,27 @@ const EXPLANATIONS = {
 };
 
 /**
- * Calculates the relative position of a value within the range of all values.
- * Returns 0% for the lowest value, 100% for the highest, with linear interpolation.
- * This is a "where do you fall on the spectrum" metric, not a traditional percentile.
+ * Calculates true percentile ranking based on position among all values.
+ * Returns 0% for the lowest, 100% for the highest, based on rank not value.
+ * This prevents outliers from squashing everyone else to the low end.
  */
 export function calculateRelativePosition(value: number, allValues: number[]): number {
   const validValues = allValues.filter(v => v != null && !isNaN(v));
   if (validValues.length === 0) return 50;
   if (validValues.length === 1) return 50; // Only one clinic, can't compare
 
-  const min = Math.min(...validValues);
-  const max = Math.max(...validValues);
+  // Count how many values are strictly below this value
+  const countBelow = validValues.filter(v => v < value).length;
 
-  if (max === min) return 50; // All values are the same
+  // Count how many values are equal (for tie handling)
+  const countEqual = validValues.filter(v => v === value).length;
 
-  return Math.round(((value - min) / (max - min)) * 100);
+  // Use midpoint of tied ranks: (countBelow + (countBelow + countEqual - 1)) / 2
+  // Then convert to percentile: rank / (n - 1) * 100
+  const rank = countBelow + (countEqual - 1) / 2;
+  const percentile = (rank / (validValues.length - 1)) * 100;
+
+  return Math.round(percentile);
 }
 
 /**
