@@ -305,14 +305,16 @@ describe('LangchainAgent', () => {
   });
 
   describe('tool registration', () => {
-    it('has exactly 1 tool registered', () => {
+    it('has exactly 2 tools registered', () => {
       const agent = new LangchainAgent();
-      expect(agent.tools).toHaveLength(1);
+      expect(agent.tools).toHaveLength(2);
     });
 
-    it('registered tool is database_lookup', () => {
+    it('registered tools are database_lookup and clinic_summary', () => {
       const agent = new LangchainAgent();
-      expect(agent.tools[0].name).toBe('database_lookup');
+      const names = agent.tools.map((t) => t.name);
+      expect(names).toContain('database_lookup');
+      expect(names).toContain('clinic_summary');
     });
   });
 
