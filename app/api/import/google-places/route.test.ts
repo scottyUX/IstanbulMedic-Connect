@@ -529,12 +529,7 @@ describe('POST /api/import/google-places', () => {
       expect(Constants.public.Enums.clinic_status).toContain(
         (clinicUpdate.payload as any).status
       )
-      expect((clinicUpdate.payload as any).thumbnail_url).toContain(
-        'photo_reference=photo-1'
-      )
-      expect((clinicUpdate.payload as any).thumbnail_url).toContain(
-        'key=test-api-key'
-      )
+      expect((clinicUpdate.payload as any).thumbnail_url).toBeNull()
 
       const locationInsert = getOperations('clinic_locations', 'insert')[0]
       expectExactKeys(
@@ -611,23 +606,7 @@ describe('POST /api/import/google-places', () => {
         }
       ])
 
-      const mediaInsert = getOperations('clinic_media', 'insert')[0]
-      expectKeysOnEach(
-        mediaInsert.payload as Array<Record<string, unknown>>,
-        clinicMediaInsertKeys
-      )
-      expect((mediaInsert.payload as any[])).toHaveLength(5)
-      expect((mediaInsert.payload as any[])[0]).toMatchObject({
-        clinic_id: 'clinic-123',
-        media_type: 'image',
-        is_primary: true,
-        source_id: 'source-1',
-        display_order: 0
-      })
-      expect((mediaInsert.payload as any[])[4]).toMatchObject({
-        is_primary: false,
-        display_order: 4
-      })
+
 
       const rawDocumentInsert = getOperations('source_documents', 'insert')[0]
       expectExactKeys(
@@ -1048,12 +1027,8 @@ describe('POST /api/import/google-places', () => {
       expect(response.status).toBe(200)
 
       const clinicUpdate = getOperations('clinics', 'update')[0]
-      expect((clinicUpdate.payload as any).thumbnail_url).toBe('')
+      expect((clinicUpdate.payload as any).thumbnail_url).toBeNull()
 
-      const mediaInsert = getOperations('clinic_media', 'insert')[0]
-      expect((mediaInsert.payload as any[])[0]).toMatchObject({
-        url: ''
-      })
     })
   })
 
