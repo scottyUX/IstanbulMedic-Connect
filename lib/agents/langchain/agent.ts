@@ -10,6 +10,7 @@ import {
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import { AgentState, LangchainMessage } from '@/types/langchain';
 import { databaseLookupTool } from './tools/databaseLookup';
+import { clinicSummaryTool } from './tools/clinicSummary';
 import { LEILA_SYSTEM_PROMPT, PROMPT_VERSION } from './prompts/leila-system-prompt';
 import { checkInputGuardrails, checkOutputGuardrails } from './guardrails';
 
@@ -84,7 +85,7 @@ export class LangchainAgent {
     });
 
     // Register tools
-    this.tools = [databaseLookupTool];
+    this.tools = [databaseLookupTool, clinicSummaryTool];
   }
 
   /**
