@@ -167,7 +167,7 @@ updates:
 
 ## GitHub Secrets Required
 
-The user must add these in **Settings → Secrets and variables → Actions**:
+The user needs to add these in **Settings → Secrets and variables → Actions**:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
