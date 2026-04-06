@@ -56,6 +56,7 @@ export const UnifiedFilterBar = ({
                             onChange={(e) => updateFilter("searchQuery", e.target.value)}
                             placeholder="Clinic name"
                             className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
+                            data-testid="search-input"
                         />
                     </div>
                 </div>
@@ -73,6 +74,7 @@ export const UnifiedFilterBar = ({
                             onChange={(e) => updateFilter("location", e.target.value)}
                             placeholder="City or country"
                             className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
+                            data-testid="location-input"
                         />
                     </div>
                 </div>
@@ -93,6 +95,7 @@ export const UnifiedFilterBar = ({
                                     "w-full md:w-auto h-11 md:h-10 md:rounded-full md:border-gray-300 md:hover:border-black flex items-center gap-2 px-4",
                                     totalActiveFilters > 0 && "border-black bg-accent/50"
                                 )}
+                                data-testid="filter-button"
                             >
                                 <SlidersHorizontal className="h-4 w-4" />
                                 Filters

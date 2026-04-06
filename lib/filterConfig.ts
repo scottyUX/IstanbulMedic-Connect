@@ -39,13 +39,14 @@ export type FilterConfigKey = keyof typeof FILTER_CONFIG;
  */
 export const SORT_CONFIG = {
   'Alphabetical': true,
-  'Highest Rated': true, // TODO: Needs DB view for proper sorting by clinic_facts rating
+  'Highest Rated': true,
+  'Lowest Rated': true,
 
   // Disabled - no backend support yet
   'Best Match': false,
-  'Most Transparent': false, // TODO: Enable when clinic_scores data is populated
-  'Price: Low to High': false, // TODO: Enable when clinic_pricing data is available
-  'Price: High to Low': false, // TODO: Enable when clinic_pricing data is available
+  'Most Transparent': false, // Enable when clinic_scores data is populated
+  'Price: Low to High': false, // Enable when clinic_pricing data is available
+  'Price: High to Low': false, // Enable when clinic_pricing data is available
 } as const;
 
 export type SortConfigKey = keyof typeof SORT_CONFIG;

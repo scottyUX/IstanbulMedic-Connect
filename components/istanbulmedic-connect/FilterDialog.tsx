@@ -122,7 +122,7 @@ export function FilterDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-            <DialogContent className="sm:max-w-[720px] w-full p-0 gap-0 overflow-hidden flex flex-col max-h-[70vh] sm:rounded-2xl border-0 shadow-2xl">
+            <DialogContent className="sm:max-w-[720px] w-full p-0 gap-0 overflow-hidden flex flex-col max-h-[70vh] sm:rounded-2xl border-0 shadow-2xl" data-testid="filter-dialog">
                 <DialogHeader className="px-6 py-5 border-b flex flex-row items-center justify-between space-y-0 min-h-[64px]">
                     <div className="flex items-center w-full justify-center relative">
                         <DialogClose className="absolute left-0 p-2 rounded-full hover:bg-neutral-100 transition-colors">
@@ -151,12 +151,12 @@ export function FilterDialog({
                                             })
                                         }
                                     >
-                                        <SelectTrigger className="w-full sm:w-[200px]">
+                                        <SelectTrigger className="w-full sm:w-[200px]" data-testid="rating-filter">
                                             <SelectValue placeholder="Any rating" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {RATING_OPTIONS.map((opt) => (
-                                                <SelectItem key={opt.value} value={opt.value}>
+                                                <SelectItem key={opt.value} value={opt.value} data-testid={`rating-option-${opt.value}`}>
                                                     {opt.label}
                                                 </SelectItem>
                                             ))}
@@ -328,6 +328,7 @@ export function FilterDialog({
                         variant="link"
                         onClick={handleClearAll}
                         className="text-base font-semibold text-foreground hover:text-[var(--im-color-secondary)] underline-offset-4 px-0"
+                        data-testid="filter-clear-button"
                     >
                         Clear all
                     </Button>
@@ -335,6 +336,7 @@ export function FilterDialog({
                         onClick={handleApply}
                         size="lg"
                         className="bg-[var(--im-color-primary)] hover:bg-[var(--im-color-primary)]/90 text-white font-semibold rounded-lg px-8"
+                        data-testid="filter-apply-button"
                     >
                         Show results
                     </Button>

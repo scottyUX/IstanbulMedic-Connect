@@ -12,11 +12,11 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
 }));
 vi.mock('@/lib/api/instagram', () => ({
-  getClinicInstagramData: vi.fn(),
+  getInstagramSignals: vi.fn(),
 }));
 
 import { createClient } from '@/lib/supabase/server';
-import { getClinicInstagramData } from '@/lib/api/instagram';
+import { getInstagramSignals } from '@/lib/api/instagram';
 
 // Helper to create a mock query builder with chainable methods
 const createMockQueryBuilder = (data: unknown = [], error: unknown = null, count: number | null = null) => {
@@ -215,22 +215,28 @@ describe('getClinics', () => {
 
   it('applies sorting correctly', async () => {
     const mockBuilder = createMockQueryBuilder([sampleClinicRow], null, 1);
-    mockSupabase.from.mockReturnValue(mockBuilder);
 
-    // Test Highest Rated sort
+    // Test Highest Rated sort - uses view for sorting
+    const viewBuilder = createMockQueryBuilder([{ id: 'clinic-1' }], null, 1);
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'clinics_with_scores') return viewBuilder;
+      return mockBuilder;
+    });
+
     await getClinics({ sort: 'Highest Rated' });
-    expect(mockBuilder.order).toHaveBeenCalledWith('display_name', { ascending: true });
-    expect(mockBuilder.range).not.toHaveBeenCalled();
+    expect(mockSupabase.from).toHaveBeenCalledWith('clinics_with_scores');
+    expect(viewBuilder.order).toHaveBeenCalledWith('google_rating', { ascending: false, nullsFirst: false });
 
     vi.clearAllMocks();
     mockSupabase.from.mockReturnValue(mockBuilder);
 
-    // Test Price: Low to High sort
+    // Test Price: Low to High sort - does not use view
     await getClinics({ sort: 'Price: Low to High' });
     expect(mockBuilder.order).toHaveBeenCalledWith('display_name', { ascending: true });
   });
 
-  it('sorts Highest Rated deterministically and paginates after sorting', async () => {
+  it('sorts Highest Rated using view and paginates correctly', async () => {
+    // Full clinic data (unsorted - will be reordered based on view results)
     const clinicRows = [
       {
         ...sampleClinicRow,
@@ -244,18 +250,23 @@ describe('getClinics', () => {
         display_name: 'Clinic B',
         clinic_google_places: [{ rating: 4.9, user_ratings_total: 500 }],
       },
-      {
-        ...sampleClinicRow,
-        id: 'clinic-a',
-        display_name: 'Clinic A',
-        clinic_google_places: [{ rating: 4.7, user_ratings_total: 2000 }],
-      },
     ];
-    const mockBuilder = createMockQueryBuilder(clinicRows, null, 3);
-    mockSupabase.from.mockReturnValue(mockBuilder);
+
+    // View returns sorted IDs (page 1, pageSize 2): clinic-b first (higher review count), then clinic-c
+    const viewBuilder = createMockQueryBuilder([{ id: 'clinic-b' }, { id: 'clinic-c' }], null, 3);
+    // Clinics query returns full data for those IDs
+    const clinicsBuilder = createMockQueryBuilder(clinicRows, null, 2);
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'clinics_with_scores') {
+        return viewBuilder;
+      }
+      return clinicsBuilder;
+    });
 
     const result = await getClinics({ sort: 'Highest Rated', page: 1, pageSize: 2 });
 
+    // Should be sorted by view order: clinic-b (4.9, 500 reviews) then clinic-c (4.9, 100 reviews)
     expect(result.clinics.map((c) => c.id)).toEqual(['clinic-b', 'clinic-c']);
     expect(result.total).toBe(3);
   });
@@ -331,7 +342,7 @@ describe('getClinicById', () => {
     vi.clearAllMocks();
     mockSupabase = createMockSupabase();
     (createClient as Mock).mockResolvedValue(mockSupabase);
-    (getClinicInstagramData as Mock).mockResolvedValue(null);
+    (getInstagramSignals as Mock).mockResolvedValue(null);
   });
 
   const sampleFullClinic = {
@@ -486,20 +497,24 @@ describe('getClinicById', () => {
     expect(result!.scoreComponents).toBeDefined();
   });
 
-  it('includes instagram data from getClinicInstagramData', async () => {
+  it('includes instagramSignals from getInstagramSignals', async () => {
     const mockBuilder = createMockQueryBuilder(sampleFullClinic, null);
     mockSupabase.from.mockReturnValue(mockBuilder);
-    (getClinicInstagramData as Mock).mockResolvedValue({
+    (getInstagramSignals as Mock).mockResolvedValue({
       username: 'testclinic',
       followersCount: 25000,
+      lastUpdated: '2026-03-01T00:00:00Z',
+      signals: [],
     });
 
     const result = await getClinicById('clinic-1');
 
-    expect(getClinicInstagramData).toHaveBeenCalledWith('clinic-1');
-    expect(result?.instagram).toEqual({
+    expect(getInstagramSignals).toHaveBeenCalledWith('clinic-1');
+    expect(result?.instagramSignals).toEqual({
       username: 'testclinic',
       followersCount: 25000,
+      lastUpdated: '2026-03-01T00:00:00Z',
+      signals: [],
     });
   });
 });
