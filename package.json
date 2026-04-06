@@ -68,6 +68,7 @@
     "supabase": "^2.75.5",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "@vitest/coverage-v8": "^4.0.18",
     "vitest": "^4.0.18"
   },
   "overrides": {
