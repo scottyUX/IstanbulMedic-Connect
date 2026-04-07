@@ -182,7 +182,7 @@ describe('databaseLookupTool', () => {
 
     it('rejects invalid table name via schema validation', async () => {
       await expect(
-        databaseLookupTool.invoke({ table: 'invalid_table' })
+        databaseLookupTool.invoke({ table: 'invalid_table' as unknown as Parameters<typeof databaseLookupTool.invoke>[0]['table'] })
       ).rejects.toThrow();
     });
   });
