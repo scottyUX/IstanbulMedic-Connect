@@ -42,8 +42,8 @@ export function extractInstagramClaims(rawData: InstagramScraperResult) {
     throw new Error("No profile data returned from Instagram scraper");
   }
 
-  const profile: InstagramProfileData = rawData.profile[0];
-  const postsData: unknown[] = rawData.posts ?? [];
+  const profile = rawData.profile[0] as InstagramProfileData;
+  const postsData = (rawData.posts ?? []) as Record<string, unknown>[];
 
   if (!profile || !profile.id) {
     throw new Error(
@@ -181,7 +181,7 @@ export function extractInstagramClaims(rawData: InstagramScraperResult) {
   }
 
   // All posts
-  const allPosts = postsData.map((post: Record<string, unknown>) => ({
+  const allPosts = postsData.map((post) => ({
     id: post.id ?? "",
     type: post.type ?? "",
     shortCode: post.shortCode ?? "",
