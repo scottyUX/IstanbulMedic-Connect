@@ -6,6 +6,21 @@ import {
 } from '../../../../lib/supabase/database.types'
 
 const mockDb = vi.hoisted(() => {
+  interface MockBuilder {
+    insert(payload: unknown, options?: unknown): MockBuilder
+    update(payload: unknown): MockBuilder
+    delete(): MockBuilder
+    upsert(payload: unknown, options?: unknown): MockBuilder
+    select(columns?: unknown): MockBuilder
+    eq(column: string, value: unknown): MockBuilder
+    order(column: string, options?: unknown): MockBuilder
+    limit(value: number): MockBuilder
+    single(): Promise<unknown>
+    then(onFulfilled?: (value: unknown) => unknown, onRejected?: (reason: unknown) => unknown): Promise<unknown>
+    catch(onRejected?: (reason: unknown) => unknown): Promise<unknown>
+    finally(onFinally?: () => void): Promise<unknown>
+  }
+
   type Operation = {
     table: string
     op: 'insert' | 'update' | 'delete' | 'upsert' | 'select' | null
@@ -61,7 +76,7 @@ const mockDb = vi.hoisted(() => {
       return execution
     }
 
-    const builder: any = {
+    const builder: MockBuilder = {
       insert(payload: unknown, options?: unknown) {
         operation.op = 'insert'
         operation.payload = payload
@@ -505,10 +520,10 @@ describe('POST /api/import/google-places', () => {
         url: 'https://istanbulmedic.example'
       })
       expect(Constants.public.Enums.source_type_enum).toContain(
-        (sourceInsert.payload as any).source_type
+        (sourceInsert.payload as Record<string, unknown>).source_type
       )
-      expect((sourceInsert.payload as any).content_hash).toMatch(/^[a-f0-9]{64}$/)
-      expect((sourceInsert.payload as any).captured_at).toEqual(expect.any(String))
+      expect((sourceInsert.payload as Record<string, unknown>).content_hash).toMatch(/^[a-f0-9]{64}$/)
+      expect((sourceInsert.payload as Record<string, unknown>).captured_at).toEqual(expect.any(String))
 
       const clinicUpdate = getOperations('clinics', 'update')[0]
       expect(clinicUpdate.filters).toEqual([
@@ -527,12 +542,12 @@ describe('POST /api/import/google-places', () => {
         phone_contact: '+90 212 222 2222'
       })
       expect(Constants.public.Enums.clinic_status).toContain(
-        (clinicUpdate.payload as any).status
+        (clinicUpdate.payload as Record<string, unknown>).status
       )
-      expect((clinicUpdate.payload as any).thumbnail_url).toContain(
+      expect((clinicUpdate.payload as Record<string, unknown>).thumbnail_url).toContain(
         'photo_reference=photo-1'
       )
-      expect((clinicUpdate.payload as any).thumbnail_url).toContain(
+      expect((clinicUpdate.payload as Record<string, unknown>).thumbnail_url).toContain(
         'key=test-api-key'
       )
 
@@ -578,7 +593,7 @@ describe('POST /api/import/google-places', () => {
           is_primary_service: false
         }
       ])
-      ;(serviceInsert.payload as any[]).forEach((service) => {
+      ;(serviceInsert.payload as Array<Record<string, unknown>>).forEach((service) => {
         expect(Constants.public.Enums.clinic_service_category).toContain(
           service.service_category
         )
@@ -616,15 +631,15 @@ describe('POST /api/import/google-places', () => {
         mediaInsert.payload as Array<Record<string, unknown>>,
         clinicMediaInsertKeys
       )
-      expect((mediaInsert.payload as any[])).toHaveLength(5)
-      expect((mediaInsert.payload as any[])[0]).toMatchObject({
+      expect((mediaInsert.payload as Array<Record<string, unknown>>)).toHaveLength(5)
+      expect((mediaInsert.payload as Array<Record<string, unknown>>)[0]).toMatchObject({
         clinic_id: 'clinic-123',
         media_type: 'image',
         is_primary: true,
         source_id: 'source-1',
         display_order: 0
       })
-      expect((mediaInsert.payload as any[])[4]).toMatchObject({
+      expect((mediaInsert.payload as Array<Record<string, unknown>>)[4]).toMatchObject({
         is_primary: false,
         display_order: 4
       })
@@ -642,7 +657,7 @@ describe('POST /api/import/google-places', () => {
         raw_text: JSON.stringify(fullGooglePlacesData)
       })
       expect(Constants.public.Enums.doc_type_enum).toContain(
-        (rawDocumentInsert.payload as any).doc_type
+        (rawDocumentInsert.payload as Record<string, unknown>).doc_type
       )
     })
 
@@ -707,32 +722,32 @@ describe('POST /api/import/google-places', () => {
           operation.payload as Record<string, unknown>,
           clinicFactUpsertKeys
         )
-        expect((operation.options as any)?.onConflict).toBe('clinic_id,fact_key')
+        expect((operation.options as Record<string, unknown>)?.onConflict).toBe('clinic_id,fact_key')
         expect(Constants.public.Enums.computed_by_enum).toContain(
-          (operation.payload as any).computed_by
+          (operation.payload as Record<string, unknown>).computed_by
         )
         expect(Constants.public.Enums.value_type_enum).toContain(
-          (operation.payload as any).value_type
+          (operation.payload as Record<string, unknown>).value_type
         )
       })
-      expect((factUpserts[0].payload as any)).toMatchObject({
+      expect((factUpserts[0].payload as Record<string, unknown>)).toMatchObject({
         clinic_id: 'clinic-123',
         fact_key: 'google_place_id',
         fact_value: { value: 'place-123' },
         value_type: 'string',
         computed_by: 'extractor'
       })
-      expect((factUpserts[1].payload as any)).toMatchObject({
+      expect((factUpserts[1].payload as Record<string, unknown>)).toMatchObject({
         fact_key: 'google_rating',
         fact_value: { value: 4.8 },
         value_type: 'number'
       })
-      expect((factUpserts[2].payload as any)).toMatchObject({
+      expect((factUpserts[2].payload as Record<string, unknown>)).toMatchObject({
         fact_key: 'google_review_count',
         fact_value: { value: 210 },
         value_type: 'number'
       })
-      expect((factUpserts[3].payload as any)).toMatchObject({
+      expect((factUpserts[3].payload as Record<string, unknown>)).toMatchObject({
         fact_key: 'opening_hours',
         fact_value: fullGooglePlacesData.google_places.opening_hours,
         value_type: 'json'
@@ -763,9 +778,9 @@ describe('POST /api/import/google-places', () => {
         rating: 4.8,
         user_ratings_total: 210
       })
-      expect((googlePlacesUpserts[0].options as any)?.onConflict).toBe('clinic_id,place_id')
-      expect((googlePlacesUpserts[0].payload as any).last_checked_at).toEqual(expect.any(String))
-      expect((googlePlacesUpserts[0].payload as any).updated_at).toEqual(expect.any(String))
+      expect((googlePlacesUpserts[0].options as Record<string, unknown>)?.onConflict).toBe('clinic_id,place_id')
+      expect((googlePlacesUpserts[0].payload as Record<string, unknown>).last_checked_at).toEqual(expect.any(String))
+      expect((googlePlacesUpserts[0].payload as Record<string, unknown>).updated_at).toEqual(expect.any(String))
     })
 
     it('upserts clinic_google_places with null rating and review count when absent from payload', async () => {
@@ -1002,7 +1017,7 @@ describe('POST /api/import/google-places', () => {
       expect(response.status).toBe(200)
 
       const clinicUpdate = getOperations('clinics', 'update')[0]
-      expect((clinicUpdate.payload as any).thumbnail_url).toBe(
+      expect((clinicUpdate.payload as Record<string, unknown>).thumbnail_url).toBe(
         'https://cdn.example/1.jpg'
       )
 
@@ -1048,10 +1063,10 @@ describe('POST /api/import/google-places', () => {
       expect(response.status).toBe(200)
 
       const clinicUpdate = getOperations('clinics', 'update')[0]
-      expect((clinicUpdate.payload as any).thumbnail_url).toBe('')
+      expect((clinicUpdate.payload as Record<string, unknown>).thumbnail_url).toBe('')
 
       const mediaInsert = getOperations('clinic_media', 'insert')[0]
-      expect((mediaInsert.payload as any[])[0]).toMatchObject({
+      expect((mediaInsert.payload as Array<Record<string, unknown>>)[0]).toMatchObject({
         url: ''
       })
     })

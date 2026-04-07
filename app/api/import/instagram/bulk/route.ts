@@ -25,7 +25,7 @@ interface InstagramClaimsData {
       display_name_variants?: string[]
     }
     social?: {
-      instagram?: any
+      instagram?: Record<string, unknown>
     }
     contact?: {
       website_candidates?: string[]
@@ -103,12 +103,13 @@ export async function POST(request: Request) {
         // Add small delay between imports (optional)
         await new Promise(resolve => setTimeout(resolve, 100))
 
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error)
         errors.push({
           clinicId: importData.clinicId,
-          error: error.message
+          error: msg
         })
-        console.log(`❌ [${results.length + errors.length}/${imports.length}] Exception for clinic ${importData.clinicId}: ${error.message}`)
+        console.log(`❌ [${results.length + errors.length}/${imports.length}] Exception for clinic ${importData.clinicId}: ${msg}`)
       }
     }
     //summary
@@ -124,9 +125,9 @@ export async function POST(request: Request) {
       errors: errors.length > 0 ? errors : undefined
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

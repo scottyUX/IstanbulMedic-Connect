@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
@@ -10,14 +10,10 @@ export default function LangchainPage() {
   const { logout, user, isAuthenticated, loading, loginWithGoogle } = useAuth();
   const [loginPending, setLoginPending] = useState(false);
 
-  // Reset login pending when auth state resolves
-  useEffect(() => {
-    if (!loading) setLoginPending(false);
-  }, [loading, isAuthenticated]);
-
   const handleLogin = async () => {
     setLoginPending(true);
     await loginWithGoogle();
+    setLoginPending(false);
   };
 
   return (

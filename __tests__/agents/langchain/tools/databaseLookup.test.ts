@@ -13,7 +13,7 @@ const {
   const mockQueryResult = { data: [{ id: 1, name: 'Test Clinic' }], error: null };
   const mockLimit = vi.fn().mockResolvedValue(mockQueryResult);
   const mockOr = vi.fn().mockReturnValue({ limit: mockLimit });
-  const mockEq: any = vi.fn();
+  const mockEq: ReturnType<typeof vi.fn> = vi.fn();
   mockEq.mockReturnValue({ or: mockOr, limit: mockLimit, eq: mockEq });
   const mockSelect = vi.fn().mockReturnValue({ eq: mockEq, or: mockOr, limit: mockLimit });
   const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });

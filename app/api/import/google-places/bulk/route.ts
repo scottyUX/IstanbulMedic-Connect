@@ -19,10 +19,10 @@ interface GooglePlacesData {
       lat: number
       lng: number
     }
-    address_components: any[]
-    opening_hours?: any
-    photos?: any[]
-    reviews?: any[]
+    address_components: Record<string, unknown>[]
+    opening_hours?: Record<string, unknown>
+    photos?: unknown[]
+    reviews?: unknown[]
     types: string[]
   }
   extracted_claims: {
@@ -50,7 +50,7 @@ interface GooglePlacesData {
       claimed?: string[]
     }
     pricing?: {
-      ranges?: any[]
+      ranges?: unknown[]
     }
   }
 }
@@ -113,14 +113,14 @@ export async function POST(request: Request) {
         // Add small delay between imports (optional)
         await new Promise(resolve => setTimeout(resolve, 100))
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         errors.push({
           clinicId: importData.clinicId,
           placeId: importData.googlePlacesData?.google_places?.place_id,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         })
         console.log(
-          `❌ [${results.length + errors.length}/${imports.length}] Exception for clinic ${importData.clinicId}: ${error.message}`
+          `❌ [${results.length + errors.length}/${imports.length}] Exception for clinic ${importData.clinicId}: ${error instanceof Error ? error.message : String(error)}`
         )
       }
     }
@@ -139,9 +139,9 @@ export async function POST(request: Request) {
       errors: errors.length > 0 ? errors : undefined
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

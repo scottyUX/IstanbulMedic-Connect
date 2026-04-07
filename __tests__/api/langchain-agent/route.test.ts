@@ -6,8 +6,8 @@ const mockHandleMessageStream = vi.fn();
 const MockLangchainAgent = vi.fn();
 
 vi.mock('@/lib/agents/langchain/agent', () => {
-  function LangchainAgent(this: any) {
-    MockLangchainAgent(...arguments);
+  function LangchainAgent(this: { handleMessageStream: ReturnType<typeof vi.fn> }, ...args: unknown[]) {
+    MockLangchainAgent(...args);
     this.handleMessageStream = mockHandleMessageStream;
   }
   return { LangchainAgent };

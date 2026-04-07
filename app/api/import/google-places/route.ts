@@ -3,6 +3,7 @@
 // app/api/import/google-places/route.ts
 // ============================================
 
+import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
@@ -339,7 +340,7 @@ export async function POST(request: Request) {
 // Helper functions
 
 async function upsertFact(
-  supabase: SupabaseClient<any>,
+  supabase: SupabaseClient,
   clinicId: string,
   factKey: string,
   factValue: string | number | boolean | Record<string, unknown> | OpeningHours,
@@ -443,7 +444,6 @@ function constructPhotoUrl(photo: Photo | string): string {
 }
 
 function generateContentHash(placeId: string, timestamp: string): string {
-  const crypto = require('crypto')
   return crypto.createHash('sha256')
     .update(`${placeId}-${timestamp}`)
     .digest('hex')

@@ -20,9 +20,9 @@ interface InstagramProfileData {
   profilePicUrlHD?: string;
   facebookPage?: string;
   igtvVideoCount?: number;
-  latestIgtvVideos?: any[];
+  latestIgtvVideos?: unknown[];
   postsCount?: number;
-  latestPosts?: any[];
+  latestPosts?: unknown[];
   url?: string;
   inputUrl?: string;
   businessAddress?: {
@@ -43,7 +43,7 @@ export function extractInstagramClaims(rawData: InstagramScraperResult) {
   }
 
   const profile: InstagramProfileData = rawData.profile[0];
-  const postsData: any[] = rawData.posts ?? [];
+  const postsData: unknown[] = rawData.posts ?? [];
 
   if (!profile || !profile.id) {
     throw new Error(
@@ -97,7 +97,7 @@ export function extractInstagramClaims(rawData: InstagramScraperResult) {
         linkAggregatorDetected = detected;
         break;
       }
-    } catch (e) {
+    } catch {
     }
   }
 
@@ -181,7 +181,7 @@ export function extractInstagramClaims(rawData: InstagramScraperResult) {
   }
 
   // All posts
-  const allPosts = postsData.map((post: any) => ({
+  const allPosts = postsData.map((post: Record<string, unknown>) => ({
     id: post.id ?? "",
     type: post.type ?? "",
     shortCode: post.shortCode ?? "",
