@@ -11,7 +11,9 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (next?: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   logout: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
 }
@@ -140,6 +142,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Fetch user profile when user signs in
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           await fetchUserProfile();
+          // Sync any pending localStorage qualification data to the DB
+          if (event === 'SIGNED_IN') {
+            syncLocalQualificationData();
+          }
         }
       } else {
         setIsAuthenticated(false);
@@ -154,26 +160,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const loginWithGoogle = async () => {
+  const syncLocalQualificationData = () => {
+    try {
+      const stored = window.localStorage.getItem('im.qualification');
+      const complete = window.localStorage.getItem('im.qualification.complete') === 'true';
+      if (!stored || !complete) return;
+      const data = JSON.parse(stored);
+      // Fire-and-forget — data is safe in localStorage as fallback
+      fetch('/api/profile/qualification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, termsAccepted: true }),
+      }).catch(() => {});
+    } catch {
+      // ignore
+    }
+  };
+
+  const loginWithGoogle = async (next?: string) => {
     try {
       const supabase = createClient();
       if (!supabase) {
         throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
       }
+      const callbackUrl = new URL(`${window.location.origin}/auth/callback`);
+      if (next) callbackUrl.searchParams.set('next', next);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: { redirectTo: callbackUrl.toString() },
       });
-
-      if (error) {
-        throw error;
-      }
-      // Redirect will happen automatically
+      if (error) throw error;
     } catch (error) {
       throw error;
     }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    const supabase = createClient();
+    if (!supabase) throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  };
+
+  const signUpWithEmail = async (email: string, password: string) => {
+    const supabase = createClient();
+    if (!supabase) throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
+    const callbackUrl = `${window.location.origin}/auth/callback?next=/profile`;
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: callbackUrl },
+    });
+    if (error) throw error;
+    // If identities is empty, email confirmation is pending
+    const needsConfirmation = !data.session;
+    return { needsConfirmation };
   };
 
   const logout = async () => {
@@ -182,15 +223,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (supabase) {
         await supabase.auth.signOut();
       }
+    } catch {
+      // continue regardless
+    } finally {
       setIsAuthenticated(false);
       setUser(null);
       setProfile(null);
-      router.push('/');
-    } catch (error) {
-      // Still clear local state even if signOut fails
-      setIsAuthenticated(false);
-      setUser(null);
-      setProfile(null);
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+      }
       router.push('/');
     }
   };
@@ -203,6 +244,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         loginWithGoogle,
+        signInWithEmail,
+        signUpWithEmail,
         logout,
         fetchUserProfile,
       }}
