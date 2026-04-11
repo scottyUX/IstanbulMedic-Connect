@@ -2,6 +2,14 @@ import { GooglePlacesService } from '../lib/services/googlePlacesService';
 import { ApifyClient } from 'apify-client';
 import { createClient } from '@supabase/supabase-js'
 
+interface ApifyReview {
+  name: string
+  stars: number
+  text: string
+  publishedAtDate: string
+  language?: string
+}
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const DELAY_MS = 2000; // pause between clinics to avoid rate limits
@@ -74,7 +82,7 @@ async function scrapeAndImport(clinicId: string, placeId: string) {
 
   const allReviews = [
     ...(googleData.raw_response.result.reviews || []),
-    ...apifyReviews.map((r: any) => ({
+    ...(apifyReviews as unknown as ApifyReview[]).map((r) => ({
       author_name: r.name,
       rating: r.stars,
       text: r.text,
@@ -130,7 +138,7 @@ async function scrapeAndImport(clinicId: string, placeId: string) {
     body: JSON.stringify(payload),
   });
 
-  const result = await response.json() as any
+  const result = await response.json() as { error?: string; display_name?: string; clinic_id?: string; source_id?: string }
   if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
   return result;
 }
@@ -148,6 +156,7 @@ async function scrapeWithRetry(clinicId: string, placeId: string, retries = MAX_
       await delay(DELAY_MS * attempt); // exponential-ish backoff
     }
   }
+  throw new Error('No retries configured');
 }
 
 

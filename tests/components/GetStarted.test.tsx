@@ -5,8 +5,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   motion: {
-    div: ({ children, initial, animate, exit, variants, custom, transition, ...props }: any) =>
-      <div {...props}>{children}</div>,
+    div: ({ children, initial: _i, animate: _a, exit: _e, variants: _v, custom: _c, transition: _t, ...props }: { children?: React.ReactNode; initial?: unknown; animate?: unknown; exit?: unknown; variants?: unknown; custom?: unknown; transition?: unknown } & Record<string, unknown>) =>
+      <div {...(props as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>,
   },
 }))
 
@@ -15,7 +15,7 @@ vi.mock('@/lib/supabase/client', () => ({
 }))
 
 vi.mock('next/link', () => ({
-  default: ({ href, children, ...props }: any) => <a href={href} {...props}>{children}</a>,
+  default: ({ href, children, ...props }: { href?: string; children?: React.ReactNode } & Record<string, unknown>) => <a href={href} {...(props as React.HTMLAttributes<HTMLAnchorElement>)}>{children}</a>,
 }))
 
 import { GetStarted } from '@/components/istanbulmedic-connect/user-profile/GetStarted'
@@ -34,7 +34,7 @@ describe('GetStarted', () => {
     vi.clearAllMocks()
     localStorage.clear()
     global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
-    window.scrollTo = vi.fn() as any
+    window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
   })
 
   // Navigate through n steps by selecting a valid option then clicking Continue.

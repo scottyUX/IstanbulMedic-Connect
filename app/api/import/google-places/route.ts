@@ -331,7 +331,7 @@ export async function POST(request: Request) {
     const message =
       error instanceof Error
         ? error.message
-        : (error as any)?.message ?? 'Failed to import Google Places data'
+        : (error as { message?: string })?.message ?? 'Failed to import Google Places data'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

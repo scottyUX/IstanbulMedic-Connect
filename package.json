@@ -15,11 +15,13 @@
     "db:types": "npx supabase gen types typescript --project-id ioofmlovhjvnnqvczeri > lib/supabase/database.types.ts"
   },
   "dependencies": {
+    "@a2ui/lit": "^0.9.2-alpha.0",
     "@ag-ui/mcp-apps-middleware": "^0.0.3",
     "@copilotkit/a2ui-renderer": "^1.51.3",
     "@copilotkit/react-core": "^1.51.3",
     "@copilotkit/react-ui": "^1.51.3",
     "@copilotkit/runtime": "^1.51.3",
+    "@copilotkitnext/react": "^1.54.1",
     "@langchain/core": "^1.1.20",
     "@langchain/langgraph": "^1.1.4",
     "@langchain/openai": "^1.2.6",
@@ -65,6 +67,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "jsdom": "25.0.1",
@@ -72,7 +75,6 @@
     "supabase": "^2.75.5",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "@vitest/coverage-v8": "^4.0.18",
     "vitest": "^4.0.18"
   },
   "overrides": {
