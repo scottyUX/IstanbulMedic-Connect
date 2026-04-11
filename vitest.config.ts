@@ -5,6 +5,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
+    reporters: ['verbose'],
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts', './tests/setup.tsx'],
