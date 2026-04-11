@@ -138,7 +138,7 @@ async function scrapeAndImport(clinicId: string, placeId: string) {
     body: JSON.stringify(payload),
   });
 
-  const result = await response.json() as { error?: string; display_name?: string; clinic_id?: string; source_id?: string }
+  const result = await response.json() as { error?: string; display_name?: string; clinic_id?: string; source_id?: string };
   if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
   return result;
 }
