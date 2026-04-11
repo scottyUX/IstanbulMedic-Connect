@@ -123,7 +123,7 @@ async function runPipeline() {
 
       succeeded++;
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error)
+      const msg = error instanceof Error ? error.message : String(error);
       console.error(`  Failed: ${msg}`);
       errors.push({ url: instagramUrl, error: msg });
     }
