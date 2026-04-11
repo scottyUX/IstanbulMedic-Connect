@@ -48,6 +48,10 @@ interface InstagramClaimsData {
 }
 
 
+function sanitizeForLog(value: string): string {
+  return value.replace(/[\r\n]/g, ' ')
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -87,7 +91,7 @@ export async function POST(request: Request) {
             username: importData.instagramData.instagram.username,
             ...result
           })
-          console.log(`✅ [${results.length + errors.length}/${imports.length}] Successfully imported @${importData.instagramData.instagram.username}`)
+          console.log(`✅ [${results.length + errors.length}/${imports.length}] Successfully imported @${sanitizeForLog(importData.instagramData.instagram.username)}`)
 
 
 
@@ -97,7 +101,7 @@ export async function POST(request: Request) {
             username: importData.instagramData.instagram.username,
             error: result.error
           })
-          console.log(`❌ [${results.length + errors.length}/${imports.length}] Failed to import @${importData.instagramData.instagram.username}: ${result.error}`)
+          console.log(`❌ [${results.length + errors.length}/${imports.length}] Failed to import @${sanitizeForLog(importData.instagramData.instagram.username)}: ${sanitizeForLog(String(result.error ?? ''))}`)
         }
 
         // Add small delay between imports (optional)
@@ -109,7 +113,7 @@ export async function POST(request: Request) {
           clinicId: importData.clinicId,
           error: msg
         })
-        console.log(`❌ [${results.length + errors.length}/${imports.length}] Exception for clinic ${importData.clinicId}: ${msg}`)
+        console.log(`❌ [${results.length + errors.length}/${imports.length}] Exception for clinic ${sanitizeForLog(importData.clinicId)}: ${sanitizeForLog(msg)}`)
       }
     }
     //summary
