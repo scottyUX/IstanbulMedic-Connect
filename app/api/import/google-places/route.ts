@@ -70,55 +70,22 @@ interface GooglePlacesData {
 // --- Photo helpers ---
 
 /**
- * Fetches a Google photo by its reference and uploads it to Supabase Storage,
- * so no API key ever touches the database.
- * Returns the public Supabase URL, or null on failure.
+ * Resolves a photo entry to a URL string.
+ * - If already a plain string URL, returns it as-is.
+ * - If it has a photo_reference, builds a Google Places API URL.
+ * - If it is a Photo object without a photo_reference, returns '' (unknown/broken photo).
+ * - Returns null only when there is no photo at all (caller's responsibility).
  */
-async function uploadPhotoToStorage(
-  supabase: SupabaseClient<any>,
-  photoReference: string,
-  clinicId: string,
-  index: number
-): Promise<string | null> {
-  const googleUrl =
-    `https://maps.googleapis.com/maps/api/place/photo` +
-    `?maxwidth=800&photo_reference=${photoReference}` +
-    `&key=${process.env.GOOGLE_PLACES_API_KEY}`
-
-  const res = await fetch(googleUrl)
-  if (!res.ok) return null
-
-  const buffer = await res.arrayBuffer()
-  const path = `${clinicId}/${index}.jpg`
-
-  const { error } = await supabase.storage
-    .from('clinic-images')
-    .upload(path, buffer, { contentType: 'image/jpeg', upsert: true })
-
-  if (error) {
-    console.error(`Photo upload failed (index ${index}):`, error.message)
-    return null
-  }
-
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/clinic-images/${path}`
-}
-
-/**
- * Resolves a photo entry to a safe Supabase Storage URL.
- * - If already a plain string URL (no API key risk), returns it as-is.
- * - If it has a photo_reference, uploads to storage first.
- */
-async function resolvePhotoUrl(
-  supabase: SupabaseClient<any>,
-  photo: Photo | string,
-  clinicId: string,
-  index: number
-): Promise<string | null> {
-  if (typeof photo === 'string') return photo || null
+function buildPhotoUrl(photo: Photo | string): string {
+  if (typeof photo === 'string') return photo
   if (photo.photo_reference) {
-    return uploadPhotoToStorage(supabase, photo.photo_reference, clinicId, index)
+    return (
+      `https://maps.googleapis.com/maps/api/place/photo` +
+      `?maxwidth=800&photo_reference=${photo.photo_reference}` +
+      `&key=${process.env.GOOGLE_PLACES_API_KEY}`
+    )
   }
-  return null
+  return ''
 }
 
 // --- Main handler ---
@@ -155,10 +122,8 @@ export async function POST(request: Request) {
     const gp = googlePlacesData.google_places
     const claims = googlePlacesData.extracted_claims || {}
 
-    // Upload primary photo first — we need the safe URL for thumbnail_url on the clinic record
-    const thumbnailUrl = gp.photos?.[0]
-      ? await resolvePhotoUrl(supabase, gp.photos[0], clinicId, 0)
-      : null
+    // Resolve primary photo URL for thumbnail_url on the clinic record
+    const thumbnailUrl = gp.photos?.[0] != null ? buildPhotoUrl(gp.photos[0]) : null
 
     // 1. Create source record
     const contentHash = generateContentHash(gp.place_id, new Date().toISOString())
@@ -316,24 +281,16 @@ export async function POST(request: Request) {
     const importMedia = async () => {
       if (!gp.photos?.length) return
 
-      // Primary photo already uploaded above; resolve the rest (indices 1–4)
-      const remainingUrls = await Promise.all(
-        gp.photos.slice(1, 5).map((photo, idx) =>
-          resolvePhotoUrl(supabase, photo, clinicId, idx + 1)
-        )
-      )
+      // Primary photo resolved above; resolve the rest (indices 1–4)
+      const remainingUrls = gp.photos.slice(1, 5).map((photo) => buildPhotoUrl(photo))
 
       const media = [
-        ...(thumbnailUrl
+        ...(thumbnailUrl !== null
           ? [{ clinic_id: clinicId, media_type: 'image', url: thumbnailUrl, is_primary: true, source_id: sourceId, display_order: 0 }]
           : []),
-        ...remainingUrls
-          .map((url, idx) =>
-            url
-              ? { clinic_id: clinicId, media_type: 'image', url, is_primary: false, source_id: sourceId, display_order: idx + 1 }
-              : null
-          )
-          .filter(Boolean)
+        ...remainingUrls.map((url, idx) => ({
+          clinic_id: clinicId, media_type: 'image', url, is_primary: false, source_id: sourceId, display_order: idx + 1
+        }))
       ]
 
       if (media.length > 0) {
