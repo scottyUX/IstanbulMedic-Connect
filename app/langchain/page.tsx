@@ -1,16 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { CopilotKit } from "@copilotkit/react-core";
+import { CopilotChat } from "@copilotkit/react-ui";
+import LangchainGenUI from "@/components/langchain/LangchainGenUI";
+import UserContextProvider from "@/components/leila/UserContextProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
-import LangchainChat from "@/components/langchain/LangchainChat";
+import type { InputProps } from "@copilotkit/react-ui";
+import LangchainInput from "@/components/langchain/LangchainInput";
+
+const QUICK_SUGGESTIONS = [
+  "Schedule a free consultation",
+  "What is a hair transplant?",
+  "How much does it cost?",
+  "What is the recovery time?",
+];
 
 export default function LangchainPage() {
   const { logout, user, isAuthenticated, loading, loginWithGoogle } = useAuth();
   const [loginPending, setLoginPending] = useState(false);
+  const [showGreeting, setShowGreeting] = useState(true);
 
-  // Reset login pending when auth state resolves
   useEffect(() => {
     if (!loading) setLoginPending(false);
   }, [loading, isAuthenticated]);
@@ -85,11 +97,77 @@ export default function LangchainPage() {
         </div>
       )}
 
-      {/* Authenticated: chat */}
+      {/* Authenticated: CopilotKit-powered chat */}
       {!loading && isAuthenticated && (
-        <div className="mt-0">
-          <LangchainChat />
-        </div>
+        <CopilotKit
+          runtimeUrl="/api/copilotkit-langchain"
+          showDevConsole={false}
+        >
+          {/* Register tools and user context (hidden, hooks only) */}
+          <div style={{ display: "none" }}>
+            <LangchainGenUI />
+            <UserContextProvider />
+          </div>
+
+          <div className="flex flex-col min-h-screen bg-white">
+            <div className="flex-1 flex flex-col">
+              {/* Greeting Screen */}
+              {showGreeting && (
+                <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#FAFAFA]">
+                  <div className="max-w-2xl w-full text-center space-y-6">
+                    <h2 className="text-3xl md:text-4xl font-semibold text-gray-900">
+                      Hi, I&apos;m Leila &mdash; your private AI assistant. How
+                      can I help today?
+                    </h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8">
+                      {QUICK_SUGGESTIONS.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          onClick={() => setShowGreeting(false)}
+                          className="px-6 py-3 text-left bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-gray-700 font-medium"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CopilotChat replaces the hand-rolled LangchainChat */}
+              <div className="flex flex-col px-4 pt-4 pb-4 flex-1">
+                <CopilotChat
+                  labels={{
+                    placeholder:
+                      "Ask me anything about your hair transplant...",
+                    initial: showGreeting
+                      ? undefined
+                      : "Hi, I'm Leila \u2014 your private AI assistant. How can I help today?",
+                  }}
+                  className="flex-1 min-h-[420px] rounded-2xl border border-gray-100 shadow-sm"
+                  suggestions={
+                    showGreeting
+                      ? QUICK_SUGGESTIONS.map((s) => ({
+                          title: s,
+                          message: s,
+                        }))
+                      : []
+                  }
+                  Input={(props: InputProps) => (
+                    <LangchainInput
+                      onSend={async (message: string) => {
+                        setShowGreeting(false);
+                        await props.onSend?.(message);
+                      }}
+                      isLoading={!props.chatReady}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+        </CopilotKit>
       )}
     </main>
   );
