@@ -71,7 +71,7 @@ interface InstagramClaimsData {
   }
   extracted_claims: {
     identity?: { display_name_variants?: string[] }
-    social?: { instagram?: any }
+    social?: { instagram?: Record<string, unknown> }
     contact?: {
       website_candidates?: string[]
       link_aggregator_detected?: string
@@ -89,7 +89,7 @@ interface ClinicFact {
   id: string
   clinic_id: string
   fact_key: string
-  fact_value: any
+  fact_value: unknown
   value_type: string
   confidence: number
   computed_by: string
@@ -315,7 +315,7 @@ export async function POST(request: Request) {
         { status: 400 }
       )
 
-    const results: any = {}
+    const results: Record<string, unknown> = {}
 
     // ── 1. Source record ──────────────────────────────────────────────────────
     const { data: source, error: sourceError } = await supabase
@@ -380,7 +380,7 @@ export async function POST(request: Request) {
 
     // ── 4. Clinic facts ───────────────────────────────────────────────────────
     const now = new Date().toISOString()
-    const baseFact = (key: string, value: any, type: string, confidence: number) => ({
+    const baseFact = (key: string, value: unknown, type: string, confidence: number) => ({
       clinic_id: clinicId,
       fact_key: key,
       fact_value: value,
@@ -414,7 +414,7 @@ export async function POST(request: Request) {
     // Comments enabled ratio (from isCommentsDisabled field)
     const commentsEnabledRatio = calculateCommentsEnabledRatio(posts)
 
-    const facts: any[] = [
+    const facts: ReturnType<typeof baseFact>[] = [
       baseFact('instagram_followers_count', instagramData.instagram.followersCount, 'number', 1.0),
       baseFact('instagram_posts_count',     instagramData.instagram.postsCount,     'number', 1.0),
       baseFact('instagram_verified',        instagramData.instagram.verified,        'bool',   1.0),
@@ -457,7 +457,7 @@ export async function POST(request: Request) {
     facts.push(...postFacts)
 
     // ── 4b. Upsert instagram posts (now with comments) ────────────────────────
-    let upsertedPosts: any[] = []
+    let upsertedPosts: Record<string, unknown>[] = []
     if (instagramData.posts?.length) {
       const postRows = instagramData.posts.map(p => ({
         clinic_id:          clinicId,
@@ -540,9 +540,10 @@ export async function POST(request: Request) {
       results,
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Instagram import error:', error)
-    return NextResponse.json({ error: error.message, details: error }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: msg, details: error }, { status: 500 })
   }
 }
 
@@ -578,8 +579,8 @@ function getEvidenceSnippet(factKey: string, data: InstagramClaimsData): string 
   return snippets[factKey] ?? `Data from Instagram profile @${data.instagram.username}`
 }
 
-function getEvidenceLocator(factKey: string): any {
-  const locators: Record<string, any> = {
+function getEvidenceLocator(factKey: string): Record<string, unknown> {
+  const locators: Record<string, Record<string, unknown>> = {
     instagram_followers_count:            { field: 'instagram.followersCount' },
     instagram_posts_count:                { field: 'instagram.postsCount' },
     instagram_verified:                   { field: 'instagram.verified' },

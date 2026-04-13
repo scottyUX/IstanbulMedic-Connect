@@ -2,6 +2,14 @@
 import { GooglePlacesService } from '../lib/services/googlePlacesService';
 import { ApifyClient } from 'apify-client';
 
+interface ApifyReview {
+  name: string
+  stars: number
+  text: string
+  publishedAtDate: string
+  language?: string
+}
+
 const CLINIC = {
   name: "Dr Serkan Aygın Hair Transplant Clinic",
   place_id: "ChIJ46c0kwG3yhQRxYnQckUyqPg",
@@ -28,7 +36,7 @@ async function main() {
 
   const allReviews = [
     ...(googleData.raw_response.result.reviews || []),
-    ...apifyReviews.map((r: any) => ({
+    ...(apifyReviews as unknown as ApifyReview[]).map((r) => ({
       author_name: r.name,
       rating: r.stars,
       text: r.text,
@@ -84,7 +92,7 @@ async function main() {
     body: JSON.stringify(payload),
   })
 
-  const result = await response.json() as any
+  const result = await response.json() as { error?: string; display_name?: string; clinic_id?: string; source_id?: string }
   if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`)
 
   console.log(`✓ Done: ${result.display_name}`)

@@ -25,7 +25,7 @@ interface InstagramClaimsData {
       display_name_variants?: string[]
     }
     social?: {
-      instagram?: any
+      instagram?: Record<string, unknown>
     }
     contact?: {
       website_candidates?: string[]
@@ -47,6 +47,10 @@ interface InstagramClaimsData {
   }
 }
 
+
+function sanitizeForLog(value: string): string {
+  return value.replace(/[\r\n]/g, ' ')
+}
 
 export async function POST(request: Request) {
   try {
@@ -87,7 +91,7 @@ export async function POST(request: Request) {
             username: importData.instagramData.instagram.username,
             ...result
           })
-          console.log(`✅ [${results.length + errors.length}/${imports.length}] Successfully imported @${importData.instagramData.instagram.username}`)
+          console.log(`✅ [${results.length + errors.length}/${imports.length}] Successfully imported @${sanitizeForLog(importData.instagramData.instagram.username)}`)
 
 
 
@@ -97,18 +101,19 @@ export async function POST(request: Request) {
             username: importData.instagramData.instagram.username,
             error: result.error
           })
-          console.log(`❌ [${results.length + errors.length}/${imports.length}] Failed to import @${importData.instagramData.instagram.username}: ${result.error}`)
+          console.log(`❌ [${results.length + errors.length}/${imports.length}] Failed to import @${sanitizeForLog(importData.instagramData.instagram.username)}: ${sanitizeForLog(String(result.error ?? ''))}`)
         }
 
         // Add small delay between imports (optional)
         await new Promise(resolve => setTimeout(resolve, 100))
 
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error)
         errors.push({
           clinicId: importData.clinicId,
-          error: error.message
+          error: msg
         })
-        console.log(`❌ [${results.length + errors.length}/${imports.length}] Exception for clinic ${importData.clinicId}: ${error.message}`)
+        console.log(`❌ [${results.length + errors.length}/${imports.length}] Exception for clinic ${sanitizeForLog(importData.clinicId)}: ${sanitizeForLog(msg)}`)
       }
     }
     //summary
@@ -124,9 +129,9 @@ export async function POST(request: Request) {
       errors: errors.length > 0 ? errors : undefined
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

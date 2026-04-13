@@ -53,7 +53,7 @@ async function getClinicId(clinicName: string): Promise<string | null> {
 
 async function uploadToSupabase(payload: {
   clinicId: string;
-  instagramData: any;
+  instagramData: Record<string, unknown>;
 }): Promise<{ success: boolean; error?: string }> {
   const response = await fetch(endpoint, {
     method: "POST",
@@ -122,9 +122,10 @@ async function runPipeline() {
       }
 
       succeeded++;
-    } catch (error: any) {
-      console.error(`  Failed: ${error.message}`);
-      errors.push({ url: instagramUrl, error: error.message });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error)
+      console.error(`  Failed: ${msg}`);
+      errors.push({ url: instagramUrl, error: msg });
     }
   }
 

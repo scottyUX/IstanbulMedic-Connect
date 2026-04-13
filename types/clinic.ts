@@ -86,12 +86,12 @@ export interface Clinic {
   website: string | null;
   rating: number | null;
   reviews_count: number | null;
-  opening_hours: Record<string, any> | null;
-  additional_info: Record<string, any> | null;
+  opening_hours: Record<string, unknown> | null;
+  additional_info: Record<string, unknown> | null;
   price_range: string | null;
   categories: string[];
   image_url: string | null;
-  payload: Record<string, any> | null;
+  payload: Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -113,12 +113,12 @@ export interface ClinicUpdateData {
   website?: string;
   rating?: number;
   reviews_count?: number;
-  opening_hours?: Record<string, any>;
-  additional_info?: Record<string, any>;
+  opening_hours?: Record<string, unknown>;
+  additional_info?: Record<string, unknown>;
   price_range?: string;
   categories?: string[];
   image_url?: string;
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
   updated_at?: string;
 }
 
@@ -139,7 +139,7 @@ export interface GooglePlacesData {
   website: string | null;
   rating: number | null;
   reviews_count: number | null;
-  opening_hours: Record<string, any> | null;
+  opening_hours: Record<string, unknown> | null;
   price_range: string | null;
   categories: string[];
   image_url: string | null;
