@@ -312,6 +312,7 @@ describe('clinicSummaryTool', () => {
   // =========================================================================
 
   describe('full summary with all data', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: Record<string, any>;
 
     beforeEach(async () => {
@@ -442,6 +443,7 @@ describe('clinicSummaryTool', () => {
   // =========================================================================
 
   describe('minimal summary (sparse data)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: Record<string, any>;
 
     beforeEach(async () => {
