@@ -42,7 +42,7 @@ vi.mock("@/lib/supabase/server", () => {
 
   return {
     createClient: vi.fn().mockResolvedValue({
-      from: (_table: string) => chainable([clinicRow]),
+      from: () => chainable([clinicRow]),
     }),
   };
 });

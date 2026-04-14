@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import LangchainGenUI from "@/components/langchain/LangchainGenUI";
@@ -22,10 +22,6 @@ export default function LangchainPage() {
   const { logout, user, isAuthenticated, loading, loginWithGoogle } = useAuth();
   const [loginPending, setLoginPending] = useState(false);
   const [showGreeting, setShowGreeting] = useState(true);
-
-  useEffect(() => {
-    if (!loading) setLoginPending(false);
-  }, [loading, isAuthenticated]);
 
   const handleLogin = async () => {
     setLoginPending(true);
