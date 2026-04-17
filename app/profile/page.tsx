@@ -1,5 +1,5 @@
-import { UserProfileDashboard } from "@/components/istanbulmedic-connect/user-profile/UserProfileDashboard"
+import ProfileDashboard from '@/components/istanbulmedic-connect/user-profile/ProfileDashboard'
 
 export default function ProfilePage() {
-  return <UserProfileDashboard />
+  return <ProfileDashboard />
 }

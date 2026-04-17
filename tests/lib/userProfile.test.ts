@@ -81,12 +81,36 @@ describe('getQualification', () => {
     await expect(getQualification()).rejects.toThrow('Unauthenticated')
   })
 
-  it('throws when the internal user record does not exist yet', async () => {
-    mockCreateClient.mockResolvedValue(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      makeClient({ users: { data: null, error: null } }) as any
-    )
-    await expect(getQualification()).rejects.toThrow('User record not found')
+  it('auto-creates the users row when it does not exist yet', async () => {
+    // getInternalUserId now upserts a new row instead of throwing.
+    const upsertMock = vi.fn().mockReturnThis()
+    const singleMock = vi.fn().mockResolvedValue({ data: { id: 'new-id' }, error: null })
+    const maybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null })
+
+    const fromMock = vi.fn().mockImplementation((table: string) => {
+      if (table === 'users') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: maybeSingleMock,
+          upsert: upsertMock,
+          single: singleMock,
+        }
+      }
+      // qualification, profiles, treatment — all return null (no data yet)
+      return qb()
+    })
+
+    mockCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'auth-id', email: 'a@b.com', user_metadata: {} } }, error: null }) },
+      from: fromMock,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    // Should not throw; creates user row and returns empty qualification
+    const result = await getQualification()
+    expect(upsertMock).toHaveBeenCalled()
+    expect(result.ageTier).toBeNull()
   })
 
   it('returns null fields when qualification row does not exist', async () => {
@@ -95,6 +119,7 @@ describe('getQualification', () => {
         users: { data: { id: 'internal-id', name: 'Jane Doe', email: 'jane@example.com' }, error: null },
         user_qualification: { data: null, error: null },
         user_profiles: { data: null, error: null },
+        user_treatment_profiles: { data: null, error: null },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any
     )
@@ -102,7 +127,7 @@ describe('getQualification', () => {
     const result = await getQualification()
     expect(result.ageTier).toBeNull()
     expect(result.country).toBeNull()
-    expect(result.hairLossPattern).toBeNull()
+    expect(result.norwoodScale).toBeNull()
     expect(result.budgetTier).toBeNull()
     expect(result.timeline).toBeNull()
     expect(result.whatsApp).toBeNull()
@@ -117,7 +142,6 @@ describe('getQualification', () => {
     const qualRow = {
       age_tier: '35_44',
       country: 'Germany',
-      hair_loss_pattern: 'advanced',
       budget_tier: '5000_8000',
       timeline: '6_12_months',
       whatsapp_number: '+49123456789',
@@ -130,6 +154,7 @@ describe('getQualification', () => {
         users: { data: { id: 'internal-id', name: 'Klaus Müller', email: 'klaus@example.de' }, error: null },
         user_qualification: { data: qualRow, error: null },
         user_profiles: { data: { gender: 'male', preferred_language: 'de' }, error: null },
+        user_treatment_profiles: { data: { norwood_scale: 4 }, error: null },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any
     )
@@ -137,7 +162,7 @@ describe('getQualification', () => {
     const result = await getQualification()
     expect(result.ageTier).toBe('35-44')
     expect(result.country).toBe('Germany')
-    expect(result.hairLossPattern).toBe('advanced')
+    expect(result.norwoodScale).toBe(4)
     expect(result.budgetTier).toBe('5000-8000')
     expect(result.timeline).toBe('6-12-months')
     expect(result.whatsApp).toBe('+49123456789')
@@ -146,6 +171,22 @@ describe('getQualification', () => {
     expect(result.fullName).toBe('Klaus Müller')
     expect(result.email).toBe('klaus@example.de')
     expect(result.gender).toBe('male')
+  })
+
+  it('throws when a supplementary parallel query fails', async () => {
+    // The Promise.all fetching userRow/profileRow/treatRow now propagates errors
+    // instead of silently returning null fields.
+    mockCreateClient.mockResolvedValue(
+      makeClient({
+        users:                  { data: { id: 'internal-id', name: 'A', email: 'a@b.com' }, error: null },
+        user_qualification:     { data: null, error: null },
+        user_profiles:          { data: null, error: { message: 'column does not exist' } },
+        user_treatment_profiles:{ data: null, error: null },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any
+    )
+
+    await expect(getQualification()).rejects.toMatchObject({ message: 'column does not exist' })
   })
 
   it('prefers qualification row preferred_language over profile row', async () => {
@@ -387,6 +428,75 @@ describe('upsertQualification', () => {
     ).rejects.toMatchObject({ message: 'unique constraint violation' })
   })
 
+  it('saves norwoodScale to user_treatment_profiles', async () => {
+    const treatUpsertMock = vi.fn().mockResolvedValue({ error: null })
+
+    const fromMock = vi.fn().mockImplementation((table: string) => {
+      if (table === 'users') {
+        return {
+          upsert: vi.fn().mockReturnThis(),
+          select: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: { id: 'user-id' }, error: null }),
+        }
+      }
+      if (table === 'user_treatment_profiles') {
+        return { upsert: treatUpsertMock }
+      }
+      return qb()
+    })
+
+    mockCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'auth-id' } }, error: null }) },
+      from: fromMock,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    await upsertQualification({ norwoodScale: 5, termsAccepted: false })
+
+    expect(treatUpsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ norwood_scale: 5 }),
+      expect.objectContaining({ onConflict: 'user_id' })
+    )
+  })
+
+  it('omits terms_accepted from qualification upsert when termsAccepted is not in the payload', async () => {
+    // The comment on QualificationPayload says termsAccepted should be omitted
+    // during mid-stepper autosaves to avoid inadvertently resetting an existing flag.
+    let capturedQualFields: Record<string, unknown> | undefined
+
+    const fromMock = vi.fn().mockImplementation((table: string) => {
+      if (table === 'users') {
+        return {
+          upsert: vi.fn().mockReturnThis(),
+          select: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: { id: 'user-id' }, error: null }),
+        }
+      }
+      if (table === 'user_qualification') {
+        return {
+          upsert: vi.fn().mockImplementation((fields: Record<string, unknown>) => {
+            capturedQualFields = fields
+            return Promise.resolve({ error: null })
+          }),
+        }
+      }
+      return qb()
+    })
+
+    mockCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'auth-id' } }, error: null }) },
+      from: fromMock,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    // termsAccepted is intentionally absent
+    await upsertQualification({ ageTier: '25-34', country: 'UK' })
+
+    expect(capturedQualFields).toBeDefined()
+    expect(capturedQualFields).not.toHaveProperty('terms_accepted')
+    expect(capturedQualFields).toHaveProperty('age_tier', '25_34')
+  })
+
   it('throws when the user_profiles upsert fails', async () => {
     const fromMock = vi.fn().mockImplementation((table: string) => {
       if (table === 'users') {
@@ -500,6 +610,68 @@ describe('upsertTreatmentProfile', () => {
     expect(insertMock).toHaveBeenCalledWith([
       expect.objectContaining({ year: 2020, estimated_grafts: 3000, clinic_country: 'Turkey' }),
     ])
+  })
+
+  it('inserts prior surgeries with correct surgery_type field mapping', async () => {
+    const insertMock = vi.fn().mockResolvedValue({ error: null })
+
+    const fromMock = vi.fn().mockImplementation((table: string) => {
+      if (table === 'users') return qb({ data: { id: 'internal-id' }, error: null })
+      if (table === 'user_treatment_profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) }
+      if (table === 'user_prior_transplants') return { delete: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() }
+      if (table === 'user_prior_surgeries') {
+        return { delete: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), insert: insertMock }
+      }
+      return qb()
+    })
+
+    mockCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'auth-id' } }, error: null }) },
+      from: fromMock,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    await upsertTreatmentProfile({
+      priorSurgeries: [{ type: 'Rhinoplasty', year: 2018, notes: 'cosmetic' }],
+    })
+
+    expect(insertMock).toHaveBeenCalledWith([
+      expect.objectContaining({ surgery_type: 'Rhinoplasty', year: 2018, notes: 'cosmetic' }),
+    ])
+  })
+
+  it('upserts photos with correct fields and per-view onConflict', async () => {
+    const upsertMock = vi.fn().mockResolvedValue({ error: null })
+
+    const fromMock = vi.fn().mockImplementation((table: string) => {
+      if (table === 'users') return qb({ data: { id: 'internal-id' }, error: null })
+      if (table === 'user_treatment_profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) }
+      if (table === 'user_photos') return { upsert: upsertMock }
+      return qb()
+    })
+
+    mockCreateClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'auth-id' } }, error: null }) },
+      from: fromMock,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    await upsertTreatmentProfile({
+      photos: [
+        { view: 'front', storageUrl: 'https://example.com/front.jpg', fileSizeBytes: 102400, mimeType: 'image/jpeg' },
+        { view: 'top',   storageUrl: 'https://example.com/top.jpg',   fileSizeBytes: 204800, mimeType: 'image/jpeg' },
+      ],
+    })
+
+    expect(upsertMock).toHaveBeenCalledTimes(2)
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ photo_view: 'front', storage_url: 'https://example.com/front.jpg' }),
+      expect.objectContaining({ onConflict: 'user_id,photo_view' })
+    )
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ photo_view: 'top', storage_url: 'https://example.com/top.jpg' }),
+      expect.objectContaining({ onConflict: 'user_id,photo_view' })
+    )
   })
 })
 

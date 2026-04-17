@@ -12,8 +12,6 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   loginWithGoogle: (next?: string) => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   logout: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
 }
@@ -187,34 +185,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (next) callbackUrl.searchParams.set('next', next);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: callbackUrl.toString() },
+        options: {
+          redirectTo: callbackUrl.toString(),
+          scopes: [
+            'profile',
+            'email',
+            'https://www.googleapis.com/auth/user.birthday.read',
+            'https://www.googleapis.com/auth/user.gender.read',
+            'https://www.googleapis.com/auth/user.phonenumbers.read',
+            'https://www.googleapis.com/auth/user.addresses.read',
+          ].join(' '),
+        },
       });
       if (error) throw error;
     } catch (error) {
       throw error;
     }
-  };
-
-  const signInWithEmail = async (email: string, password: string) => {
-    const supabase = createClient();
-    if (!supabase) throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-  };
-
-  const signUpWithEmail = async (email: string, password: string) => {
-    const supabase = createClient();
-    if (!supabase) throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
-    const callbackUrl = `${window.location.origin}/auth/callback?next=/profile`;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: callbackUrl },
-    });
-    if (error) throw error;
-    // If identities is empty, email confirmation is pending
-    const needsConfirmation = !data.session;
-    return { needsConfirmation };
   };
 
   const logout = async () => {
@@ -244,8 +230,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         loginWithGoogle,
-        signInWithEmail,
-        signUpWithEmail,
         logout,
         fetchUserProfile,
       }}

@@ -38,19 +38,37 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect /profile routes — redirect unauthenticated users to login
-  // /profile (dashboard overview) and /profile/get-started (section 1) are always accessible without auth
   const { pathname } = request.nextUrl;
-  const publicProfilePaths = ['/profile', '/profile/get-started'];
-  if (pathname.startsWith('/profile') && !publicProfilePaths.includes(pathname) && !user) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/auth/login';
-    loginUrl.searchParams.set('next', pathname);
-    const redirectResponse = NextResponse.redirect(loginUrl);
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
-    });
-    return redirectResponse;
+
+  if (pathname.startsWith('/profile')) {
+    // 1. Unauthenticated users can only reach /profile/get-started
+    if (!user && pathname !== '/profile/get-started') {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/auth/login';
+      loginUrl.searchParams.set('next', pathname);
+      const redirectResponse = NextResponse.redirect(loginUrl);
+      supabaseResponse.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c.name, c.value));
+      return redirectResponse;
+    }
+
+    // 2. Authenticated users without terms_accepted are gated to /profile/get-started
+    if (user && pathname !== '/profile/get-started') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const s = supabase as any;
+      const { data: userRow } = await s.from('users').select('id').eq('auth_id', user.id).maybeSingle();
+      const { data: qualRow } = userRow
+        ? await s.from('user_qualification').select('terms_accepted').eq('user_id', userRow.id).maybeSingle()
+        : { data: null };
+      const hasConsented = qualRow?.terms_accepted === true;
+      if (!hasConsented) {
+        const stepperUrl = request.nextUrl.clone();
+        stepperUrl.pathname = '/profile/get-started';
+        stepperUrl.search = '';
+        const redirectResponse = NextResponse.redirect(stepperUrl);
+        supabaseResponse.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c.name, c.value));
+        return redirectResponse;
+      }
+    }
   }
 
   return supabaseResponse;
