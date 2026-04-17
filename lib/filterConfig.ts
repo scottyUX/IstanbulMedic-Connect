@@ -84,6 +84,7 @@ export const FEATURE_CONFIG = {
   profileLanguages: false,
   profilePaymentMethods: false,
   profileServices: false,
+  profileRegistry: true,
 } as const;
 
 export type FeatureConfigKey = keyof typeof FEATURE_CONFIG;
