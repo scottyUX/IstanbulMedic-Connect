@@ -90,34 +90,24 @@ export default function ProfileDashboard() {
       <aside className="hidden md:flex flex-col w-64 shrink-0 bg-white border-r border-slate-200 sticky top-[80px] h-[calc(100vh-80px)] overflow-y-auto">
         {/* User identity strip */}
         <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
-          {loading ? (
-            <div className="flex items-center gap-3 w-full animate-pulse">
-              <div className="w-9 h-9 rounded-full bg-slate-200 shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-3 bg-slate-200 rounded w-24" />
-                <div className="h-2.5 bg-slate-100 rounded w-32" />
+          <>
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={displayName}
+                referrerPolicy="no-referrer"
+                className="w-9 h-9 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-[#17375B] flex items-center justify-center text-white text-sm font-semibold shrink-0 select-none">
+                {initials}
               </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[#0D1E32] truncate">{displayName}</p>
+              <p className="text-xs text-slate-400 truncate">{profile?.email || user?.email}</p>
             </div>
-          ) : (
-            <>
-              {profile?.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt={displayName}
-                  referrerPolicy="no-referrer"
-                  className="w-9 h-9 rounded-full object-cover shrink-0"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-[#17375B] flex items-center justify-center text-white text-sm font-semibold shrink-0 select-none">
-                  {initials}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#0D1E32] truncate">{displayName}</p>
-                <p className="text-xs text-slate-400 truncate">{profile?.email || user?.email}</p>
-              </div>
-            </>
-          )}
+          </>
         </div>
 
         {/* Nav items */}
