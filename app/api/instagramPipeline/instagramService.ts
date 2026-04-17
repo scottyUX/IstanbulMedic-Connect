@@ -26,8 +26,8 @@ interface ApifyErrorResponse {
 }
 
 export interface InstagramScraperResult {
-  profile: any[];
-  posts: any[];
+  profile: unknown[];
+  posts: unknown[];
 }
 
 // Scraping function
@@ -37,7 +37,7 @@ async function runApifyScraper(
   resultsType: string,
   resultsLimit: number,
   label: string
-): Promise<any[]> {
+): Promise<unknown[]> {
   console.log(`\n[${label}] Starting scrape (${resultsType})...`);
 
   const runResponse = await fetch(
@@ -144,7 +144,7 @@ async function runApifyScraper(
     );
   }
 
-  const rawData: any[] = await datasetResponse.json();
+  const rawData: unknown[] = await datasetResponse.json();
 
   if (!Array.isArray(rawData)) {
     throw new Error(`[${label}] Invalid API response: expected array`);

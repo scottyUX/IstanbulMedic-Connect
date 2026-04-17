@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { type SupabaseClient } from '@supabase/supabase-js';
 
 // ─── Payload types (match component interfaces) ───────────────────────────────
 
@@ -165,7 +166,7 @@ export async function getQualification() {
   const { supabase, user } = await getAuthUser();
   const userId = await getInternalUserId(supabase, user);
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await (supabase as SupabaseClient)
     .from('user_qualification')
     .select('age_tier, country, budget_tier, timeline, whatsapp_number, preferred_language, terms_accepted')
     .eq('user_id', userId)
@@ -216,14 +217,12 @@ export async function getTreatmentProfile() {
   if (error) throw error;
   if (!data) return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: transplants } = await (supabase as any)
+  const { data: transplants } = await (supabase as SupabaseClient)
     .from('user_prior_transplants')
     .select('year, estimated_grafts, clinic_country')
     .eq('user_id', userId);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: surgeries } = await (supabase as any)
+  const { data: surgeries } = await (supabase as SupabaseClient)
     .from('user_prior_surgeries')
     .select('surgery_type, year, notes')
     .eq('user_id', userId);

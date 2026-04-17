@@ -12,6 +12,14 @@ import { ApifyClient } from 'apify-client'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
 
+interface ApifyReview {
+  name: string
+  stars: number
+  text: string
+  publishedAtDate: string
+  language?: string
+}
+
 const CLINIC = {
   name: "Dr Serkan Aygın Hair Transplant Clinic",
   place_id: "ChIJ46c0kwG3yhQRxYnQckUyqPg",
@@ -23,7 +31,7 @@ async function main() {
   // ─── Step 1: Google Places ─────────────────────────────────────────────────
   console.log('1. Fetching Google Places data...')
   const googleService = new GooglePlacesService()
-  let googleData: any
+  let googleData: Awaited<ReturnType<typeof googleService.getPlaceDetails>>
 
   try {
     googleData = await googleService.getPlaceDetails(CLINIC.place_id)
@@ -43,7 +51,7 @@ async function main() {
 
   // ─── Step 2: Apify reviews ────────────────────────────────────────────────
   console.log('\n2. Fetching Apify reviews...')
-  let apifyReviews: any[] = []
+  let apifyReviews: Record<string, unknown>[] = []
 
   try {
     const apifyClient = new ApifyClient({ token: process.env.APIFY_API_TOKEN! })
@@ -67,7 +75,7 @@ async function main() {
   console.log('\n3. Building import payload...')
   const allReviews = [
     ...(googleData.raw_response.result.reviews || []),
-    ...apifyReviews.map((r: any) => ({
+    ...(apifyReviews as unknown as ApifyReview[]).map((r) => ({
       author_name: r.name,
       rating: r.stars,
       text: r.text,

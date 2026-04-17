@@ -35,9 +35,9 @@ const createMockQueryBuilder = (data: unknown = [], error: unknown = null, count
   builder.single = vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] : data, error });
 
   // For direct queries without range (like filter queries)
-  builder.then = (resolve: (value: unknown) => unknown) => {
+  builder.then = vi.fn().mockImplementation((resolve: (value: unknown) => unknown) => {
     return Promise.resolve({ data, error }).then(resolve);
-  };
+  });
 
   return builder;
 };

@@ -1,3 +1,5 @@
+import type { GooglePlacesResponse } from '@/types/clinic'
+
 export class GooglePlacesService {
   private apiKey: string
 
@@ -49,7 +51,7 @@ export class GooglePlacesService {
       city,
       state,
       country,
-      raw_response: data as any,
+      raw_response: data as GooglePlacesResponse,
     }
   }
 }

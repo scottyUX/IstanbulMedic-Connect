@@ -6,6 +6,21 @@ import {
 } from '../../../../lib/supabase/database.types'
 
 const mockDb = vi.hoisted(() => {
+  interface MockBuilder {
+    insert(payload: unknown, options?: unknown): MockBuilder
+    update(payload: unknown): MockBuilder
+    delete(): MockBuilder
+    upsert(payload: unknown, options?: unknown): MockBuilder
+    select(columns?: unknown): MockBuilder
+    eq(column: string, value: unknown): MockBuilder
+    order(column: string, options?: unknown): MockBuilder
+    limit(value: number): MockBuilder
+    single(): Promise<unknown>
+    then(onFulfilled?: (value: unknown) => unknown, onRejected?: (reason: unknown) => unknown): Promise<unknown>
+    catch(onRejected?: (reason: unknown) => unknown): Promise<unknown>
+    finally(onFinally?: () => void): Promise<unknown>
+  }
+
   type Operation = {
     table: string
     op: 'insert' | 'update' | 'delete' | 'upsert' | 'select' | null
@@ -61,7 +76,7 @@ const mockDb = vi.hoisted(() => {
       return execution
     }
 
-    const builder: any = {
+    const builder: MockBuilder = {
       insert(payload: unknown, options?: unknown) {
         operation.op = 'insert'
         operation.payload = payload
@@ -143,7 +158,6 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => mockDb.client)
 }))
 
-import { POST as bulkPOST } from './bulk/route'
 import { POST as singlePOST } from './route'
 
 process.env.NEXT_PUBLIC_APP_URL = 'http://app.local'
@@ -243,14 +257,6 @@ const minimalGooglePlacesData = {
 
 function makeSingleRequest(body: object | string) {
   return new Request('http://localhost/api/import/google-places', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: typeof body === 'string' ? body : JSON.stringify(body)
-  })
-}
-
-function makeBulkRequest(body: object | string) {
-  return new Request('http://localhost/api/import/google-places/bulk', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: typeof body === 'string' ? body : JSON.stringify(body)
@@ -505,10 +511,10 @@ describe('POST /api/import/google-places', () => {
         url: 'https://istanbulmedic.example'
       })
       expect(Constants.public.Enums.source_type_enum).toContain(
-        (sourceInsert.payload as any).source_type
+        (sourceInsert.payload as Record<string, unknown>).source_type
       )
-      expect((sourceInsert.payload as any).content_hash).toMatch(/^[a-f0-9]{64}$/)
-      expect((sourceInsert.payload as any).captured_at).toEqual(expect.any(String))
+      expect((sourceInsert.payload as Record<string, unknown>).content_hash).toMatch(/^[a-f0-9]{64}$/)
+      expect((sourceInsert.payload as Record<string, unknown>).captured_at).toEqual(expect.any(String))
 
       const clinicUpdate = getOperations('clinics', 'update')[0]
       expect(clinicUpdate.filters).toEqual([
@@ -527,9 +533,14 @@ describe('POST /api/import/google-places', () => {
         phone_contact: '+90 212 222 2222'
       })
       expect(Constants.public.Enums.clinic_status).toContain(
-        (clinicUpdate.payload as any).status
+        (clinicUpdate.payload as Record<string, unknown>).status
       )
-      expect((clinicUpdate.payload as any).thumbnail_url).toBeNull()
+      expect((clinicUpdate.payload as Record<string, unknown>).thumbnail_url).toContain(
+        'photo_reference=photo-1'
+      )
+      expect((clinicUpdate.payload as Record<string, unknown>).thumbnail_url).toContain(
+        'key=test-api-key'
+      )
 
       const locationInsert = getOperations('clinic_locations', 'insert')[0]
       expectExactKeys(
@@ -573,7 +584,7 @@ describe('POST /api/import/google-places', () => {
           is_primary_service: false
         }
       ])
-      ;(serviceInsert.payload as any[]).forEach((service) => {
+      ;(serviceInsert.payload as Array<Record<string, unknown>>).forEach((service) => {
         expect(Constants.public.Enums.clinic_service_category).toContain(
           service.service_category
         )
@@ -606,7 +617,23 @@ describe('POST /api/import/google-places', () => {
         }
       ])
 
-
+      const mediaInsert = getOperations('clinic_media', 'insert')[0]
+      expectKeysOnEach(
+        mediaInsert.payload as Array<Record<string, unknown>>,
+        clinicMediaInsertKeys
+      )
+      expect((mediaInsert.payload as Array<Record<string, unknown>>)).toHaveLength(5)
+      expect((mediaInsert.payload as Array<Record<string, unknown>>)[0]).toMatchObject({
+        clinic_id: 'clinic-123',
+        media_type: 'image',
+        is_primary: true,
+        source_id: 'source-1',
+        display_order: 0
+      })
+      expect((mediaInsert.payload as Array<Record<string, unknown>>)[4]).toMatchObject({
+        is_primary: false,
+        display_order: 4
+      })
 
       const rawDocumentInsert = getOperations('source_documents', 'insert')[0]
       expectExactKeys(
@@ -621,7 +648,7 @@ describe('POST /api/import/google-places', () => {
         raw_text: JSON.stringify(fullGooglePlacesData)
       })
       expect(Constants.public.Enums.doc_type_enum).toContain(
-        (rawDocumentInsert.payload as any).doc_type
+        (rawDocumentInsert.payload as Record<string, unknown>).doc_type
       )
     })
 
@@ -686,32 +713,32 @@ describe('POST /api/import/google-places', () => {
           operation.payload as Record<string, unknown>,
           clinicFactUpsertKeys
         )
-        expect((operation.options as any)?.onConflict).toBe('clinic_id,fact_key')
+        expect((operation.options as Record<string, unknown>)?.onConflict).toBe('clinic_id,fact_key')
         expect(Constants.public.Enums.computed_by_enum).toContain(
-          (operation.payload as any).computed_by
+          (operation.payload as Record<string, unknown>).computed_by
         )
         expect(Constants.public.Enums.value_type_enum).toContain(
-          (operation.payload as any).value_type
+          (operation.payload as Record<string, unknown>).value_type
         )
       })
-      expect((factUpserts[0].payload as any)).toMatchObject({
+      expect((factUpserts[0].payload as Record<string, unknown>)).toMatchObject({
         clinic_id: 'clinic-123',
         fact_key: 'google_place_id',
         fact_value: { value: 'place-123' },
         value_type: 'string',
         computed_by: 'extractor'
       })
-      expect((factUpserts[1].payload as any)).toMatchObject({
+      expect((factUpserts[1].payload as Record<string, unknown>)).toMatchObject({
         fact_key: 'google_rating',
         fact_value: { value: 4.8 },
         value_type: 'number'
       })
-      expect((factUpserts[2].payload as any)).toMatchObject({
+      expect((factUpserts[2].payload as Record<string, unknown>)).toMatchObject({
         fact_key: 'google_review_count',
         fact_value: { value: 210 },
         value_type: 'number'
       })
-      expect((factUpserts[3].payload as any)).toMatchObject({
+      expect((factUpserts[3].payload as Record<string, unknown>)).toMatchObject({
         fact_key: 'opening_hours',
         fact_value: fullGooglePlacesData.google_places.opening_hours,
         value_type: 'json'
@@ -742,9 +769,9 @@ describe('POST /api/import/google-places', () => {
         rating: 4.8,
         user_ratings_total: 210
       })
-      expect((googlePlacesUpserts[0].options as any)?.onConflict).toBe('clinic_id,place_id')
-      expect((googlePlacesUpserts[0].payload as any).last_checked_at).toEqual(expect.any(String))
-      expect((googlePlacesUpserts[0].payload as any).updated_at).toEqual(expect.any(String))
+      expect((googlePlacesUpserts[0].options as Record<string, unknown>)?.onConflict).toBe('clinic_id,place_id')
+      expect((googlePlacesUpserts[0].payload as Record<string, unknown>).last_checked_at).toEqual(expect.any(String))
+      expect((googlePlacesUpserts[0].payload as Record<string, unknown>).updated_at).toEqual(expect.any(String))
     })
 
     it('upserts clinic_google_places with null rating and review count when absent from payload', async () => {
@@ -981,7 +1008,7 @@ describe('POST /api/import/google-places', () => {
       expect(response.status).toBe(200)
 
       const clinicUpdate = getOperations('clinics', 'update')[0]
-      expect((clinicUpdate.payload as any).thumbnail_url).toBe(
+      expect((clinicUpdate.payload as Record<string, unknown>).thumbnail_url).toBe(
         'https://cdn.example/1.jpg'
       )
 
@@ -1027,8 +1054,12 @@ describe('POST /api/import/google-places', () => {
       expect(response.status).toBe(200)
 
       const clinicUpdate = getOperations('clinics', 'update')[0]
-      expect((clinicUpdate.payload as any).thumbnail_url).toBeNull()
+      expect((clinicUpdate.payload as Record<string, unknown>).thumbnail_url).toBe('')
 
+      const mediaInsert = getOperations('clinic_media', 'insert')[0]
+      expect((mediaInsert.payload as Array<Record<string, unknown>>)[0]).toMatchObject({
+        url: ''
+      })
     })
   })
 
@@ -1178,176 +1209,3 @@ describe('POST /api/import/google-places', () => {
   })
 })
 
-describe('POST /api/import/google-places/bulk', () => {
-  it('returns 400 when imports is not an array', async () => {
-    const response = await bulkPOST(makeBulkRequest({ imports: null }))
-
-    expect(response.status).toBe(400)
-    await expect(response.json()).resolves.toMatchObject({
-      error: 'Expected array of imports'
-    })
-  })
-
-  it('aggregates successful imports and calls the single-import endpoint for each payload', async () => {
-    vi.useFakeTimers()
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: true,
-        source_id: 'source-1'
-      })
-    })
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: true,
-        source_id: 'source-2'
-      })
-    })
-
-    const imports = [
-      { clinicId: 'clinic-123', googlePlacesData: fullGooglePlacesData },
-      { clinicId: 'clinic-456', googlePlacesData: minimalGooglePlacesData }
-    ]
-
-    const responsePromise = bulkPOST(makeBulkRequest({ imports }))
-    await vi.runAllTimersAsync()
-    const response = await responsePromise
-
-    expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toMatchObject({
-      success: true,
-      totalImports: 2,
-      successfulImports: 2,
-      failedImports: 0,
-      results: [
-        expect.objectContaining({
-          clinicId: 'clinic-123',
-          placeId: 'place-123',
-          displayName: 'Istanbul Medic Center',
-          source_id: 'source-1'
-        }),
-        expect.objectContaining({
-          clinicId: 'clinic-456',
-          placeId: 'place-456',
-          displayName: 'Minimal Clinic',
-          source_id: 'source-2'
-        })
-      ]
-    })
-
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      'http://app.local/api/import/google-places',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(imports[0])
-      }
-    )
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      'http://app.local/api/import/google-places',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(imports[1])
-      }
-    )
-  })
-
-  it('returns a partial failure summary when a downstream import responds with an error', async () => {
-    vi.useFakeTimers()
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true, source_id: 'source-1' })
-    })
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ error: 'duplicate place' })
-    })
-
-    const imports = [
-      { clinicId: 'clinic-123', googlePlacesData: fullGooglePlacesData },
-      { clinicId: 'clinic-456', googlePlacesData: minimalGooglePlacesData }
-    ]
-
-    const responsePromise = bulkPOST(makeBulkRequest({ imports }))
-    await vi.runAllTimersAsync()
-    const response = await responsePromise
-
-    expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toMatchObject({
-      success: false,
-      totalImports: 2,
-      successfulImports: 1,
-      failedImports: 1,
-      errors: [
-        expect.objectContaining({
-          clinicId: 'clinic-456',
-          placeId: 'place-456',
-          displayName: 'Minimal Clinic',
-          error: 'duplicate place'
-        })
-      ]
-    })
-  })
-
-  it('continues processing when fetch throws and records the exception', async () => {
-    vi.useFakeTimers()
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-
-    fetchMock.mockRejectedValueOnce(new Error('network down'))
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true, source_id: 'source-2' })
-    })
-
-    const imports = [
-      { clinicId: 'clinic-123', googlePlacesData: fullGooglePlacesData },
-      { clinicId: 'clinic-456', googlePlacesData: minimalGooglePlacesData }
-    ]
-
-    const responsePromise = bulkPOST(makeBulkRequest({ imports }))
-    await vi.runAllTimersAsync()
-    const response = await responsePromise
-
-    expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toMatchObject({
-      success: false,
-      totalImports: 2,
-      successfulImports: 1,
-      failedImports: 1,
-      results: [
-        expect.objectContaining({
-          clinicId: 'clinic-456',
-          placeId: 'place-456'
-        })
-      ],
-      errors: [
-        expect.objectContaining({
-          clinicId: 'clinic-123',
-          placeId: 'place-123',
-          error: 'network down'
-        })
-      ]
-    })
-  })
-
-  it('returns 500 when the request body contains invalid JSON', async () => {
-    const response = await bulkPOST(makeBulkRequest('{invalid json'))
-
-    expect(response.status).toBe(500)
-    await expect(response.json()).resolves.toMatchObject({
-      error: expect.any(String)
-    })
-  })
-})

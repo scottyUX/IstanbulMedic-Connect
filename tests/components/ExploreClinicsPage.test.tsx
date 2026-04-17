@@ -178,7 +178,7 @@ describe('ExploreClinicsPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /Next/i }));
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/clinics?page=2');
+        expect(mockPush).toHaveBeenCalledWith('/clinics?minScore=0&page=2');
       });
     });
 
@@ -188,7 +188,7 @@ describe('ExploreClinicsPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /Previous/i }));
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/clinics?page=2');
+        expect(mockPush).toHaveBeenCalledWith('/clinics?minScore=0&page=2');
       });
     });
 
@@ -212,7 +212,7 @@ describe('ExploreClinicsPage', () => {
       fireEvent.click(highestRatedOption);
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/clinics?sort=Highest+Rated');
+        expect(mockPush).toHaveBeenCalledWith('/clinics?minScore=0&sort=Highest+Rated');
       });
     });
   });

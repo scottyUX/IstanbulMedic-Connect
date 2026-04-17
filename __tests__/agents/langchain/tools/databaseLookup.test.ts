@@ -13,7 +13,7 @@ const {
   const mockQueryResult = { data: [{ id: 1, name: 'Test Clinic' }], error: null };
   const mockLimit = vi.fn().mockResolvedValue(mockQueryResult);
   const mockOr = vi.fn().mockReturnValue({ limit: mockLimit });
-  const mockEq: any = vi.fn();
+  const mockEq: ReturnType<typeof vi.fn> = vi.fn();
   mockEq.mockReturnValue({ or: mockOr, limit: mockLimit, eq: mockEq });
   const mockSelect = vi.fn().mockReturnValue({ eq: mockEq, or: mockOr, limit: mockLimit });
   const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
@@ -182,7 +182,7 @@ describe('databaseLookupTool', () => {
 
     it('rejects invalid table name via schema validation', async () => {
       await expect(
-        databaseLookupTool.invoke({ table: 'invalid_table' })
+        databaseLookupTool.invoke({ table: 'invalid_table' } as unknown as Parameters<typeof databaseLookupTool.invoke>[0])
       ).rejects.toThrow();
     });
   });
