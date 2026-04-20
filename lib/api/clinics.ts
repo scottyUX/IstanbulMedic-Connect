@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/supabase/database.types';
 import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/profile/InstagramSignalsCard';
 import { getInstagramSignals } from './instagram';
+import { getForumSignals, type ClinicForumProfile } from './forumSignals';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -94,6 +95,8 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   totalReviewCount: number;
   /** Instagram signals data for trust indicators (null if no Instagram data exists) */
   instagramSignals: InstagramSignalsData | null;
+  /** Reddit community signals (null if no Reddit data exists) */
+  redditSignals: ClinicForumProfile | null;
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -653,6 +656,9 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
   // Fetch Instagram signals data (returns null if no Instagram profile exists)
   const instagramSignals = await getInstagramSignals(clinic.id);
 
+  // Fetch Reddit signals data (returns null if no Reddit profile exists)
+  const redditSignals = await getForumSignals(clinic.id, 'reddit');
+
   return {
     id: clinic.id,
     name: clinic.display_name,
@@ -689,6 +695,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     proceduresPerformed: clinic.procedures_performed,
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
     instagramSignals,
+    redditSignals,
   };
 }
 
