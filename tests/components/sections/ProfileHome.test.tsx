@@ -102,15 +102,15 @@ describe('ProfileHome', () => {
     expect(screen.getByText('Consultations')).toBeInTheDocument()
   })
 
-  it('Consultations card shows "Coming soon" badge and is disabled', async () => {
+  it('Consultations card shows "Coming soon" badge and is clickable', async () => {
     setupAuth()
     render(<ProfileHome onNavigate={vi.fn()} />)
     await waitFor(() => screen.getByText('Coming soon'))
     const consultationsCard = screen.getByText('Consultations').closest('button')!
-    expect(consultationsCard).toBeDisabled()
+    expect(consultationsCard).not.toBeDisabled()
   })
 
-  it('calls onNavigate when a non-disabled card is clicked', async () => {
+  it('calls onNavigate when a card is clicked', async () => {
     setupAuth()
     const onNavigate = vi.fn()
     render(<ProfileHome onNavigate={onNavigate} />)
@@ -119,13 +119,13 @@ describe('ProfileHome', () => {
     expect(onNavigate).toHaveBeenCalledWith('personal-info')
   })
 
-  it('does NOT call onNavigate for Consultations card', async () => {
+  it('calls onNavigate for Consultations card', async () => {
     setupAuth()
     const onNavigate = vi.fn()
     render(<ProfileHome onNavigate={onNavigate} />)
     await waitFor(() => screen.getByText('Consultations'))
     fireEvent.click(screen.getByText('Consultations').closest('button')!)
-    expect(onNavigate).not.toHaveBeenCalled()
+    expect(onNavigate).toHaveBeenCalledWith('consultations')
   })
 
   // ─── Photo counter ───────────────────────────────────────────────────────────
