@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { Merriweather } from 'next/font/google'
 
 const merriweather = Merriweather({ subsets: ['latin'], weight: ['400', '700'], display: 'swap' })
@@ -151,13 +152,15 @@ export default function ProfileHairLossStatus() {
         <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
           <CardHeader title="Hair loss classification" saveState={saveState} saveError={saveError} />
           <Row icon={icons.norwood} label="Norwood scale">
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3" role="radiogroup" aria-label="Norwood scale">
               {NORWOOD_OPTIONS.map((o) => {
                 const selected = form.norwoodScale === String(o.value)
                 return (
                   <button
                     key={o.value}
                     type="button"
+                    role="radio"
+                    aria-checked={selected}
                     onClick={() => set('norwoodScale', String(o.value))}
                     className={`flex items-center gap-5 w-full text-left rounded-xl border-2 px-5 py-4 transition-all ${
                       selected
@@ -174,9 +177,12 @@ export default function ProfileHairLossStatus() {
                         </svg>
                       )}
                     </div>
-                    <img
+                    <Image
                       src={`/assets/norwood/stage-${o.value}.png`}
                       alt={`Stage ${o.value}`}
+                      width={112}
+                      height={112}
+                      loading="lazy"
                       className="w-28 h-28 object-contain shrink-0"
                     />
                     <div className="flex-1 min-w-0">
@@ -190,13 +196,15 @@ export default function ProfileHairLossStatus() {
             </div>
           </Row>
           <Row icon={icons.duration} label="Hair loss duration">
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2" role="radiogroup" aria-label="Hair loss duration">
               {DURATION_OPTIONS.map((o) => {
                 const selected = form.durationYears === String(o.value)
                 return (
                   <button
                     key={o.value}
                     type="button"
+                    role="radio"
+                    aria-checked={selected}
                     onClick={() => set('durationYears', String(o.value))}
                     className={`flex items-center gap-4 w-full text-left rounded-xl border-2 px-4 py-3 transition-all ${
                       selected

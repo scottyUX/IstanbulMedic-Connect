@@ -22,14 +22,14 @@ const mockUseAuth = vi.mocked(useAuth)
 function setupAuth(overrides: Record<string, unknown> = {}) {
   mockUseAuth.mockReturnValue({
     isAuthenticated: true,
-    user: { email: 'jane@example.com' } as any,
+    user: { email: 'jane@example.com' } as unknown as ReturnType<typeof useAuth>['user'],
     profile: {
       full_name: 'Jane Doe',
       given_name: 'Jane',
       family_name: 'Doe',
       email: 'jane@example.com',
       avatar_url: null,
-    } as any,
+    } as unknown as ReturnType<typeof useAuth>['profile'],
     loading: false,
     loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
     ...overrides,

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
@@ -353,7 +354,8 @@ export function GetStarted() {
 
   // Scroll to top on step change
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: prefersReduced ? 'instant' : 'smooth' })
   }, [step])
 
   const currentStep = visibleSteps[step] ?? visibleSteps[visibleSteps.length - 1]
@@ -442,7 +444,7 @@ export function GetStarted() {
   if (!hydrated) return null
 
   return (
-    <div className="imConnectTheme min-h-screen bg-slate-50 pt-[80px] flex flex-col">
+    <form className="imConnectTheme min-h-screen bg-slate-50 pt-[80px] flex flex-col" onSubmit={(e) => e.preventDefault()}>
       <div className="flex-1 flex flex-col items-center justify-start px-4 py-8 max-w-lg mx-auto w-full">
 
         {/* Skip current step */}
@@ -541,9 +543,11 @@ export function GetStarted() {
                           </svg>
                         )}
                       </div>
-                      <img
+                      <Image
                         src={`/assets/norwood/stage-${opt.value}.png`}
                         alt={`Stage ${opt.value}`}
+                        width={64}
+                        height={64}
                         className="w-16 h-16 object-contain shrink-0"
                       />
                       <p className={`text-base font-semibold ${selected ? "text-[#0D1E32]" : "text-foreground"}`}>
@@ -700,22 +704,17 @@ export function GetStarted() {
                 </div>
 
                 {/* Consent checkbox */}
-                <button
-                  type="button"
-                  onClick={() => setConsentAccepted((v) => !v)}
-                  className={`flex items-start gap-3 rounded-2xl border px-5 py-4 text-left transition-all ${
+                <label
+                  className={`flex items-start gap-3 rounded-2xl border px-5 py-4 cursor-pointer transition-all ${
                     consentAccepted ? "border-[#17375B]/30 bg-[#17375B]/5" : "border-slate-200 bg-white hover:bg-slate-50"
                   }`}
                 >
-                  <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
-                    consentAccepted ? "border-[#17375B] bg-[#17375B]" : "border-slate-300"
-                  }`}>
-                    {consentAccepted && (
-                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
+                  <input
+                    type="checkbox"
+                    checked={consentAccepted}
+                    onChange={(e) => setConsentAccepted(e.target.checked)}
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-[#17375B] cursor-pointer"
+                  />
                   <p className="im-text-body-sm text-slate-600">
                     I have read and agreed to the{" "}
                     <span className="text-[#17375B] font-semibold underline underline-offset-2">Terms of Service</span>
@@ -723,7 +722,7 @@ export function GetStarted() {
                     <span className="text-[#17375B] font-semibold underline underline-offset-2">Privacy Policy</span>.
                     My data will only be shared with clinics I choose.
                   </p>
-                </button>
+                </label>
 
                 {!isSignedIn && (
                   <p className="im-text-body-sm text-center text-slate-500">
@@ -778,6 +777,6 @@ export function GetStarted() {
         </div>
 
       </div>
-    </div>
+    </form>
   )
 }

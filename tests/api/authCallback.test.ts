@@ -23,6 +23,9 @@ function makeRequest(url: string) {
   return { url } as Request
 }
 
+type StubUser = { id: string; email: string; user_metadata: Record<string, string> }
+type StubSession = { provider_token: string | null }
+
 /** Build a stub Supabase client for the callback route.
  *
  * The GET handler calls from('users') multiple times and also calls
@@ -32,8 +35,8 @@ function makeRequest(url: string) {
  */
 function makeSupabase({
   exchangeError = null as null | { message: string },
-  user = { id: 'auth-id', email: 'user@example.com', user_metadata: { full_name: 'Jane Doe' } } as any,
-  session = { provider_token: null } as any,
+  user = { id: 'auth-id', email: 'user@example.com', user_metadata: { full_name: 'Jane Doe' } } as StubUser,
+  session = { provider_token: null } as StubSession,
   existingUserRow = null as null | { id: string },
   upsertedUserId = 'internal-id',
   qualTermsAccepted = false,
@@ -127,7 +130,7 @@ describe('GET /auth/callback', () => {
 
   it('redirects to login error when exchangeCodeForSession fails', async () => {
     mockCreateClient.mockResolvedValue(
-      makeSupabase({ exchangeError: { message: 'invalid code' } }) as any
+      makeSupabase({ exchangeError: { message: 'invalid code' } }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
     const res = await GET(makeRequest('http://localhost/auth/callback?code=bad'))
     expect(extractLocation(res)).toContain('/auth/login?error=auth_callback_error')
@@ -137,7 +140,7 @@ describe('GET /auth/callback', () => {
 
   it('redirects new user (no terms) to /profile/get-started', async () => {
     // No provider_token so People API is skipped; existingUserRow=null = new user
-    mockCreateClient.mockResolvedValue(makeSupabase() as any)
+    mockCreateClient.mockResolvedValue(makeSupabase() as unknown as Awaited<ReturnType<typeof createClient>>)
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
     expect(extractLocation(res)).toContain('/profile/get-started')
   })
@@ -146,7 +149,7 @@ describe('GET /auth/callback', () => {
 
   it('redirects existing user who accepted terms to /profile', async () => {
     mockCreateClient.mockResolvedValue(
-      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }) as any
+      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
     expect(extractLocation(res)).toContain('/profile')
@@ -157,7 +160,7 @@ describe('GET /auth/callback', () => {
 
   it('redirects existing user who has not accepted terms to /profile/get-started', async () => {
     mockCreateClient.mockResolvedValue(
-      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: false }) as any
+      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: false }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
     expect(extractLocation(res)).toContain('/profile/get-started')
@@ -167,7 +170,7 @@ describe('GET /auth/callback', () => {
 
   it('respects a custom ?next param', async () => {
     mockCreateClient.mockResolvedValue(
-      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }) as any
+      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc&next=/langchain'))
     expect(extractLocation(res)).toContain('/langchain')
@@ -175,7 +178,7 @@ describe('GET /auth/callback', () => {
 
   it('redirects legacy /profile/treatment-profile next to /profile', async () => {
     mockCreateClient.mockResolvedValue(
-      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }) as any
+      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
     const res = await GET(makeRequest(
       'http://localhost/auth/callback?code=abc&next=/profile/treatment-profile'
@@ -186,7 +189,7 @@ describe('GET /auth/callback', () => {
 
   it('ignores a ?next param that does not start with /', async () => {
     mockCreateClient.mockResolvedValue(
-      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }) as any
+      makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
     const res = await GET(makeRequest(
       'http://localhost/auth/callback?code=abc&next=https://evil.com'
@@ -217,7 +220,7 @@ describe('GET /auth/callback', () => {
       session: { provider_token: 'google-token-123' },
       existingUserRow: null, // new user
     })
-    mockCreateClient.mockResolvedValue(supabase as any)
+    mockCreateClient.mockResolvedValue(supabase as unknown as Awaited<ReturnType<typeof createClient>>)
 
     await GET(makeRequest('http://localhost/auth/callback?code=abc'))
 
@@ -239,7 +242,7 @@ describe('GET /auth/callback', () => {
       makeSupabase({
         session: { provider_token: 'google-token-123' },
         existingUserRow: { id: 'internal-id' }, // existing user
-      }) as any
+      }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
     await GET(makeRequest('http://localhost/auth/callback?code=abc'))
@@ -257,7 +260,7 @@ describe('GET /auth/callback', () => {
       session: { provider_token: 'google-token-xxx' },
       existingUserRow: null,
     })
-    mockCreateClient.mockResolvedValue(supabase as any)
+    mockCreateClient.mockResolvedValue(supabase as unknown as Awaited<ReturnType<typeof createClient>>)
 
     // Should not throw; should redirect to get-started
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
@@ -276,7 +279,7 @@ describe('GET /auth/callback', () => {
     })
 
     const supabase = makeSupabase({ session: { provider_token: 'tok' }, existingUserRow: null })
-    mockCreateClient.mockResolvedValue(supabase as any)
+    mockCreateClient.mockResolvedValue(supabase as unknown as Awaited<ReturnType<typeof createClient>>)
     await GET(makeRequest('http://localhost/auth/callback?code=abc'))
 
     // persistGoogleExtras always writes user_profiles when extras are present
@@ -296,7 +299,7 @@ describe('GET /auth/callback', () => {
     })
 
     const supabase = makeSupabase({ session: { provider_token: 'tok' }, existingUserRow: null })
-    mockCreateClient.mockResolvedValue(supabase as any)
+    mockCreateClient.mockResolvedValue(supabase as unknown as Awaited<ReturnType<typeof createClient>>)
     await GET(makeRequest('http://localhost/auth/callback?code=abc'))
 
     // Verify user_profiles upsert was called (gender 'other' is passed)
@@ -313,7 +316,7 @@ describe('GET /auth/callback', () => {
     })
 
     const supabase = makeSupabase({ session: { provider_token: 'tok' }, existingUserRow: null })
-    mockCreateClient.mockResolvedValue(supabase as any)
+    mockCreateClient.mockResolvedValue(supabase as unknown as Awaited<ReturnType<typeof createClient>>)
     await GET(makeRequest('http://localhost/auth/callback?code=abc'))
 
     expect(supabase.from).toHaveBeenCalledWith('user_qualification')
@@ -326,7 +329,7 @@ describe('GET /auth/callback', () => {
     })
 
     const supabase = makeSupabase({ session: { provider_token: 'tok' }, existingUserRow: null })
-    mockCreateClient.mockResolvedValue(supabase as any)
+    mockCreateClient.mockResolvedValue(supabase as unknown as Awaited<ReturnType<typeof createClient>>)
 
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
     expect(extractLocation(res)).toContain('/profile/get-started')

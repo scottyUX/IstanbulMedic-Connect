@@ -35,8 +35,8 @@ const mockUseAuth = vi.mocked(useAuth)
 function renderDashboard(overrides: Partial<ReturnType<typeof useAuth>> = {}) {
   mockUseAuth.mockReturnValue({
     isAuthenticated: true,
-    user: { email: 'user@example.com' } as any,
-    profile: { full_name: 'Jane Doe', given_name: 'Jane', family_name: 'Doe', email: 'user@example.com', avatar_url: null } as any,
+    user: { email: 'user@example.com' } as unknown as ReturnType<typeof useAuth>['user'],
+    profile: { full_name: 'Jane Doe', given_name: 'Jane', family_name: 'Doe', email: 'user@example.com', avatar_url: null } as unknown as ReturnType<typeof useAuth>['profile'],
     loading: false,
     loginWithGoogle: vi.fn(),
     logout: vi.fn(),
@@ -53,13 +53,13 @@ describe('ProfileDashboard', () => {
 
   // ─── Loading state ──────────────────────────────────────────────────────────
 
-  it('renders nothing while auth is loading', () => {
+  it('renders skeleton while auth is loading', () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false, user: null, profile: null, loading: true,
       loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
     })
     const { container } = render(<ProfileDashboard />)
-    expect(container.firstChild).toBeNull()
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
   // ─── Default section ────────────────────────────────────────────────────────
@@ -79,26 +79,26 @@ describe('ProfileDashboard', () => {
 
   it('switches to personal-info section when nav item clicked', () => {
     renderDashboard()
-    fireEvent.click(screen.getAllByRole('button', { name: /Personal info/i })[0])
+    fireEvent.click(screen.getAllByRole('tab', { name: /Personal info/i })[0])
     expect(screen.getByTestId('section-personal-info')).toBeInTheDocument()
     expect(screen.queryByTestId('section-home')).not.toBeInTheDocument()
   })
 
   it('switches to medical-history section when nav item clicked', () => {
     renderDashboard()
-    fireEvent.click(screen.getAllByRole('button', { name: /Medical history/i })[0])
+    fireEvent.click(screen.getAllByRole('tab', { name: /Medical history/i })[0])
     expect(screen.getByTestId('section-medical-history')).toBeInTheDocument()
   })
 
   it('switches to hair-loss-status section when nav item clicked', () => {
     renderDashboard()
-    fireEvent.click(screen.getAllByRole('button', { name: /Hair loss status/i })[0])
+    fireEvent.click(screen.getAllByRole('tab', { name: /Hair loss status/i })[0])
     expect(screen.getByTestId('section-hair-loss')).toBeInTheDocument()
   })
 
   it('switches to consultations section when nav item clicked', () => {
     renderDashboard()
-    fireEvent.click(screen.getAllByRole('button', { name: /Consultations/i })[0])
+    fireEvent.click(screen.getAllByRole('tab', { name: /Consultations/i })[0])
     expect(screen.getByTestId('section-consultations')).toBeInTheDocument()
   })
 
@@ -130,14 +130,14 @@ describe('ProfileDashboard', () => {
 
   it('falls back to email prefix when profile has no name', () => {
     renderDashboard({
-      profile: { full_name: null, given_name: null, family_name: null, email: 'user@example.com', avatar_url: null } as any,
+      profile: { full_name: null, given_name: null, family_name: null, email: 'user@example.com', avatar_url: null } as unknown as ReturnType<typeof useAuth>['profile'],
     })
     expect(screen.getByText('user')).toBeInTheDocument()
   })
 
   it('shows avatar img when profile has avatar_url', () => {
     renderDashboard({
-      profile: { full_name: 'Jane', given_name: 'Jane', family_name: null, email: 'user@example.com', avatar_url: 'https://example.com/avatar.jpg' } as any,
+      profile: { full_name: 'Jane', given_name: 'Jane', family_name: null, email: 'user@example.com', avatar_url: 'https://example.com/avatar.jpg' } as unknown as ReturnType<typeof useAuth>['profile'],
     })
     const img = screen.getByRole('img', { name: /Jane/i })
     expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg')
@@ -148,6 +148,6 @@ describe('ProfileDashboard', () => {
   it('renders all 5 nav items in both sidebar and mobile strip', () => {
     renderDashboard()
     // 5 sections × 2 (sidebar + mobile) = 10 nav buttons
-    expect(screen.getAllByRole('button', { name: /Home/i }).length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByRole('tab', { name: /Home/i }).length).toBeGreaterThanOrEqual(2)
   })
 })

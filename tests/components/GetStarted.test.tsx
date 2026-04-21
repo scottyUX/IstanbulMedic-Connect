@@ -5,8 +5,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   motion: {
-    div: ({ children, initial: _i, animate: _a, exit: _e, variants: _v, custom: _c, transition: _t, ...props }: { children?: React.ReactNode; initial?: unknown; animate?: unknown; exit?: unknown; variants?: unknown; custom?: unknown; transition?: unknown } & Record<string, unknown>) =>
-      <div {...(props as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>,
+    div: (props: { children?: React.ReactNode; [key: string]: unknown }) =>
+      <>{props.children}</>,
   },
 }))
 
@@ -24,7 +24,7 @@ vi.mock('@/lib/supabase/client', () => ({
 }))
 
 vi.mock('next/link', () => ({
-  default: ({ href, children, ...props }: { href?: string; children?: React.ReactNode } & Record<string, unknown>) => <a href={href} {...(props as React.HTMLAttributes<HTMLAnchorElement>)}>{children}</a>,
+  default: ({ href, children, ...props }: { href: string; children?: React.ReactNode } & React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a href={href} {...props}>{children}</a>,
 }))
 
 import { GetStarted } from '@/components/istanbulmedic-connect/user-profile/GetStarted'
@@ -199,7 +199,7 @@ describe('GetStarted', () => {
   it('Contact step: Create my account disabled with consent but no name', async () => {
     render(<GetStarted />)
     await goToStep(6)
-    fireEvent.click(screen.getByText(/I have read and agreed/i).closest('button')!)
+    fireEvent.click(screen.getByRole('checkbox'))
     expect(screen.getByRole('button', { name: 'Create my account' })).toBeDisabled()
   })
 
@@ -207,7 +207,7 @@ describe('GetStarted', () => {
     render(<GetStarted />)
     await goToStep(6)
     fireEvent.change(screen.getByPlaceholderText('John Smith'), { target: { value: 'Jane Doe' } })
-    fireEvent.click(screen.getByText(/I have read and agreed/i).closest('button')!)
+    fireEvent.click(screen.getByRole('checkbox'))
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Create my account' })).not.toBeDisabled()
     )
@@ -217,7 +217,7 @@ describe('GetStarted', () => {
     render(<GetStarted />)
     await goToStep(6)
     fireEvent.change(screen.getByPlaceholderText('John Smith'), { target: { value: 'Jane Doe' } })
-    fireEvent.click(screen.getByText(/I have read and agreed/i).closest('button')!)
+    fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.change(screen.getByTestId('phone-local-input'), { target: { value: 'abc' } })
     expect(screen.getByRole('button', { name: 'Create my account' })).toBeDisabled()
   })
@@ -226,7 +226,7 @@ describe('GetStarted', () => {
     render(<GetStarted />)
     await goToStep(6)
     fireEvent.change(screen.getByPlaceholderText('John Smith'), { target: { value: 'Jane Doe' } })
-    fireEvent.click(screen.getByText(/I have read and agreed/i).closest('button')!)
+    fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.change(screen.getByTestId('phone-local-input'), { target: { value: '7700900123' } })
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Create my account' })).not.toBeDisabled()
@@ -277,7 +277,7 @@ describe('GetStarted', () => {
   it('Consent checkbox toggles when clicked', async () => {
     render(<GetStarted />)
     await goToStep(6)
-    const consentBtn = screen.getByText(/I have read and agreed/i).closest('button')!
+    const consentBtn = screen.getByRole('checkbox')
     // Initially unchecked — Create my account is disabled
     expect(screen.getByRole('button', { name: 'Create my account' })).toBeDisabled()
     // Check

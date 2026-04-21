@@ -48,8 +48,8 @@ function setupFetch(qualData = DEFAULT_QUAL_DATA, saveOk = true) {
 async function renderLoaded() {
   mockUseAuth.mockReturnValue({
     isAuthenticated: true,
-    user: { email: 'jane@example.com' } as any,
-    profile: { email: 'jane@example.com', full_name: 'Jane Doe' } as any,
+    user: { email: 'jane@example.com' } as unknown as ReturnType<typeof useAuth>['user'],
+    profile: { email: 'jane@example.com', full_name: 'Jane Doe' } as unknown as ReturnType<typeof useAuth>['profile'],
     loading: false,
     loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
   })

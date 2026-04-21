@@ -43,8 +43,7 @@ export interface TreatmentProfilePayload {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function getAuthUser() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = await createClient() as any;
+  const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) throw new Error('Unauthenticated');
   return { supabase, user };
@@ -116,9 +115,9 @@ export async function upsertQualification(payload: QualificationPayload) {
   const userId = userRow.id as string;
 
   // 2. Upsert user_profiles — only write fields explicitly provided
-  const nameParts = (resolvedName ?? '').trim().split(/\s+/);
+  const nameParts = (resolvedName ?? '').trim().split(/\s+/).filter(Boolean);
   const firstName = nameParts[0] ?? '';
-  const lastName = nameParts.slice(1).join(' ') || firstName;
+  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const profileFields: Record<string, any> = { user_id: userId, first_name: firstName, last_name: lastName };
@@ -166,7 +165,7 @@ export async function getQualification() {
   const { supabase, user } = await getAuthUser();
   const userId = await getInternalUserId(supabase, user);
 
-  const { data, error } = await (supabase as SupabaseClient)
+  const { data, error } = await supabase
     .from('user_qualification')
     .select('age_tier, country, budget_tier, timeline, whatsapp_number, preferred_language, terms_accepted')
     .eq('user_id', userId)
@@ -180,8 +179,8 @@ export async function getQualification() {
     { data: treatRow,   error: treatError    },
   ] = await Promise.all([
     supabase.from('users').select('name, email').eq('id', userId).maybeSingle(),
-    (supabase as any).from('user_profiles').select('gender, preferred_language, date_of_birth').eq('user_id', userId).maybeSingle(),
-    (supabase as any).from('user_treatment_profiles').select('norwood_scale').eq('user_id', userId).maybeSingle(),
+    supabase.from('user_profiles').select('gender, preferred_language, date_of_birth').eq('user_id', userId).maybeSingle(),
+    supabase.from('user_treatment_profiles').select('norwood_scale').eq('user_id', userId).maybeSingle(),
   ]);
   if (userRowError)  throw userRowError;
   if (profileError)  throw profileError;

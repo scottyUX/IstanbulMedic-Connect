@@ -19,7 +19,7 @@ export async function updateSession(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         supabaseResponse = NextResponse.next({
           request,
         });
@@ -53,11 +53,9 @@ export async function updateSession(request: NextRequest) {
 
     // 2. Authenticated users without terms_accepted are gated to /profile/get-started
     if (user && pathname !== '/profile/get-started') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const s = supabase as any;
-      const { data: userRow } = await s.from('users').select('id').eq('auth_id', user.id).maybeSingle();
+      const { data: userRow } = await supabase.from('users').select('id').eq('auth_id', user.id).maybeSingle();
       const { data: qualRow } = userRow
-        ? await s.from('user_qualification').select('terms_accepted').eq('user_id', userRow.id).maybeSingle()
+        ? await supabase.from('user_qualification').select('terms_accepted').eq('user_id', userRow.id).maybeSingle()
         : { data: null };
       const hasConsented = qualRow?.terms_accepted === true;
       if (!hasConsented) {

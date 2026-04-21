@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
 import ProfileHome from './sections/ProfileHome'
 import ProfilePersonalInfo from './sections/ProfilePersonalInfo'
@@ -72,10 +73,33 @@ export default function ProfileDashboard() {
   const { profile, user, loading } = useAuth()
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: prefersReduced ? 'instant' : 'smooth' })
   }, [active])
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <div className="flex min-h-[calc(100vh-80px)]">
+        <aside className="hidden md:flex flex-col w-64 shrink-0 bg-white border-r border-slate-200">
+          <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-100 animate-pulse">
+            <div className="w-9 h-9 rounded-full bg-slate-200 shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3 bg-slate-200 rounded w-24" />
+              <div className="h-2.5 bg-slate-100 rounded w-32" />
+            </div>
+          </div>
+          <div className="flex-1 py-3 space-y-1 animate-pulse px-3">
+            {[...Array(5)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-slate-100" />)}
+          </div>
+        </aside>
+        <main className="flex-1 p-6 animate-pulse space-y-4" style={{ backgroundColor: '#FEFCF8' }}>
+          <div className="h-32 rounded-2xl bg-slate-100" />
+          <div className="h-8 rounded bg-slate-100 w-32" />
+          <div className="h-64 rounded-2xl bg-slate-100" />
+        </main>
+      </div>
+    )
+  }
 
   const displayName =
     profile?.full_name || profile?.given_name || user?.email?.split('@')[0] || 'User'
@@ -90,33 +114,36 @@ export default function ProfileDashboard() {
       <aside className="hidden md:flex flex-col w-64 shrink-0 bg-white border-r border-slate-200 sticky top-[80px] h-[calc(100vh-80px)] overflow-y-auto">
         {/* User identity strip */}
         <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
-          <>
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={displayName}
-                referrerPolicy="no-referrer"
-                className="w-9 h-9 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-[#17375B] flex items-center justify-center text-white text-sm font-semibold shrink-0 select-none">
-                {initials}
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[#0D1E32] truncate">{displayName}</p>
-              <p className="text-xs text-slate-400 truncate">{profile?.email || user?.email}</p>
+          {profile?.avatar_url ? (
+            <Image
+              src={profile.avatar_url}
+              alt={displayName}
+              width={36}
+              height={36}
+              referrerPolicy="no-referrer"
+              className="w-9 h-9 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-[#17375B] flex items-center justify-center text-white text-sm font-semibold shrink-0 select-none">
+              {initials}
             </div>
-          </>
+          )}
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[#0D1E32] truncate">{displayName}</p>
+            <p className="text-xs text-slate-400 truncate">{profile?.email || user?.email}</p>
+          </div>
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 py-3">
+        <nav className="flex-1 py-3" role="tablist" aria-label="Dashboard sections">
           {NAV.map((item) => {
             const isActive = active === item.id
             return (
               <button
                 key={item.id}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`section-${item.id}`}
                 onClick={() => setActive(item.id)}
                 className={`relative flex items-center gap-3 w-full px-5 py-3 text-sm font-medium transition-colors ${
                   isActive
@@ -144,10 +171,13 @@ export default function ProfileDashboard() {
 
       {/* ── Mobile top tab strip ── */}
       <div className="md:hidden fixed top-[80px] inset-x-0 z-40 bg-white border-b border-slate-200 overflow-x-auto">
-        <div className="flex gap-1 px-4 py-2 min-w-max">
+        <div className="flex gap-1 px-4 py-2 min-w-max" role="tablist" aria-label="Dashboard sections">
           {NAV.map((item) => (
             <button
               key={item.id}
+              role="tab"
+              aria-selected={active === item.id}
+              aria-controls={`section-${item.id}`}
               onClick={() => setActive(item.id)}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                 active === item.id
@@ -165,7 +195,7 @@ export default function ProfileDashboard() {
       <main className="flex-1 min-w-0" style={{ backgroundColor: '#FEFCF8' }}>
         {/* Extra top padding on mobile for the tab strip */}
         <div className="md:pt-0 pt-[52px]">
-          <div className="max-w-4xl mx-auto px-6 py-8">
+          <div className="max-w-4xl mx-auto px-6 py-8" id={`section-${active}`} role="tabpanel">
             {active === 'home' && <ProfileHome onNavigate={setActive} />}
             {active === 'personal-info' && <ProfilePersonalInfo />}
             {active === 'medical-history' && <ProfileMedicalHistory />}

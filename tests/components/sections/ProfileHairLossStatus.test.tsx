@@ -19,7 +19,7 @@ const DEFAULT_TREATMENT = {
   },
 }
 
-function setupFetch(treatData: { success: boolean; data: any } = DEFAULT_TREATMENT, saveOk = true) {
+function setupFetch(treatData: { success: boolean; data: Record<string, unknown> | null } = DEFAULT_TREATMENT, saveOk = true) {
   global.fetch = vi.fn().mockImplementation((_url: string, opts?: RequestInit) => {
     if (opts?.method === 'POST') {
       return Promise.resolve({
@@ -32,7 +32,7 @@ function setupFetch(treatData: { success: boolean; data: any } = DEFAULT_TREATME
 }
 
 /** Render and flush initial data fetch so assertions don't need waitFor. */
-async function renderLoaded(treatData?: { success: boolean; data: any }) {
+async function renderLoaded(treatData?: { success: boolean; data: Record<string, unknown> | null }) {
   setupFetch(treatData)
   await act(async () => { render(<ProfileHairLossStatus />) })
 }
@@ -145,7 +145,7 @@ describe('ProfileHairLossStatus', () => {
 
   it('renders all options without any pre-selection when DB returns null', async () => {
     await renderLoaded({ success: true, data: null })
-    screen.getAllByRole('button', { name: /Stage \d/ }).forEach((btn) => {
+    screen.getAllByRole('radio', { name: /Stage \d/ }).forEach((btn) => {
       // Split into individual classes to avoid matching hover:border-[#17375B]/40 as a false positive
       expect(btn.className.split(' ')).not.toContain('border-[#17375B]')
     })

@@ -5,8 +5,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   motion: {
-    div: ({ children, initial: _i, animate: _a, exit: _e, variants: _v, custom: _c, transition: _t, ...props }: { children?: React.ReactNode; initial?: unknown; animate?: unknown; exit?: unknown; variants?: unknown; custom?: unknown; transition?: unknown } & Record<string, unknown>) =>
-      <div {...(props as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>,
+    div: (props: { children?: React.ReactNode; [key: string]: unknown }) => <>{props.children}</>,
   },
 }))
 
@@ -15,7 +14,7 @@ vi.mock('@/lib/supabase/client', () => ({
 }))
 
 vi.mock('@/components/ui/container', () => ({
-  default: ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => <div {...(props as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>,
+  default: (props: React.HTMLAttributes<HTMLDivElement>) => <div {...props} />,
 }))
 
 import { TreatmentProfile } from '@/components/istanbulmedic-connect/user-profile/TreatmentProfile'

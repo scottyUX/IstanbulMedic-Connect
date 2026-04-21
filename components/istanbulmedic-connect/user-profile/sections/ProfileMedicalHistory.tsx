@@ -74,7 +74,7 @@ function ListEditor({ items, placeholder, addLabel, onChange }: {
 }) {
   return (
     <div className="space-y-2">
-      {items.length === 0 && (
+      {items.filter(Boolean).length === 0 && (
         <p className="text-base text-muted-foreground italic">None recorded — add one below</p>
       )}
       {items.map((item, i) => (
@@ -165,10 +165,10 @@ export default function ProfileMedicalHistory() {
             medications: d.medications ?? [],
             otherConditions: d.otherConditions ?? [],
             hadPriorTransplant: d.hadPriorTransplant ?? false,
-            priorTransplants: (d.priorTransplants ?? []).map((t: any) => ({
+            priorTransplants: (d.priorTransplants ?? []).map((t: { year: number; estimatedGrafts: number; clinicCountry: string }) => ({
               year: t.year, estimatedGrafts: t.estimatedGrafts, clinicCountry: t.clinicCountry,
             })),
-            priorSurgeries: (d.priorSurgeries ?? []).map((s: any) => ({
+            priorSurgeries: (d.priorSurgeries ?? []).map((s: { type: string; year: number; notes?: string }) => ({
               type: s.type, year: s.year, notes: s.notes ?? '',
             })),
           })

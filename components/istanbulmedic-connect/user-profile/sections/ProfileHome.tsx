@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { Merriweather } from 'next/font/google'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
@@ -35,6 +36,7 @@ const CARDS: {
   description: string
   bullets: string[]
   icon: React.ReactNode
+  comingSoon?: boolean
 }[] = [
   {
     id: 'personal-info',
@@ -79,6 +81,7 @@ const CARDS: {
         <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
       </svg>
     ),
+    comingSoon: true,
   },
 ]
 
@@ -87,6 +90,7 @@ export default function ProfileHome({ onNavigate }: Props) {
   const [photos, setPhotos] = useState<PhotoEntry[]>([])
   const [uploadingView, setUploadingView] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [photoLoadError, setPhotoLoadError] = useState(false)
 
   const photosRef = useRef(photos)
   photosRef.current = photos
@@ -102,7 +106,7 @@ export default function ProfileHome({ onNavigate }: Props) {
           return { view: p.photo_view, previewUrl: p.storage_url, storagePath: pathMatch?.[1] }
         }))
       })
-      .catch(() => {})
+      .catch(() => setPhotoLoadError(true))
   }, [])
 
   const handlePhotoSelect = useCallback(async (view: string, file: File) => {
@@ -200,9 +204,11 @@ export default function ProfileHome({ onNavigate }: Props) {
         <div className="rounded-2xl border overflow-hidden" style={{ background: '#eef8f8', borderColor: 'rgba(62,187,183,0.25)' }}>
           <div className="px-8 py-7 flex items-center gap-5">
             {profile?.avatar_url ? (
-              <img
+              <Image
                 src={profile.avatar_url}
                 alt={displayName}
+                width={56}
+                height={56}
                 referrerPolicy="no-referrer"
                 className="w-14 h-14 rounded-full object-cover shrink-0"
                 style={{ boxShadow: '0 0 0 3px rgba(62,187,183,0.2)' }}
@@ -250,6 +256,12 @@ export default function ProfileHome({ onNavigate }: Props) {
           </span>
         </div>
 
+        {photoLoadError && (
+          <div className="mx-6 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5">
+            <p className="text-sm text-amber-700">Could not load your photos. Please refresh to try again.</p>
+          </div>
+        )}
+
         {uploadError && (
           <div className="mx-6 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5">
             <p className="text-sm text-red-600">{uploadError}</p>
@@ -257,7 +269,7 @@ export default function ProfileHome({ onNavigate }: Props) {
         )}
 
         <div className="px-6 py-5">
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {ALL_PHOTO_VIEWS.map((view) => {
               const url = photoMap[view]
               const isUploading = uploadingView === view
@@ -275,16 +287,16 @@ export default function ProfileHome({ onNavigate }: Props) {
                         e.target.value = ''
                       }}
                     />
-                    <div className="aspect-square rounded-xl overflow-hidden border-2 border-dashed border-slate-200 group-hover:border-[#17375B] bg-slate-50 transition-colors" style={url ? { borderStyle: 'solid', borderColor: 'rgba(62,187,183,0.4)', background: 'transparent' } : {}}>
+                    <div className="relative aspect-square rounded-xl overflow-hidden border-2 border-dashed border-slate-200 group-hover:border-[#17375B] bg-slate-50 transition-colors" style={url ? { borderStyle: 'solid', borderColor: 'rgba(62,187,183,0.4)', background: 'transparent' } : {}}>
                       {isUploading ? (
                         <div className="w-full h-full flex items-center justify-center">
-                          <svg className="w-5 h-5 animate-spin text-[#3EBBB7]" fill="none" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 animate-spin text-[#3EBBB7]" fill="none" viewBox="0 0 24 24" role="status" aria-label="Uploading photo">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
                         </div>
                       ) : url ? (
-                        <img src={url} alt={PHOTO_VIEW_LABELS[view]} className="w-full h-full object-cover" />
+                        <Image src={url} alt={PHOTO_VIEW_LABELS[view]} fill className="object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-300 group-hover:text-[#17375B] transition-colors">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -316,13 +328,12 @@ export default function ProfileHome({ onNavigate }: Props) {
       <div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {CARDS.map((card) => {
-            const isComingSoon = card.id === 'consultations'
+            const isComingSoon = card.comingSoon === true
             return (
               <button
                 key={card.id}
-                onClick={() => !isComingSoon && onNavigate(card.id)}
-                disabled={isComingSoon}
-                className="text-left bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-[#3EBBB7]/50 hover:shadow-md transition-all group disabled:opacity-60 disabled:cursor-default disabled:hover:border-slate-200 disabled:hover:shadow-sm"
+                onClick={() => onNavigate(card.id)}
+                className="text-left bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-[#3EBBB7]/50 hover:shadow-md transition-all group"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-10 h-10 rounded-xl bg-[#17375B]/[0.06] flex items-center justify-center text-[#17375B] group-hover:bg-[#3EBBB7]/10 group-hover:text-[#3EBBB7] transition-colors">
@@ -336,14 +347,12 @@ export default function ProfileHome({ onNavigate }: Props) {
                 </div>
                 <h3 className="font-semibold text-[#0D1E32] mb-1">{card.title}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">{card.description}</p>
-                {!isComingSoon && (
-                  <div className="mt-3 flex items-center gap-1 text-sm font-medium text-[#17375B] group-hover:text-[#3EBBB7] transition-colors">
-                    View & edit
-                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                    </svg>
-                  </div>
-                )}
+                <div className="mt-3 flex items-center gap-1 text-sm font-medium text-[#17375B] group-hover:text-[#3EBBB7] transition-colors">
+                  View & edit
+                  <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </div>
               </button>
             )
           })}

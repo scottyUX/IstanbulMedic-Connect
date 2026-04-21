@@ -170,11 +170,11 @@ export default function ProfilePersonalInfo() {
       .then((res) => {
         if (res.success && res.data) {
           const d = res.data
-          const parts = (d.fullName ?? '').trim().split(/\s+/)
+          const parts = (d.fullName ?? '').trim().split(/\s+/).filter(Boolean)
           setForm({
             ...d,
             firstName: parts[0] ?? null,
-            lastName: parts.slice(1).join(' ') || null,
+            lastName: parts.length > 1 ? parts.slice(1).join(' ') : null,
           })
         }
       })
@@ -223,6 +223,7 @@ export default function ProfilePersonalInfo() {
     const newForm = { ...form, [field]: value || null }
     setForm(newForm)
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    setSaveError(null)
     setSaveState('pending')
     saveTimerRef.current = setTimeout(() => doSave(newForm), 800)
   }
@@ -273,13 +274,18 @@ export default function ProfilePersonalInfo() {
               {GENDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Row>
-          <Row icon={icons.phone} label="Phone number">
+          <Row icon={icons.whatsapp} label="WhatsApp number">
             <input
               className={inputClass}
               value={form.whatsApp ?? ''}
               onChange={(e) => set('whatsApp', e.target.value)}
               placeholder="+44 7700 000000"
+              type="tel"
+              autoComplete="tel"
             />
+            {form.whatsApp && !/^\+?[\d\s\-().]{7,20}$/.test(form.whatsApp) && (
+              <p className="text-sm text-red-500 mt-1">Please enter a valid phone number (e.g. +44 7700 000000)</p>
+            )}
           </Row>
           <Row icon={icons.birthday} label="Birthday">
             <input
@@ -298,7 +304,8 @@ export default function ProfilePersonalInfo() {
             />
           </Row>
           <Row icon={icons.language} label="Preferred language">
-            <select className={selectClass} value={form.preferredLanguage ?? 'en'} onChange={(e) => set('preferredLanguage', e.target.value)}>
+            <select className={selectClass} value={form.preferredLanguage ?? ''} onChange={(e) => set('preferredLanguage', e.target.value)}>
+              <option value="">Select language</option>
               {LANGUAGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Row>

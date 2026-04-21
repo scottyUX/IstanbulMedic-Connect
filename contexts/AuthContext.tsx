@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setProfile(null);
         }
-      } catch (error) {
+      } catch {
         setIsAuthenticated(false);
         setUser(null);
         setProfile(null);
