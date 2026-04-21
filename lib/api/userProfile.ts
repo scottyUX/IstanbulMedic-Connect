@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { type SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 
 // ─── Payload types (match component interfaces) ───────────────────────────────
 
@@ -130,7 +131,7 @@ export async function upsertQualification(payload: QualificationPayload) {
 
   const { error: profileError } = await supabase
     .from('user_profiles')
-    .upsert(profileFields, { onConflict: 'user_id' });
+    .upsert(profileFields as unknown as Database['public']['Tables']['user_profiles']['Insert'], { onConflict: 'user_id' });
   if (profileError) throw profileError;
 
   // 3. Upsert user_qualification — only write fields explicitly provided
@@ -146,7 +147,7 @@ export async function upsertQualification(payload: QualificationPayload) {
 
   const { error: qualError } = await supabase
     .from('user_qualification')
-    .upsert(qualFields, { onConflict: 'user_id' });
+    .upsert(qualFields as unknown as Database['public']['Tables']['user_qualification']['Insert'], { onConflict: 'user_id' });
   if (qualError) throw qualError;
 
   // 4. Save norwoodScale to user_treatment_profiles (clinical data belongs there)
@@ -271,7 +272,7 @@ export async function upsertTreatmentProfile(payload: TreatmentProfilePayload) {
 
   const { error: treatError } = await supabase
     .from('user_treatment_profiles')
-    .upsert(treatFields, { onConflict: 'user_id' });
+    .upsert(treatFields as unknown as Database['public']['Tables']['user_treatment_profiles']['Insert'], { onConflict: 'user_id' });
   if (treatError) throw treatError;
 
   // 2. Replace prior transplants — only when explicitly provided
@@ -324,7 +325,7 @@ export async function upsertTreatmentProfile(payload: TreatmentProfilePayload) {
         supabase.from('user_photos').upsert(
           {
             user_id: userId,
-            photo_view: photo.view,
+            photo_view: photo.view as Database['public']['Enums']['photo_view'],
             storage_url: photo.storageUrl,
             file_size_bytes: photo.fileSizeBytes,
             mime_type: photo.mimeType,
@@ -363,7 +364,7 @@ export async function deleteUserPhoto(view: string) {
     .from('user_photos')
     .delete()
     .eq('user_id', userId)
-    .eq('photo_view', view);
+    .eq('photo_view', view as Database['public']['Enums']['photo_view']);
   if (error) throw error;
 }
 
