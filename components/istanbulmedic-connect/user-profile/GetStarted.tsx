@@ -339,7 +339,13 @@ export function GetStarted() {
   useEffect(() => {
     if (!hydrated) return
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ageTier: data.ageTier,
+        norwoodScale: data.norwoodScale,
+        country: data.country,
+        budgetTier: data.budgetTier,
+        timeline: data.timeline,
+      }))
     } catch {
       // ignore
     }
