@@ -657,7 +657,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
   // Fetch Instagram and HRN signals in parallel (both return null if no data)
   const [instagramSignals, hrnSignals] = await Promise.all([
     getInstagramSignals(clinic.id),
-    getHRNSignals(clinic.id),
+    getHRNSignals(clinic.id, clinic.display_name),
   ]);
 
   return {

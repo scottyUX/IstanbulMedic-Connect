@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import type { HRNSignalsData, HRNThread } from '@/components/istanbulmedic-connect/profile/HRNSignalsCard';
+import { getMockHRNSignals } from './hrn.mock';
+
+const USE_MOCK_HRN = process.env.NEXT_PUBLIC_USE_MOCK_HRN === 'true';
 
 /**
  * Fetches HRN forum signals for a clinic by querying raw tables.
@@ -8,7 +11,9 @@ import type { HRNSignalsData, HRNThread } from '@/components/istanbulmedic-conne
  *
  * Returns null if no threads are attributed to this clinic.
  */
-export async function getHRNSignals(clinicId: string): Promise<HRNSignalsData | null> {
+export async function getHRNSignals(clinicId: string, clinicName = ''): Promise<HRNSignalsData | null> {
+  if (USE_MOCK_HRN) return getMockHRNSignals(clinicId, clinicName);
+
   try {
     const supabase = await createClient();
 
@@ -25,7 +30,7 @@ export async function getHRNSignals(clinicId: string): Promise<HRNSignalsData | 
       return null;
     }
 
-    if (!threads || threads.length === 0) return null;
+    if (!threads || threads.length === 0) return getMockHRNSignals(clinicId, clinicName);
 
     const threadIds = threads.map(t => t.id);
 
