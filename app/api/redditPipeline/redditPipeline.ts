@@ -102,14 +102,18 @@ async function upsertThread(
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 
 export async function runRedditPipeline(options: PipelineOptions = {}): Promise<PipelineResult> {
-  const supabase = getSupabaseAdmin()
-
   const subreddits = options.subreddits ?? REDDIT_CONFIG.subreddits
   const maxPosts = options.maxPostsPerSubreddit ?? REDDIT_CONFIG.postsPerSubreddit
   const lookbackDays = options.lookbackDays ?? REDDIT_CONFIG.lookbackDays
   const includeComments = options.includeComments ?? false
   const commentScoreThreshold = options.commentScoreThreshold ?? 10
   const dryRun = options.dryRun ?? false
+
+  // Defer DB client creation — env vars may not be set during dry-run
+  // The definite-assignment assertion (!) is safe: supabase is only used after
+  // `if (dryRun) { continue }` guards in the loop below.
+  let supabase!: ReturnType<typeof getSupabaseAdmin>
+  if (!dryRun) supabase = getSupabaseAdmin()
 
   const result: PipelineResult = {
     subredditsProcessed: [],

@@ -7,7 +7,7 @@ export const REDDIT_CONFIG = {
   requestDelayMs: parseInt(process.env.REDDIT_REQUEST_DELAY_MS ?? '1200'),
   maxRetries: parseInt(process.env.REDDIT_MAX_RETRIES ?? '3'),
   retryDelayMs: parseInt(process.env.REDDIT_RETRY_DELAY_MS ?? '65000'),
-  subreddits: (process.env.REDDIT_SUBREDDITS ?? 'HairTransplants,TurkeyHairTransplant,HairTransplantTurkey,medical_tourism,tressless')
+  subreddits: (process.env.REDDIT_SUBREDDITS ?? 'HairTransplants,HairTransplant,HairRestoration')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean),

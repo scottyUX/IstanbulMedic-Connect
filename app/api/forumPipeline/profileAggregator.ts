@@ -3,9 +3,11 @@
  * Called when a profile row has is_stale = true.
  *
  * Computes:
- *  - thread_count, photo_thread_count, longterm_thread_count, repair_mention_count
+ *  - thread_count (unique post-type threads), mention_count (total rows incl. comments)
+ *  - photo_thread_count, longterm_thread_count, repair_mention_count
  *  - unique_authors_count, last_thread_at
  *  - sentiment_score, sentiment_distribution, confidence_score
+ *  - pros (top main_topics from satisfied threads)
  *  - common_concerns (top issue keywords)
  *  - notable_threads (top 5 by score/reply_count)
  *  - summary (LLM — single call on digest of notable threads)
@@ -70,6 +72,7 @@ async function generateSummary(
 
 export interface AggregatedProfile {
   thread_count: number
+  mention_count: number
   photo_thread_count: number
   longterm_thread_count: number
   repair_mention_count: number
@@ -78,6 +81,7 @@ export interface AggregatedProfile {
   sentiment_score: number
   confidence_score: number
   sentiment_distribution: Record<string, number>
+  pros: string[]
   common_concerns: string[]
   notable_threads: {
     title: string
@@ -128,9 +132,22 @@ export async function recomputeProfile(
   // Load LLM analysis (current only)
   const { data: analyses } = await supabase
     .from('forum_thread_llm_analysis')
-    .select('thread_id, sentiment_label, issue_keywords, is_repair_case, summary_short')
+    .select('thread_id, sentiment_label, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short')
     .in('thread_id', threadIds)
     .eq('is_current', true)
+
+  // For Reddit: distinguish post-type rows from comment-type rows for mention_count vs thread_count
+  // For HRN: all rows are posts — mention_count === thread_count
+  let postTypeThreadIds: Set<string> = new Set(threadIds)
+  if (forumSource === 'reddit') {
+    const { data: redditContent } = await supabase
+      .from('reddit_thread_content')
+      .select('thread_id, post_type')
+      .in('thread_id', threadIds)
+    postTypeThreadIds = new Set(
+      (redditContent ?? []).filter(r => r.post_type === 'post').map(r => r.thread_id)
+    )
+  }
 
   // Load signals
   const { data: signals } = await supabase
@@ -147,6 +164,9 @@ export async function recomputeProfile(
   }
 
   // ── Compute deterministic counts ───────────────────────────────────────────
+
+  const mentionCount = threads.length
+  const threadCount = forumSource === 'reddit' ? postTypeThreadIds.size : threads.length
 
   const photoThreadCount = threads.filter(t => signalsMap[t.id]?.['has_photos'] === true).length
   const longtermThreadCount = threads.filter(t => signalsMap[t.id]?.['has_longterm_update'] === true).length
@@ -183,6 +203,20 @@ export async function recomputeProfile(
     Math.min(1, (threads.length / 20) * consistencyFactor).toFixed(3)
   )
   const sentimentScore = parseFloat(avgSentiment.toFixed(3))
+
+  // ── Pros (top main_topics from satisfied threads) ──────────────────────────
+
+  const topicCounts: Record<string, number> = {}
+  for (const analysis of analyses ?? []) {
+    if (analysis.satisfaction_label !== 'satisfied') continue
+    for (const topic of analysis.main_topics ?? []) {
+      topicCounts[topic] = (topicCounts[topic] ?? 0) + 1
+    }
+  }
+  const pros = Object.entries(topicCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([topic]) => topic.replace(/_/g, ' '))
 
   // ── Common concerns ────────────────────────────────────────────────────────
 
@@ -230,7 +264,8 @@ export async function recomputeProfile(
       {
         clinic_id: clinicId,
         forum_source: forumSource,
-        thread_count: threads.length,
+        thread_count: threadCount,
+        mention_count: mentionCount,
         photo_thread_count: photoThreadCount,
         longterm_thread_count: longtermThreadCount,
         repair_mention_count: repairMentionCount,
@@ -239,6 +274,7 @@ export async function recomputeProfile(
         sentiment_score: sentimentScore,
         confidence_score: confidenceScore,
         sentiment_distribution: sentimentDist,
+        pros,
         common_concerns: commonConcerns,
         notable_threads: notableThreads,
         summary,

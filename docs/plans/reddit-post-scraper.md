@@ -125,7 +125,7 @@ After analysis:
 3. `UPDATE forum_thread_index SET clinic_id = matched_id, clinic_attribution_method = 'llm'`.
 4. `UPDATE clinic_forum_profiles SET is_stale = true` for affected clinic + forum_source.
 
-Model: `claude-haiku-4-5-20251001` (~$0.0003/thread per HRN cost estimate).
+Model: `claude-haiku-4-5-20251001` (~$0.0022/thread — ~1,065 tokens in, ~350 tokens out at Haiku 4.5 rates).
 
 ### `app/api/forumPipeline/profileAggregator.ts`
 Recomputes stale `clinic_forum_profiles` rows (where `is_stale = true`).
@@ -135,10 +135,11 @@ recomputeProfile(clinicId: string, forumSource: 'hrn' | 'reddit'): Promise<void>
 ```
 
 Aggregates across all `forum_thread_index` rows for that clinic + source:
-- `thread_count`, `photo_thread_count`, `longterm_thread_count` (6m+ timeline marker), `repair_mention_count`, `unique_authors_count`
+- `thread_count`, `mention_count` (total rows incl. comment-type entries), `photo_thread_count`, `longterm_thread_count` (6m+ timeline marker), `repair_mention_count`, `unique_authors_count`
 - `sentiment_distribution`: count positives/mixed/negative from `forum_thread_llm_analysis`
 - `sentiment_score`: weighted average (-1 to 1)
 - `confidence_score`: `min(1.0, thread_count/20) * consistencyFactor`
+- `pros`: most frequent positive themes from `main_topics` across satisfied threads (`satisfaction_label = 'satisfied'`)
 - `common_concerns`: most frequent `issue_keywords` across threads
 - `notable_threads`: top 5 by score (Reddit) or reply_count (HRN), with summary + has_photos
 - `summary`: LLM-generated 1-3 sentence summary of the whole set (single call on the notable_threads digest)
@@ -187,8 +188,9 @@ Signal rows (deterministic — no LLM label needed):
 
 AI-assisted section (labeled "AI-assisted"):
 - Sentiment bar: `sentiment_score` mapped to visual spectrum
-- `common_concerns` tag list
-- `notable_threads`: 3 excerpts with external Reddit links
+- `pros` tag list (green) — "Frequently praised"
+- `common_concerns` tag list (amber) — "Recurring concerns"
+- `notable_threads`: 3 shown by default, "Show all N threads" toggle for the rest
 
 ---
 
@@ -235,7 +237,7 @@ AI-assisted section (labeled "AI-assisted"):
 
 4. **Attribution** — run `scripts/forum-attribute-threads.ts`. Verify `clinic_id` fills in on matched threads, `forum_thread_llm_analysis` rows created with `is_current = true`.
 
-5. **Profile recompute** — run `scripts/forum-recompute-profiles.ts`. Verify `clinic_forum_profiles` has rows with non-null `sentiment_score`, `common_concerns`, `notable_threads`.
+5. **Profile recompute** — run `scripts/forum-recompute-profiles.ts`. Verify `clinic_forum_profiles` has rows with non-null `sentiment_score`, `pros`, `common_concerns`, `mention_count`, `notable_threads`.
 
 6. **Deduplication** — run Reddit scrape twice. Verify `forum_thread_index` row count does not increase.
 

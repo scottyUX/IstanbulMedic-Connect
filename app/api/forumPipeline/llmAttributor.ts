@@ -88,12 +88,17 @@ function normalizeName(name: string): string {
 
 /** Fast substring match — free, no LLM. Returns matched clinic IDs. */
 export function substringMatch(text: string, clinics: ClinicNameEntry[]): string[] {
+  // Normalise text the same way we normalise clinic names so punctuation in
+  // aliases like "Dr. X" matches text that writes "Dr. X" (period → space).
   const lowerText = text.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.,\-']/g, ' ')
+    .replace(/\s+/g, ' ')
   const matched: string[] = []
   for (const clinic of clinics) {
     const namesToCheck = [clinic.displayName, ...clinic.aliases]
     for (const name of namesToCheck) {
-      const norm = normalizeName(name)
+      const norm = normalizeName(name).replace(/\s+/g, ' ').trim()
       if (norm.length >= 3 && lowerText.includes(norm)) {
         matched.push(clinic.clinicId)
         break
