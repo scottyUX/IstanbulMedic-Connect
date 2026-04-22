@@ -142,6 +142,7 @@ export type Database = {
           confidence_score: number | null
           sentiment_score: number | null
           sentiment_distribution: Json
+          pros: string[]
           common_concerns: string[]
           notable_threads: Json
           is_stale: boolean
@@ -162,6 +163,7 @@ export type Database = {
           confidence_score?: number | null
           sentiment_score?: number | null
           sentiment_distribution?: Json
+          pros?: string[]
           common_concerns?: string[]
           notable_threads?: Json
           is_stale?: boolean
@@ -182,6 +184,7 @@ export type Database = {
           confidence_score?: number | null
           sentiment_score?: number | null
           sentiment_distribution?: Json
+          pros?: string[]
           common_concerns?: string[]
           notable_threads?: Json
           is_stale?: boolean
