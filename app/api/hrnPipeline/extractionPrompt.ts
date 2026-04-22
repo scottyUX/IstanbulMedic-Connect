@@ -7,7 +7,7 @@
 
 import OpenAI from "openai";
 
-export const EXTRACTION_PROMPT_VERSION = "v1.0";
+export const EXTRACTION_PROMPT_VERSION = "v1.1";
 export const EXTRACTION_MODEL = "gpt-4o-mini";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -19,6 +19,13 @@ export interface ThreadInput {
   opText: string;
   lastAuthorPostText?: string;
   threadUrl: string;
+  /**
+   * If provided, the LLM is instructed to return the clinic name exactly as
+   * it appears in this list when a match is found — enabling a reliable exact
+   * lookup instead of fuzzy string matching. Each entry optionally includes
+   * associated doctors so the LLM can attribute by doctor name alone.
+   */
+  knownClinics?: Array<{ name: string; doctors: string[] }>;
 }
 
 export interface ExtractionResult {
@@ -71,7 +78,7 @@ const EXTRACTION_FUNCTION: OpenAI.Chat.Completions.ChatCompletionTool = {
         attributed_clinic_name: {
           type: ["string", "null"],
           description:
-            "The PRIMARY clinic this thread is about. Use the clinic's commonly known name. Null if unclear.",
+            "The PRIMARY clinic this thread is about. If a Known Clinics list was provided and the clinic matches one, return its name EXACTLY as it appears in that list. Otherwise use the name as mentioned in the thread. Null if unclear.",
         },
         attributed_doctor_name: {
           type: ["string", "null"],
@@ -224,7 +231,7 @@ const SYSTEM_PROMPT = `You are an expert at analyzing hair transplant forum thre
 
 ## Key Rules
 
-1. **Clinic Attribution:** The PRIMARY clinic is where THIS procedure was performed, not clinics mentioned for comparison or previous work. If ambiguous, use null.
+1. **Clinic Attribution:** The PRIMARY clinic is where THIS procedure was performed, not clinics mentioned for comparison or previous work. If a "Known Clinics" list is provided and the clinic matches one, return its name **EXACTLY** as listed (same spelling, punctuation, capitalisation). If no match or ambiguous, use null.
 
 2. **Negation Awareness:** For issue_keywords, ONLY include issues the author ACTUALLY experienced.
    - "I had no shock loss" → do NOT include shock_loss
@@ -254,13 +261,26 @@ export async function extractThreadSignals(
   client: OpenAI,
   input: ThreadInput
 ): Promise<ExtractionResult | null> {
-  const { threadTitle, opText, lastAuthorPostText, threadUrl } = input;
+  const { threadTitle, opText, lastAuthorPostText, threadUrl, knownClinics } = input;
 
   const hasUpdate = lastAuthorPostText && lastAuthorPostText.length > 50;
 
+  const clinicListSection = knownClinics && knownClinics.length > 0
+    ? `## Known Clinics
+If the primary clinic of this thread matches one of the following, return its name **EXACTLY** as listed (same spelling, punctuation, capitalisation) in attributed_clinic_name. A match can be via clinic name OR via a listed doctor. If no match, return the name as mentioned in the thread.
+
+${knownClinics.map((c) =>
+  c.doctors.length > 0
+    ? `- ${c.name}\n  Doctors: ${c.doctors.join(", ")}`
+    : `- ${c.name}`
+).join("\n")}
+
+`
+    : "";
+
   const userMessage = `Analyze this hair transplant forum thread and extract structured signals.
 
-## Thread Information
+${clinicListSection}## Thread Information
 
 **Title:** ${threadTitle}
 **URL:** ${threadUrl}
@@ -288,12 +308,18 @@ Extract the signals using the extract_thread_signals function.`;
     const message = response.choices[0]?.message;
     const toolCall = message?.tool_calls?.[0];
 
-    if (!toolCall || toolCall.function.name !== "extract_thread_signals") {
+    if (!toolCall || toolCall.type !== "function") {
       console.error("No function call in response:", message);
       return null;
     }
 
-    const result = JSON.parse(toolCall.function.arguments) as ExtractionResult;
+    const fn = (toolCall as OpenAI.Chat.Completions.ChatCompletionMessageToolCall & { type: "function" }).function;
+    if (fn.name !== "extract_thread_signals") {
+      console.error("Unexpected function call:", fn.name);
+      return null;
+    }
+
+    const result = JSON.parse(fn.arguments) as ExtractionResult;
 
     // Post-validation
     if (!validateExtractionResult(result)) {

@@ -128,7 +128,8 @@ function createOpenAIClient(): OpenAI {
  */
 async function upsertForumThreadIndex(
   supabase: SupabaseClient,
-  scrapeData: HRNThreadData
+  scrapeData: HRNThreadData,
+  resolvedClinicId?: string | null
 ): Promise<{ id: string; isNew: boolean }> {
   // Check if thread already exists
   const { data: existing } = await supabase
@@ -138,16 +139,19 @@ async function upsertForumThreadIndex(
     .single();
 
   if (existing) {
-    // Update existing record
+    // Update existing record — include clinic_id if newly resolved
+    const updateFields: Record<string, unknown> = {
+      title: scrapeData.threadTitle,
+      author_username: scrapeData.author,
+      post_date: scrapeData.postDate,
+      reply_count: scrapeData.replyCount,
+      last_scraped_at: new Date().toISOString(),
+    };
+    if (resolvedClinicId) updateFields.clinic_id = resolvedClinicId;
+
     const { error } = await supabase
       .from("forum_thread_index")
-      .update({
-        title: scrapeData.threadTitle,
-        author_username: scrapeData.author,
-        post_date: scrapeData.postDate,
-        reply_count: scrapeData.replyCount,
-        last_scraped_at: new Date().toISOString(),
-      })
+      .update(updateFields)
       .eq("id", existing.id);
 
     if (error) {
@@ -165,6 +169,7 @@ async function upsertForumThreadIndex(
     author_username: scrapeData.author,
     post_date: scrapeData.postDate,
     reply_count: scrapeData.replyCount,
+    clinic_id: resolvedClinicId || null,
     clinic_attribution_method: null, // Will be set after LLM
   };
 
@@ -224,7 +229,8 @@ async function upsertHrnThreadContent(
 async function insertLlmAnalysis(
   supabase: SupabaseClient,
   threadId: string,
-  extraction: ExtractionResult
+  extraction: ExtractionResult,
+  resolvedClinicId?: string | null
 ): Promise<void> {
   // Mark previous analyses as not current
   await supabase
@@ -236,6 +242,7 @@ async function insertLlmAnalysis(
     thread_id: threadId,
     attributed_clinic_name: extraction.attributed_clinic_name,
     attributed_doctor_name: extraction.attributed_doctor_name,
+    attributed_clinic_id: resolvedClinicId || null,
     sentiment_score: extraction.sentiment_score,
     sentiment_label: extraction.sentiment_label,
     satisfaction_label: extraction.satisfaction_label,
@@ -304,6 +311,10 @@ export interface KnownEntity {
   name: string;
   /** Source of this entity */
   source: "clinic" | "doctor";
+  /** Clinic UUID — present for clinic entities (clinics.id) */
+  id?: string;
+  /** Associated clinic UUID — present for doctor entities (clinic_team.clinic_id) */
+  clinicId?: string;
 }
 
 /**
@@ -314,8 +325,8 @@ export async function loadKnownClinicKeywords(
   supabase: SupabaseClient
 ): Promise<KnownEntity[]> {
   const [clinicsRes, teamRes] = await Promise.all([
-    supabase.from("clinics").select("display_name, legal_name"),
-    supabase.from("clinic_team").select("name").not("name", "is", null),
+    supabase.from("clinics").select("id, display_name, legal_name"),
+    supabase.from("clinic_team").select("name, clinic_id").not("name", "is", null),
   ]);
 
   if (clinicsRes.error) throw new Error(`Failed to load clinics: ${clinicsRes.error.message}`);
@@ -324,14 +335,14 @@ export async function loadKnownClinicKeywords(
   const entities: KnownEntity[] = [];
 
   for (const row of clinicsRes.data || []) {
-    if (row.display_name) entities.push({ name: row.display_name, source: "clinic" });
+    if (row.display_name) entities.push({ name: row.display_name, source: "clinic", id: row.id });
     if (row.legal_name && row.legal_name !== row.display_name) {
-      entities.push({ name: row.legal_name, source: "clinic" });
+      entities.push({ name: row.legal_name, source: "clinic", id: row.id });
     }
   }
 
   for (const row of teamRes.data || []) {
-    if (row.name) entities.push({ name: row.name, source: "doctor" });
+    if (row.name) entities.push({ name: row.name, source: "doctor", clinicId: row.clinic_id ?? undefined });
   }
 
   return entities;
@@ -398,6 +409,71 @@ export function matchesKnownEntity(
   return regex.test(threadTitle) || regex.test(opText);
 }
 
+/**
+ * Build a lowercase-name → clinic UUID map from the loaded entity list.
+ * Call once at batch start and reuse across all processThread calls.
+ */
+export function buildClinicNameMap(entities: KnownEntity[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const entity of entities) {
+    if (entity.source === "clinic" && entity.id) {
+      // Store original casing so keys can be passed directly to the LLM
+      map.set(entity.name.trim(), entity.id);
+    }
+  }
+  return map;
+}
+
+/**
+ * Build a clinic UUID → doctor names map from the loaded entity list.
+ * Used to annotate the Known Clinics prompt section so the LLM can attribute
+ * a clinic when only a doctor is mentioned (not the clinic name directly).
+ */
+export function buildClinicDoctorMap(entities: KnownEntity[]): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const entity of entities) {
+    if (entity.source === "doctor" && entity.clinicId) {
+      const existing = map.get(entity.clinicId) ?? [];
+      existing.push(entity.name);
+      map.set(entity.clinicId, existing);
+    }
+  }
+  return map;
+}
+
+/**
+ * Resolve a clinic name string returned by the LLM to a clinic UUID.
+ *
+ * Because the LLM is instructed to return the name exactly as it appears in
+ * the known-clinics list, this is primarily a case-insensitive exact lookup.
+ * A lightweight contains fallback handles the rare case where the LLM adds
+ * or drops a suffix despite the instruction.
+ *
+ * Returns null when no match found (unresolved threads are logged for review).
+ */
+export function resolveClinicId(
+  clinicName: string | null | undefined,
+  nameMap: Map<string, string>
+): string | null {
+  if (!clinicName) return null;
+  const lower = clinicName.toLowerCase().trim();
+
+  // 1. Case-insensitive exact match (expected path when LLM follows instructions)
+  for (const [dbName, id] of nameMap) {
+    if (dbName.toLowerCase().trim() === lower) return id;
+  }
+
+  // 2. Contains fallback (safety net for LLM adding/dropping a suffix)
+  for (const [dbName, id] of nameMap) {
+    const dbLower = dbName.toLowerCase().trim();
+    if (dbLower.includes(lower) || lower.includes(dbLower)) {
+      return id;
+    }
+  }
+
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Pipeline Functions
 // ─────────────────────────────────────────────────────────────────────────────
@@ -415,6 +491,10 @@ export async function processThread(
     skipScrapeIfExists?: boolean;
     /** If provided, thread is skipped (no LLM) when text doesn't match any known entity */
     entityFilter?: RegExp;
+    /** Pre-built name→UUID map for clinic attribution. If omitted, loaded from DB on demand. */
+    clinicNameMap?: Map<string, string>;
+    /** Pre-built clinic UUID→doctors map for prompt annotation. If omitted, loaded from DB on demand. */
+    clinicDoctorMap?: Map<string, string[]>;
   } = {}
 ): Promise<ProcessResult & { skipped?: boolean }> {
   const totalStart = Date.now();
@@ -423,6 +503,15 @@ export async function processThread(
   // Initialize clients
   const supabase = options.supabase || createSupabaseClient();
   const openai = options.openai || createOpenAIClient();
+
+  // Ensure we have clinic maps for attribution (load on-demand in single-thread mode)
+  let clinicNameMap = options.clinicNameMap;
+  let clinicDoctorMap = options.clinicDoctorMap;
+  if (!clinicNameMap || !clinicDoctorMap) {
+    const entities = await loadKnownClinicKeywords(supabase);
+    clinicNameMap = clinicNameMap ?? buildClinicNameMap(entities);
+    clinicDoctorMap = clinicDoctorMap ?? buildClinicDoctorMap(entities);
+  }
 
   try {
     // Check if thread already exists and skip if requested
@@ -474,11 +563,18 @@ export async function processThread(
     // 3. Extract signals via LLM
     console.log(`  Extracting signals...`);
     const extractStart = Date.now();
+    // Build structured clinic list with associated doctors for the LLM prompt
+    const knownClinics = [...clinicNameMap.entries()].map(([name, id]) => ({
+      name,
+      doctors: clinicDoctorMap.get(id) ?? [],
+    }));
+
     const extraction = await extractThreadSignals(openai, {
       threadTitle: scrapeData.threadTitle,
       opText: scrapeData.opText,
       lastAuthorPostText: scrapeData.lastAuthorPost?.text,
       threadUrl: scrapeData.threadUrl,
+      knownClinics,
     });
     timing.extractionMs = Date.now() - extractStart;
 
@@ -487,12 +583,20 @@ export async function processThread(
     }
     console.log(`  Extracted: sentiment=${extraction.sentiment_label}, clinic=${extraction.attributed_clinic_name || "unknown"} (${timing.extractionMs}ms)`);
 
+    // Resolve attributed clinic name → clinic UUID
+    const resolvedClinicId = resolveClinicId(extraction.attributed_clinic_name, clinicNameMap);
+    if (extraction.attributed_clinic_name && !resolvedClinicId) {
+      console.log(`  Attribution: "${extraction.attributed_clinic_name}" — no clinic match found (clinic_id will be null)`);
+    } else if (resolvedClinicId) {
+      console.log(`  Attribution: "${extraction.attributed_clinic_name}" → ${resolvedClinicId}`);
+    }
+
     // 3. Store in database
     console.log(`  Storing in database...`);
     const storageStart = Date.now();
 
     // 3a. Upsert hub table
-    const { id: threadId, isNew } = await upsertForumThreadIndex(supabase, scrapeData);
+    const { id: threadId, isNew } = await upsertForumThreadIndex(supabase, scrapeData, resolvedClinicId);
     console.log(`    forum_thread_index: ${isNew ? "inserted" : "updated"} (id=${threadId})`);
 
     // 3b. Upsert HRN content
@@ -506,7 +610,7 @@ export async function processThread(
     console.log(`    hrn_thread_content: upserted`);
 
     // 3c. Insert LLM analysis
-    await insertLlmAnalysis(supabase, threadId, extraction);
+    await insertLlmAnalysis(supabase, threadId, extraction, resolvedClinicId);
     console.log(`    forum_thread_llm_analysis: inserted`);
 
     // 3d. Upsert deterministic signals
@@ -556,11 +660,13 @@ export async function processBatch(
   const supabase = createSupabaseClient();
   const openai = createOpenAIClient();
 
-  // Build entity filter from clinics DB + any extra entities (e.g. doctors list)
+  // Build entity filter + clinic name map from clinics DB + any extra entities (e.g. doctors list)
   console.log(`\nLoading known clinics from database...`);
   const clinicEntities = await loadKnownClinicKeywords(supabase);
   const allEntities = [...clinicEntities, ...(options.extraEntities || [])];
   const entityFilter = allEntities.length > 0 ? buildEntityRegex(allEntities) : undefined;
+  const clinicNameMap = buildClinicNameMap(allEntities);
+  const clinicDoctorMap = buildClinicDoctorMap(allEntities);
   const clinicCount = allEntities.filter((e) => e.source === "clinic").length;
   const doctorCount = allEntities.filter((e) => e.source === "doctor").length;
   console.log(`  Loaded ${clinicCount} clinics, ${doctorCount} doctors from database`);
@@ -584,6 +690,8 @@ export async function processBatch(
       forumSectionId: options.forumSectionId,
       forumSectionName: options.forumSectionName,
       entityFilter,
+      clinicNameMap,
+      clinicDoctorMap,
     });
 
     results.push(result);

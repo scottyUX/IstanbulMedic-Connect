@@ -12,6 +12,7 @@ import { ReviewsSection } from "./ReviewsSection"
 import { normalizeReviewSource } from "@/lib/review-sources"
 import { CommunitySignalsSection } from "./CommunitySignalsSection"
 import { InstagramSignalsCard } from "./InstagramSignalsCard"
+import { HRNSignalsCard, DEMO_HRN_SIGNALS } from "./HRNSignalsCard"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
 import type { ClinicDetail } from "@/lib/api/clinics"
@@ -329,6 +330,10 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
 
           {FEATURE_CONFIG.profileInstagram && clinic.instagramSignals && (
             <InstagramSignalsCard data={clinic.instagramSignals} />
+          )}
+
+          {FEATURE_CONFIG.profileHRN && (clinic.hrnSignals || clinic.name === "Vera Clinic | Hair Transplant Clinic in Turkey") && (
+            <HRNSignalsCard data={clinic.name === "Vera Clinic | Hair Transplant Clinic in Turkey" ? DEMO_HRN_SIGNALS : clinic.hrnSignals!} />
           )}
         </div>
       </div>

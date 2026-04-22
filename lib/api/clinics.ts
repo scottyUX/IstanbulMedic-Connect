@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/supabase/database.types';
 import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/profile/InstagramSignalsCard';
 import { getInstagramSignals } from './instagram';
+import type { HRNSignalsData } from '@/components/istanbulmedic-connect/profile/HRNSignalsCard';
+import { getHRNSignals } from './hrn';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -94,6 +96,8 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   totalReviewCount: number;
   /** Instagram signals data for trust indicators (null if no Instagram data exists) */
   instagramSignals: InstagramSignalsData | null;
+  /** HRN forum signals (null if no threads attributed to this clinic) */
+  hrnSignals: HRNSignalsData | null;
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -650,8 +654,11 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     });
   const imageUrl = imageMedia[0]?.url ?? null;
 
-  // Fetch Instagram signals data (returns null if no Instagram profile exists)
-  const instagramSignals = await getInstagramSignals(clinic.id);
+  // Fetch Instagram and HRN signals in parallel (both return null if no data)
+  const [instagramSignals, hrnSignals] = await Promise.all([
+    getInstagramSignals(clinic.id),
+    getHRNSignals(clinic.id),
+  ]);
 
   return {
     id: clinic.id,
@@ -689,6 +696,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     proceduresPerformed: clinic.procedures_performed,
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
     instagramSignals,
+    hrnSignals,
   };
 }
 

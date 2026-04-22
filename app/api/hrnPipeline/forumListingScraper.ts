@@ -297,4 +297,5 @@ function parseArgs(): ScraperOptions {
 const options = parseArgs();
 runScraper(options).catch(console.error);
 
-export { runScraper, ScraperOptions };
+export { runScraper };
+export type { ScraperOptions };

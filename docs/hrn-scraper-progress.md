@@ -119,9 +119,41 @@ extractThreadSignals()   → ExtractionResult (sentiment, clinic, topics, issues
 5. ~~Test pipeline with diverse threads~~ ✅ Done (positive, repair, clinic-posted)
 6. ~~Add sentiment_score to DB~~ ✅ Done (migration `20260415000000_add_sentiment_score_to_llm_analysis.sql`)
 7. ~~Build entity filter~~ ✅ Done — loads clinics + doctors from DB, blocks generic threads before LLM call
-8. **Build frontend** — Display HRN signals per clinic
-9. **Contact HRN for permission** — Before running full scrape
-10. **Run small batch** — Process ~50 threads to validate at scale
+8. ~~Build frontend~~ ✅ Done — `HRNSignalsCard.tsx` with demo data (see `docs/hrn-frontend-plan.md`)
+9. ~~Fix clinic_id attribution gap~~ ✅ Done (2026-04-18) — See architecture notes below
+10. **Write `lib/api/hrn.ts`** — Frontend data layer, queries raw tables, returns `HRNSignalsData` ⬅ next
+11. **Contact HRN for permission** — Before running full scrape
+12. **Run small batch** — Process ~50 threads to validate at scale
+
+### Clinic Attribution Architecture (Fixed 2026-04-18) ✅
+
+**How it works:** The known clinic list (with associated doctors) is passed to the LLM during extraction. The LLM returns the clinic name **exactly as it appears in the list** when a match is found, enabling a trivial case-insensitive exact lookup instead of fuzzy string matching.
+
+**Key functions in `hrnStoragePipeline.ts`:**
+- `loadKnownClinicKeywords()` — now fetches `id` from `clinics` and `clinic_id` from `clinic_team`
+- `buildClinicNameMap(entities)` — builds `Map<clinic name → UUID>` (original casing, for passing to LLM)
+- `buildClinicDoctorMap(entities)` — builds `Map<clinic UUID → doctor names[]>` for prompt annotation
+- `resolveClinicId(name, map)` — case-insensitive exact match, with a contains fallback as safety net
+
+**Prompt format passed to LLM (`extractionPrompt.ts` v1.1):**
+```
+## Known Clinics
+- Cosmedica Hair Transplantation Clinic
+  Doctors: Dr. Levent Acar
+- ASMED Medical Center
+  Doctors: Dr. Koray Erdogan
+...
+```
+
+**Results:** Both `forum_thread_index.clinic_id` and `forum_thread_llm_analysis.attributed_clinic_id` are now populated correctly on every matched thread. Unresolved → `null`, logged for review.
+
+**Tested:**
+- Clinic name match with Turkish chars: `"Dr Serkan Aygın Hair Transplant Clinic"` → UUID ✅
+- Doctor-only thread (no clinic name in text): `"Dr. Levent Acar"` → `"Özel Cosmedica Tıp Merkezi"` (legal name) → UUID ✅
+
+**Why name not UUID:** LLMs can transpose chars in 36-char UUIDs → silent wrong attribution. Name mismatch → `null` → safe failure with log.
+
+**Local dev note:** Use `seedLocalClinics.ts` to populate local `clinics` + `clinic_team` from prod via the API (no DB password needed). Prod vars `PROD_SUPABASE_URL` + `PROD_SUPABASE_SERVICE_ROLE_KEY` are in `.env.local`.
 
 ### Entity Filter (Built 2026-04-16)
 
@@ -160,6 +192,14 @@ Tested GPT-4o-mini with function calling on 4 diverse threads:
 
 ### Deferred Decisions
 - **`forum_score` field** — Will be added to `clinic_forum_profiles` after we have real data to inform the weighting formula. All raw inputs are already captured (thread counts, sentiment, etc.). See `docs/forum-scraping-schema.md` for details.
+
+- **`clinic_forum_profiles` aggregation job** — The table exists in the schema but is never populated. No job writes to it yet. At small scale this is fine — the frontend data layer (`lib/api/hrn.ts`, not yet written) will query the raw tables (`forum_thread_index`, `forum_thread_llm_analysis`, `forum_thread_signals`) and compute aggregates on the fly. When we have real traffic and 28K+ threads, we'll build a nightly recompute job that:
+  1. Finds clinics where `is_stale = true` (flag is already on the table, set whenever a new thread is attributed)
+  2. Aggregates thread counts, sentiment distribution, photo rate, followup rate, repair count across that clinic's threads
+  3. Writes the result to `clinic_forum_profiles`
+  4. Frontend then reads from `clinic_forum_profiles` instead of raw tables for performance
+  
+  The schema is already designed for this — it just needs the job.
 
 ### Solved Blockers
 

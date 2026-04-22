@@ -260,10 +260,11 @@ async function findLastAuthorPostOnPage(
 
     if (!lastAuthorPost) return null;
 
-    const contentEl = lastAuthorPost.querySelector('[data-role="commentContent"]')
-      || lastAuthorPost.querySelector('.ipsType_richText');
-    const dateEl = lastAuthorPost.querySelector('time[datetime]')
-      || lastAuthorPost.querySelector('time');
+    const foundPost = lastAuthorPost as Element;
+    const contentEl = foundPost.querySelector('[data-role="commentContent"]')
+      || foundPost.querySelector('.ipsType_richText');
+    const dateEl = foundPost.querySelector('time[datetime]')
+      || foundPost.querySelector('time');
 
     return {
       text: contentEl?.textContent?.trim() || '',
