@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, LogIn, LogOut, Menu, User } from "lucide-react"
+import { LayoutDashboard, LogOut, Menu, User } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import Container from "@/components/ui/container"
@@ -31,7 +31,7 @@ export const TopNav = () => {
   const prefetchedRoutes = useRef<Set<string>>(new Set())
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, loading: authLoading, logout } = useAuth()
 
   const handleSignOut = async () => {
     setOpen(false)
@@ -189,35 +189,37 @@ export const TopNav = () => {
           >
             Talk to Leila
           </Button>
-          <div className="relative shrink-0" ref={userMenuRef}>
-            <button
-              type="button"
-              aria-label="User menu"
-              aria-haspopup="true"
-              aria-expanded={userMenuOpen}
-              onClick={() => setUserMenuOpen((prev) => !prev)}
-              className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white transition-colors duration-200"
-            >
-              <User className="h-4 w-4" />
-            </button>
-            <AnimatePresence>
-              {userMenuOpen && (
-                <motion.div
-                  className="absolute right-0 mt-2 w-44 rounded-xl border border-black/5 bg-white py-1.5 shadow-lg"
-                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                >
-                  <Link
-                    href="/profile"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-[#0F2446] hover:bg-slate-50"
+          {authLoading ? (
+            <div className="h-9 w-9 shrink-0" />
+          ) : isAuthenticated ? (
+            <div className="relative shrink-0" ref={userMenuRef}>
+              <button
+                type="button"
+                aria-label="User menu"
+                aria-haspopup="true"
+                aria-expanded={userMenuOpen}
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white transition-colors duration-200"
+              >
+                <User className="h-4 w-4" />
+              </button>
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    className="absolute right-0 mt-2 w-44 rounded-xl border border-black/5 bg-white py-1.5 shadow-lg"
+                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
                   >
-                    <LayoutDashboard className="h-4 w-4 shrink-0 text-[#17375B]" />
-                    Dashboard
-                  </Link>
-                  {isAuthenticated ? (
+                    <Link
+                      href="/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-[#0F2446] hover:bg-slate-50"
+                    >
+                      <LayoutDashboard className="h-4 w-4 shrink-0 text-[#17375B]" />
+                      Dashboard
+                    </Link>
                     <button
                       type="button"
                       onClick={handleSignOut}
@@ -226,20 +228,19 @@ export const TopNav = () => {
                       <LogOut className="h-4 w-4 shrink-0" />
                       Sign out
                     </button>
-                  ) : (
-                    <Link
-                      href="/auth/login"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-[#0F2446] hover:bg-slate-50"
-                    >
-                      <LogIn className="h-4 w-4 shrink-0 text-[#17375B]" />
-                      Sign in
-                    </Link>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              href="/auth/login"
+              className="shrink-0 border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white"
+            >
+              Sign in / Sign up
+            </Button>
+          )}
         </div>
 
         {/* Mobile toggle + panel */}
@@ -323,38 +324,40 @@ export const TopNav = () => {
                       >
                         Talk to Leila
                       </Button>
-                      <Link
-                        href="/profile"
-                        onClick={() => setOpen(false)}
-                        className="flex items-center gap-3 rounded-2xl px-4 py-3 font-semibold text-[#0F2446] hover:text-[#0D1E32]"
-                      >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#17375B] bg-white">
-                          <LayoutDashboard className="h-4 w-4 text-[#17375B]" />
-                        </span>
-                        Dashboard
-                      </Link>
-                      {isAuthenticated ? (
-                        <button
-                          type="button"
-                          onClick={handleSignOut}
-                          className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-semibold text-red-600 hover:text-red-700"
-                        >
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-red-200 bg-red-50">
-                            <LogOut className="h-4 w-4 text-red-500" />
-                          </span>
-                          Sign out
-                        </button>
+                      {authLoading ? (
+                        <div className="h-12 w-full" />
+                      ) : isAuthenticated ? (
+                        <>
+                          <Link
+                            href="/profile"
+                            onClick={() => setOpen(false)}
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 font-semibold text-[#0F2446] hover:text-[#0D1E32]"
+                          >
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#17375B] bg-white">
+                              <LayoutDashboard className="h-4 w-4 text-[#17375B]" />
+                            </span>
+                            Dashboard
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={handleSignOut}
+                            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-semibold text-red-600 hover:text-red-700"
+                          >
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-red-200 bg-red-50">
+                              <LogOut className="h-4 w-4 text-red-500" />
+                            </span>
+                            Sign out
+                          </button>
+                        </>
                       ) : (
-                        <Link
+                        <Button
+                          variant="outline"
                           href="/auth/login"
                           onClick={() => setOpen(false)}
-                          className="flex items-center gap-3 rounded-2xl px-4 py-3 font-semibold text-[#0F2446] hover:text-[#0D1E32]"
+                          className="w-full border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white"
                         >
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#17375B] bg-white">
-                            <LogIn className="h-4 w-4 text-[#17375B]" />
-                          </span>
-                          Sign in
-                        </Link>
+                          Sign in / Sign up
+                        </Button>
                       )}
                     </nav>
                   </motion.div>

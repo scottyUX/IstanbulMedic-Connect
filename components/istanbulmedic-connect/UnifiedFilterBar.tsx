@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { Search, SlidersHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -34,12 +34,6 @@ export const UnifiedFilterBar = ({
     const activeLanguageCount = Object.values(filters.languages).filter(Boolean).length
     const activeAccreditationCount = Object.values(filters.accreditations).filter(Boolean).length
     const totalActiveFilters = activeTreatmentCount + activeLanguageCount + activeAccreditationCount
-
-    const budgetLabel = useMemo(() => {
-        const [min, max] = filters.budgetRange
-        if (min === 500 && max === 12000) return "Any Budget"
-        return `$${min.toLocaleString()} – $${max.toLocaleString()}`
-    }, [filters.budgetRange])
 
     return (
         <div className={cn("w-full", className)}>
