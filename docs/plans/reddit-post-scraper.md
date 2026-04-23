@@ -125,7 +125,7 @@ After analysis:
 3. `UPDATE forum_thread_index SET clinic_id = matched_id, clinic_attribution_method = 'llm'`.
 4. `UPDATE clinic_forum_profiles SET is_stale = true` for affected clinic + forum_source.
 
-Model: `claude-haiku-4-5-20251001` (~$0.0022/thread — ~1,065 tokens in, ~350 tokens out at Haiku 4.5 rates).
+Model: `gpt-4o-mini` (~$0.0004/thread — ~1,065 tokens in, ~350 tokens out at $0.15/M input, $0.60/M output).
 
 ### `app/api/forumPipeline/profileAggregator.ts`
 Recomputes stale `clinic_forum_profiles` rows (where `is_stale = true`).

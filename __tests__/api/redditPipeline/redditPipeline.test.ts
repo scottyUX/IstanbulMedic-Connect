@@ -170,13 +170,14 @@ describe('runRedditPipeline', () => {
       mockFrom.mockImplementation(() => {
         callCount++
         if (callCount === 2) {
-          // upsert returns null (conflict) → fall through to select existing
-          return makeChain({ data: null, error: { code: '23505' } })
+          // ignoreDuplicates: true — conflict returns no data (isNew = false)
+          return makeChain({ data: null, error: null })
         }
         if (callCount === 3) {
-          // select existing returns the row
+          // select existing id
           return makeChain({ data: { id: 'existing-hub-id' }, error: null })
         }
+        // callCount === 4: update last_scraped_at on existing row
         return makeChain({ data: { id: 'source-uuid' }, error: null })
       })
 

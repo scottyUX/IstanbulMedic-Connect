@@ -23,11 +23,11 @@ const { mockFrom, mockCreateClient, mockMessagesCreate } = vi.hoisted(() => {
 
 vi.mock('@supabase/supabase-js', () => ({ createClient: mockCreateClient }))
 
-vi.mock('@anthropic-ai/sdk', () => {
-  class MockAnthropic {
-    messages = { create: mockMessagesCreate }
+vi.mock('openai', () => {
+  class MockOpenAI {
+    chat = { completions: { create: mockMessagesCreate } }
   }
-  return { default: MockAnthropic }
+  return { default: MockOpenAI }
 })
 
 import {
@@ -135,7 +135,7 @@ describe('attributeThread', () => {
 
     // Default: LLM returns valid JSON
     mockMessagesCreate.mockResolvedValue({
-      content: [{ type: 'text', text: JSON.stringify(DEFAULT_LLM_OUTPUT) }],
+      choices: [{ message: { content: JSON.stringify(DEFAULT_LLM_OUTPUT) } }],
     })
 
     // Default Supabase: all writes succeed
@@ -164,7 +164,7 @@ describe('attributeThread', () => {
       attributed_clinic_name: 'Istanbul Hair Medical', // LLM says IHM
     }
     mockMessagesCreate.mockResolvedValueOnce({
-      content: [{ type: 'text', text: JSON.stringify(llmOutputWithDifferentClinic) }],
+      choices: [{ message: { content: JSON.stringify(llmOutputWithDifferentClinic) } }],
     })
 
     const result = await attributeThread(
@@ -197,7 +197,7 @@ describe('attributeThread', () => {
 
   it('returns attributed: false when LLM returns invalid JSON', async () => {
     mockMessagesCreate.mockResolvedValueOnce({
-      content: [{ type: 'text', text: 'not json at all' }],
+      choices: [{ message: { content: 'not json at all' } }],
     })
 
     const result = await attributeThread(
@@ -238,12 +238,13 @@ describe('attributeThread', () => {
 
   it('filters out invalid main_topics not in the allowed list', async () => {
     mockMessagesCreate.mockResolvedValueOnce({
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          ...DEFAULT_LLM_OUTPUT,
-          main_topics: ['density', 'INVALID_TOPIC', 'natural_results'],
-        }),
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            ...DEFAULT_LLM_OUTPUT,
+            main_topics: ['density', 'INVALID_TOPIC', 'natural_results'],
+          }),
+        },
       }],
     })
 

@@ -1248,3 +1248,74 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440005', 'instagram_posts_per_month', '1.3'::jsonb, 'number', 1.0, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440005', 'instagram_comments_enabled_ratio', '1.0'::jsonb, 'number', 0.9, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440005', 'instagram_is_business', 'false'::jsonb, 'bool', 1.0, 'extractor', false);
+
+-- ============================================
+-- PIPELINE SCRIPT TEST DATA
+-- Unattributed Reddit threads for testing:
+--   scripts/forum-attribute-threads.ts  (clinic_id IS NULL → should get filled in)
+--   scripts/forum-recompute-profiles.ts (runs after attribution, expects is_stale profiles)
+--
+-- Threads mention Istanbul Hair Masters and AEK Hair Clinic by name so the
+-- substring matcher + LLM should attribute them correctly.
+-- IDs use 870e8400-... to avoid conflicts with the attributed mock set (860e8400-...).
+-- ============================================
+
+INSERT INTO forum_thread_index (id, clinic_id, source_id, forum_source, thread_url, title, author_username, post_date, reply_count, first_scraped_at, last_scraped_at)
+VALUES
+  -- Should attribute to Istanbul Hair Masters (550e8400-...001)
+  ('870e8400-e29b-41d4-a716-446655440001', NULL, '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://reddit.com/r/HairTransplants/comments/test001',
+   'Istanbul Hair Masters 14 month update — FUE 3200 grafts, very happy',
+   'u/TestUser_IHM_Positive', '2025-11-20 10:00:00+00', 34,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00'),
+
+  -- Should attribute to Istanbul Hair Masters (mixed — mentions shock loss)
+  ('870e8400-e29b-41d4-a716-446655440002', NULL, '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://reddit.com/r/HairTransplants/comments/test002',
+   'My 6 month review of Istanbul Hair Masters — shock loss was rough',
+   'u/TestUser_IHM_Mixed', '2026-01-15 14:30:00+00', 22,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00'),
+
+  -- Should attribute to AEK Hair Clinic (550e8400-...005)
+  ('870e8400-e29b-41d4-a716-446655440003', NULL, '750e8400-e29b-41d4-a716-446655440002', 'reddit',
+   'https://reddit.com/r/TurkeyHairTransplant/comments/test003',
+   'AEK Hair Clinic 10 month update — Dr. Ali Emre Karadeniz results',
+   'u/TestUser_AEK_Positive', '2025-12-05 09:15:00+00', 15,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00'),
+
+  -- Should NOT attribute (no clinic name mentioned — tests the "no match" path)
+  ('870e8400-e29b-41d4-a716-446655440004', NULL, '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://reddit.com/r/HairTransplants/comments/test004',
+   'General question about FUE recovery timeline — 3 months post op',
+   'u/TestUser_NoClinic', '2026-02-10 16:45:00+00', 8,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00'),
+
+  -- Should attribute to Istanbul Hair Masters (repair case — tests is_repair_case flag)
+  ('870e8400-e29b-41d4-a716-446655440005', NULL, '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://reddit.com/r/HairTransplants/comments/test005',
+   'Istanbul Hair Masters did my repair after botched HT — 1 year update',
+   'u/TestUser_IHM_Repair', '2025-09-01 11:00:00+00', 41,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00');
+
+-- Reddit content bodies — realistic text with clinic names + signals for extraction
+INSERT INTO reddit_thread_content (thread_id, reddit_post_id, subreddit, post_type, body, score, comment_count, is_firsthand)
+VALUES
+  ('870e8400-e29b-41d4-a716-446655440001', 't3_test001', 'HairTransplants', 'post',
+   'Just hit 14 months post-op at Istanbul Hair Masters and wanted to share my full review. I had 3200 grafts FUE done by Dr. Mehmet Yilmaz in November 2024. The whole process was smooth — hotel pickup, good aftercare instructions, and Dr. Mehmet personally drew the hairline which I was really happy about. Density has come in really well, natural results. Cost was around €2100 all-in. Very satisfied overall.',
+   312, 34, true),
+
+  ('870e8400-e29b-41d4-a716-446655440002', 't3_test002', 'HairTransplants', 'post',
+   'Six month check-in on my Istanbul Hair Masters FUE (2800 grafts). The shock loss hit me hard around weeks 3-4 and genuinely scared me, but my coordinator assured me this was normal. Now at 6 months the density is coming in but still patchy in spots. Communication from Istanbul Hair Masters has been good throughout. Overall mixed feelings — the shock loss experience was stressful but things are improving.',
+   187, 22, true),
+
+  ('870e8400-e29b-41d4-a716-446655440003', 't3_test003', 'TurkeyHairTransplant', 'post',
+   'Ten months out from my AEK Hair Clinic procedure with Dr. Ali Emre Karadeniz and really happy with how things turned out. Got 2500 grafts DHI. What I loved about AEK was that Dr. Ali Emre did the entire procedure himself — no technicians doing the implantation. Small clinic feel, very personal experience. Natural results, hairline looks great. Would recommend for anyone wanting a doctor-led procedure.',
+   156, 15, true),
+
+  ('870e8400-e29b-41d4-a716-446655440004', 't3_test004', 'HairTransplants', 'post',
+   'Hi everyone, just hit 3 months post FUE and wondering if my progress looks normal. Currently in the ugly duckling phase and feeling anxious. The transplanted area looks thin and sparse. Not going to name the clinic yet as it is too early to judge. Any advice on what to expect at 3 months? When does the real growth start?',
+   45, 8, true),
+
+  ('870e8400-e29b-41d4-a716-446655440005', 't3_test005', 'HairTransplants', 'post',
+   'One year update after getting a repair/revision done at Istanbul Hair Masters. Background: I had a botched hair transplant in 2022 at a budget clinic in Antalya — hairline was unnatural and donor area was overharvested. Istanbul Hair Masters took on my case as a corrective procedure. Dr. Mehmet Yilmaz redesigned my hairline and added grafts to address the poor density. Result at 1 year is significantly better. Not perfect but a massive improvement. Happy I chose IHM for the repair.',
+   421, 41, true);

@@ -23,11 +23,11 @@ const { mockFrom, mockCreateClient, mockMessagesCreate } = vi.hoisted(() => {
 
 vi.mock('@supabase/supabase-js', () => ({ createClient: mockCreateClient }))
 
-vi.mock('@anthropic-ai/sdk', () => {
-  class MockAnthropic {
-    messages = { create: mockMessagesCreate }
+vi.mock('openai', () => {
+  class MockOpenAI {
+    chat = { completions: { create: mockMessagesCreate } }
   }
-  return { default: MockAnthropic }
+  return { default: MockOpenAI }
 })
 
 import { recomputeProfile, recomputeStaleProfiles } from '@/app/api/forumPipeline/profileAggregator'
@@ -117,7 +117,7 @@ describe('recomputeProfile', () => {
 
     // Default: LLM summary returns a string
     mockMessagesCreate.mockResolvedValue({
-      content: [{ type: 'text', text: 'Patients generally report positive experiences.' }],
+      choices: [{ message: { content: 'Patients generally report positive experiences.' } }],
     })
   })
 
@@ -566,7 +566,7 @@ describe('recomputeStaleProfiles', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockMessagesCreate.mockResolvedValue({
-      content: [{ type: 'text', text: 'Summary text.' }],
+      choices: [{ message: { content: 'Summary text.' } }],
     })
   })
 

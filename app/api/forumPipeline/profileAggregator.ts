@@ -14,7 +14,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -23,7 +23,7 @@ function getSupabaseAdmin() {
   )
 }
 
-const MODEL_NAME = process.env.FORUM_LLM_MODEL ?? 'claude-haiku-4-5-20251001'
+const MODEL_NAME = process.env.FORUM_LLM_MODEL ?? 'gpt-4o-mini'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -46,14 +46,14 @@ async function generateSummary(
 ): Promise<string | null> {
   if (!notableThreads.length) return null
 
-  const client = new Anthropic()
+  const client = new OpenAI()
   const digest = notableThreads
     .slice(0, 5)
     .map((t, i) => `${i + 1}. [${t.sentiment}] ${t.title}: ${t.summary}`)
     .join('\n')
 
   try {
-    const message = await client.messages.create({
+    const response = await client.chat.completions.create({
       model: MODEL_NAME,
       max_tokens: 200,
       messages: [{
@@ -61,8 +61,7 @@ async function generateSummary(
         content: `Write a 1-3 sentence neutral summary of what forum users say about "${clinicName}" based on these thread summaries:\n${digest}\n\nBe factual and balanced. Do not editorialize.`,
       }],
     })
-    const text = message.content[0].type === 'text' ? message.content[0].text : null
-    return text?.trim() ?? null
+    return response.choices[0]?.message?.content?.trim() ?? null
   } catch {
     return null
   }

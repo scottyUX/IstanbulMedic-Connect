@@ -50,8 +50,9 @@ async function upsertThread(
 ): Promise<{ threadId: string | null; isNew: boolean }> {
   const threadUrl = `https://www.reddit.com${post.permalink}`
 
-  // Upsert hub row — deduplicated via UNIQUE (thread_url)
-  const { data: hub, error: hubError } = await supabase
+  // Insert hub row — ignoreDuplicates: true means conflicts return no data,
+  // which is how we distinguish new (data returned) from existing (no data).
+  const { data: hub } = await supabase
     .from('forum_thread_index')
     .upsert(
       {
@@ -64,18 +65,24 @@ async function upsertThread(
         source_id: sourceId,
         last_scraped_at: new Date().toISOString(),
       },
-      { onConflict: 'thread_url', ignoreDuplicates: false }
+      { onConflict: 'thread_url', ignoreDuplicates: true }
     )
     .select('id')
     .single()
 
-  if (hubError || !hub) {
-    // Row already exists — fetch the existing id
+  if (!hub) {
+    // Row already exists — fetch its id and refresh scraped metadata
     const { data: existing } = await supabase
       .from('forum_thread_index')
       .select('id')
       .eq('thread_url', threadUrl)
       .single()
+    if (existing?.id) {
+      await supabase
+        .from('forum_thread_index')
+        .update({ last_scraped_at: new Date().toISOString(), reply_count: post.num_comments })
+        .eq('id', existing.id)
+    }
     return { threadId: existing?.id ?? null, isNew: false }
   }
 

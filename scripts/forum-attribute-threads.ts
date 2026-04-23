@@ -18,7 +18,8 @@
  *   npx tsx scripts/forum-attribute-threads.ts --prune --dry-run   (shows count, deletes nothing)
  */
 
-import 'dotenv/config'
+import dotenv from 'dotenv'
+dotenv.config({ path: '.env.local' })
 import { createClient } from '@supabase/supabase-js'
 import { attributeThread, loadClinicNames } from '../app/api/forumPipeline/llmAttributor'
 

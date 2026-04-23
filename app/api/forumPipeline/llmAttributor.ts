@@ -7,13 +7,13 @@
  *   4. Updates forum_thread_index.clinic_id when attribution succeeds
  *   5. Marks clinic_forum_profiles as stale
  *
- * Uses claude-haiku-4-5-20251001 (~$0.0003/thread).
+ * Uses gpt-4o-mini (~$0.0004/thread).
  * Stored separate from deterministic signals because all fields come from one
  * prompt call and need versioning together (is_current flag).
  */
 
 import { createClient } from '@supabase/supabase-js'
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -23,7 +23,7 @@ function getSupabaseAdmin() {
 }
 
 const PROMPT_VERSION = 'v1.0'
-const MODEL_NAME = process.env.FORUM_LLM_MODEL ?? 'claude-haiku-4-5-20251001'
+const MODEL_NAME = process.env.FORUM_LLM_MODEL ?? 'gpt-4o-mini'
 const MAX_TEXT_CHARS = 2500 // truncate long posts before sending to LLM
 
 const VALID_TOPICS = [
@@ -166,14 +166,15 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
 }
 
 async function callLlm(prompt: string): Promise<LlmOutput | null> {
-  const client = new Anthropic()
+  const client = new OpenAI()
   try {
-    const message = await client.messages.create({
+    const response = await client.chat.completions.create({
       model: MODEL_NAME,
       max_tokens: 1024,
+      response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: prompt }],
     })
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
+    const text = response.choices[0]?.message?.content ?? ''
     return JSON.parse(text.trim()) as LlmOutput
   } catch (err) {
     console.error('[llmAttributor] LLM call failed:', err instanceof Error ? err.message : err)

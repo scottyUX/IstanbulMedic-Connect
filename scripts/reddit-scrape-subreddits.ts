@@ -10,7 +10,8 @@
  *   npx tsx scripts/reddit-scrape-subreddits.ts --max-posts 50 --lookback-days 180
  */
 
-import 'dotenv/config'
+import dotenv from 'dotenv'
+dotenv.config({ path: '.env.local' })
 import { runRedditPipeline } from '../app/api/redditPipeline/redditPipeline'
 
 // ── Parse CLI args ────────────────────────────────────────────────────────────
