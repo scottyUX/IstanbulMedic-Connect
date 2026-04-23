@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/supabase/database.types';
-import type { InstagramIntelligenceVM } from '@/components/istanbulmedic-connect/types';
-import { getClinicInstagramData } from './instagram';
+import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/profile/InstagramSignalsCard';
+import { getInstagramSignals } from './instagram';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -25,6 +25,7 @@ export type ClinicSortOption =
   | 'Alphabetical'
   | 'Best Match'
   | 'Highest Rated'
+  | 'Lowest Rated'
   | 'Most Transparent'
   | 'Price: Low to High'
   | 'Price: High to Low';
@@ -61,7 +62,7 @@ export interface ClinicListItem {
   accreditations: string[];
   trustScore: number;
   trustBand: 'A' | 'B' | 'C' | 'D' | null;
-  description: string;
+  description: string | null;
   rating?: number;
   reviewCount?: number;
   aiInsight?: string;
@@ -91,8 +92,9 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   proceduresPerformed: number | null;
   /** Total review count from clinic_facts (actual Google total, not scraped count) */
   totalReviewCount: number;
-  /** Instagram profile and posts data (null if no Instagram data exists) */
-  instagram: InstagramIntelligenceVM | null;
+  /** Instagram signals data for trust indicators (null if no Instagram data exists) */
+  instagramSignals: InstagramSignalsData | null;
+  techniques: string[] | null;
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -112,6 +114,7 @@ type ClinicCredentialPartial = Pick<ClinicCredentialRow, 'credential_type' | 'cr
 type ClinicMediaPartial = Pick<ClinicMediaRow, 'url' | 'is_primary' | 'display_order' | 'media_type'>;
 type ClinicFactPartial = Pick<ClinicFactRow, 'fact_key' | 'fact_value'>;
 type ClinicGooglePlacesPartial = Pick<ClinicGooglePlacesRow, 'rating' | 'user_ratings_total'>;
+type ClinicScrapedDataPartial = { description: string | null };
 
 type ClinicListQueryRow = {
   id: string;
@@ -125,6 +128,7 @@ type ClinicListQueryRow = {
   clinic_media?: ClinicMediaPartial[] | null;
   clinic_facts?: ClinicFactPartial[] | null;
   clinic_google_places?: ClinicGooglePlacesPartial[] | ClinicGooglePlacesPartial | null;
+  clinic_scraped_data?: ClinicScrapedDataPartial[] | ClinicScrapedDataPartial | null;
 };
 
 const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
@@ -183,6 +187,10 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     ? clinic.clinic_google_places[0]
     : clinic.clinic_google_places;
 
+  const scrapedData = Array.isArray(clinic.clinic_scraped_data)
+    ? clinic.clinic_scraped_data[0]
+    : clinic.clinic_scraped_data;
+
   return {
     id: clinic.id,
     name: clinic.display_name,
@@ -193,7 +201,7 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     accreditations,
     trustScore: score?.overall_score ?? 0,
     trustBand: score?.band ?? null,
-    description: `Quality healthcare clinic in ${clinic.primary_city}.`,
+    description: scrapedData?.description ?? null,
     rating: googlePlaces?.rating ?? undefined,
     reviewCount: googlePlaces?.user_ratings_total ?? undefined,
     aiInsight: undefined,
@@ -209,7 +217,8 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
   const pageSize = Math.max(1, Math.min(query.pageSize ?? 12, 50));
   const page = Math.max(1, query.page ?? 1);
   const sort = query.sort ?? 'Best Match';
-  const isHighestRatedSort = sort === 'Highest Rated';
+  // These sorts require the view for proper ORDER BY
+  const needsViewSort = sort === 'Highest Rated' || sort === 'Lowest Rated' || sort === 'Best Match' || sort === 'Most Transparent';
 
   const searchQuery = normalizeString(query.searchQuery);
   const locationQuery = normalizeString(query.location);
@@ -377,6 +386,70 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
+  // For sorts that need score/rating, use the view to get sorted IDs first
+  let sortedClinicIds: string[] | null = null;
+  let totalCount = 0;
+
+  if (needsViewSort) {
+    // Query the view for sorted, paginated clinic IDs
+    // Note: Regenerate Supabase types after applying the view migration
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let viewQuery = (supabase.from as any)('clinics_with_scores')
+      .select('id', { count: 'exact' })
+      .eq('status', 'active');
+
+    if (filteredIds) {
+      viewQuery = viewQuery.in('id', Array.from(filteredIds));
+    }
+
+    if (locationQuery) {
+      viewQuery = viewQuery.or(
+        `primary_city.ilike.%${locationQuery}%,primary_country.ilike.%${locationQuery}%`
+      );
+    }
+
+    // Apply sort on the view (direct column access, no referencedTable needed)
+    switch (sort) {
+      case 'Highest Rated':
+        viewQuery = viewQuery
+          .order('google_rating', { ascending: false, nullsFirst: false })
+          .order('google_review_count', { ascending: false, nullsFirst: false })
+          .order('display_name', { ascending: true });
+        break;
+      case 'Lowest Rated':
+        viewQuery = viewQuery
+          .order('google_rating', { ascending: true, nullsFirst: false })
+          .order('google_review_count', { ascending: true, nullsFirst: false })
+          .order('display_name', { ascending: true });
+        break;
+      case 'Best Match':
+      case 'Most Transparent':
+        viewQuery = viewQuery
+          .order('overall_score', { ascending: false, nullsFirst: false })
+          .order('display_name', { ascending: true });
+        break;
+    }
+
+    const { data: sortedRows, error: viewError, count: viewCount } = await viewQuery.range(from, to) as {
+      data: { id: string }[] | null;
+      error: Error | null;
+      count: number | null;
+    };
+
+    if (viewError) {
+      console.error('Error fetching sorted clinic IDs:', viewError);
+      throw new Error(`Failed to fetch clinics: ${viewError.message}`);
+    }
+
+    if (!sortedRows || sortedRows.length === 0) {
+      return { clinics: [], total: viewCount ?? 0, page, pageSize };
+    }
+
+    sortedClinicIds = sortedRows.map((row) => row.id);
+    totalCount = viewCount ?? 0;
+  }
+
+  // Build main query for full clinic data with relations
   let queryBuilder = supabase
     .from('clinics')
     .select(
@@ -410,49 +483,50 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
       clinic_google_places (
         rating,
         user_ratings_total
+      ),
+      clinic_scraped_data (
+        description
       )
     `,
-      { count: 'exact' }
+      { count: needsViewSort ? undefined : 'exact' }
     )
     .eq('status', 'active');
 
-  if (filteredIds) {
-    queryBuilder = queryBuilder.in('id', Array.from(filteredIds));
+  if (needsViewSort && sortedClinicIds) {
+    // Use the pre-sorted IDs from the view query
+    queryBuilder = queryBuilder.in('id', sortedClinicIds);
+  } else {
+    // Apply filters directly for non-view sorts
+    if (filteredIds) {
+      queryBuilder = queryBuilder.in('id', Array.from(filteredIds));
+    }
+
+    if (locationQuery) {
+      queryBuilder = queryBuilder.or(
+        `primary_city.ilike.%${locationQuery}%,primary_country.ilike.%${locationQuery}%`
+      );
+    }
   }
 
-  if (locationQuery) {
-    queryBuilder = queryBuilder.or(
-      `primary_city.ilike.%${locationQuery}%,primary_country.ilike.%${locationQuery}%`
-    );
+  // Apply sort for non-view sorts
+  if (!needsViewSort) {
+    switch (sort) {
+      case 'Alphabetical':
+        queryBuilder = queryBuilder.order('display_name', { ascending: true });
+        break;
+      case 'Price: Low to High':
+        queryBuilder = queryBuilder.order('display_name', { ascending: true });
+        break;
+      case 'Price: High to Low':
+        queryBuilder = queryBuilder.order('display_name', { ascending: false });
+        break;
+      default:
+        queryBuilder = queryBuilder.order('display_name', { ascending: true });
+        break;
+    }
   }
 
-  switch (sort) {
-    case 'Alphabetical':
-      queryBuilder = queryBuilder.order('display_name', { ascending: true });
-      break;
-    case 'Highest Rated':
-      // Highest Rated is sorted at the clinic level after fetch to avoid
-      // relation-order semantics that do not reliably reorder parent rows.
-      queryBuilder = queryBuilder.order('display_name', { ascending: true });
-      break;
-    case 'Most Transparent':
-    case 'Best Match':
-      queryBuilder = queryBuilder.order('overall_score', {
-        referencedTable: 'clinic_scores',
-        ascending: false,
-      });
-      break;
-    case 'Price: Low to High':
-      queryBuilder = queryBuilder.order('display_name', { ascending: true });
-      break;
-    case 'Price: High to Low':
-      queryBuilder = queryBuilder.order('display_name', { ascending: false });
-      break;
-    default:
-      break;
-  }
-
-  const { data: clinics, error, count } = isHighestRatedSort
+  const { data: clinics, error, count } = needsViewSort
     ? await queryBuilder
     : await queryBuilder.range(from, to);
 
@@ -463,35 +537,21 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
 
   if (!clinics) return { clinics: [], total: 0, page, pageSize };
 
-  const mappedClinics = clinics.map(mapClinicRow);
+  let mappedClinics = clinics.map(mapClinicRow);
 
-  if (isHighestRatedSort) {
-    const sortedClinics = [...mappedClinics].sort((a, b) => {
-      const aRating = a.rating ?? -1;
-      const bRating = b.rating ?? -1;
-      if (bRating !== aRating) return bRating - aRating;
-
-      const aReviews = a.reviewCount ?? -1;
-      const bReviews = b.reviewCount ?? -1;
-      if (bReviews !== aReviews) return bReviews - aReviews;
-
-      const byName = a.name.localeCompare(b.name);
-      if (byName !== 0) return byName;
-
-      return a.id.localeCompare(b.id);
+  // For view-based sorts, preserve the order from sortedClinicIds
+  if (needsViewSort && sortedClinicIds) {
+    const idOrder = new Map(sortedClinicIds.map((id, index) => [id, index]));
+    mappedClinics = mappedClinics.sort((a, b) => {
+      const aIndex = idOrder.get(a.id) ?? 999;
+      const bIndex = idOrder.get(b.id) ?? 999;
+      return aIndex - bIndex;
     });
-
-    return {
-      clinics: sortedClinics.slice(from, to + 1),
-      total: count ?? sortedClinics.length,
-      page,
-      pageSize,
-    };
   }
 
   return {
     clinics: mappedClinics,
-    total: count ?? 0,
+    total: needsViewSort ? totalCount : (count ?? 0),
     page,
     pageSize,
   };
@@ -520,7 +580,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
       clinic_pricing (*),
       clinic_team (*),
       clinic_packages (*),
-      clinic_reviews (*, sources (source_name, source_type))
+      clinic_reviews (*, sources (source_name, source_type)),
+      clinic_scraped_data (*)
     `)
     .eq('id', clinicId)
     .single();
@@ -600,8 +661,12 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     });
   const imageUrl = imageMedia[0]?.url ?? null;
 
-  // Fetch Instagram data (returns null if no Instagram profile exists)
-  const instagram = await getClinicInstagramData(clinic.id);
+  // Fetch Instagram signals data (returns null if no Instagram profile exists)
+  const instagramSignals = await getInstagramSignals(clinic.id);
+  
+  const scrapedData = Array.isArray(clinic.clinic_scraped_data)
+    ? clinic.clinic_scraped_data[0]
+    : (clinic.clinic_scraped_data as { description: string | null } | null);
 
   return {
     id: clinic.id,
@@ -612,7 +677,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     specialties: specialties.length > 0 ? specialties : ['Medical Tourism'],
     trustScore: score?.overall_score ?? 0,
     trustBand: score?.band ?? null,
-    description: `${clinic.display_name} - Quality healthcare in ${clinic.primary_city}.`,
+    description: scrapedData?.description ?? null,
     rating: googlePlaces?.rating ?? undefined,
     reviewCount: googlePlaces?.user_ratings_total ?? undefined,
     aiInsight: undefined,
@@ -638,7 +703,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     yearsInOperation: clinic.years_in_operation,
     proceduresPerformed: clinic.procedures_performed,
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
-    instagram,
+    instagramSignals,
+    techniques: scrapedData?.techniques ?? null,
   };
 }
 
