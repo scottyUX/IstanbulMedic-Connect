@@ -10,7 +10,7 @@ interface OverviewSectionProps {
   yearsInOperation: number | null
   proceduresPerformed: number | null
   languages: string[]
-  description: string
+  description: string | null
   techniques: string[]
 }
 

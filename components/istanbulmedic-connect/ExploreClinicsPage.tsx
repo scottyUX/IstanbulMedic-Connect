@@ -29,7 +29,7 @@ interface ExploreClinicsPageProps {
 }
 
 const ENABLED_SORT_OPTIONS = (Object.keys(SORT_CONFIG) as ClinicSortOption[])
-  .filter((sortOption) => SORT_CONFIG[sortOption])
+  .filter((sortOption) => (SORT_CONFIG as Record<string, boolean>)[sortOption])
 
 const DEFAULT_SORT_OPTION: ClinicSortOption = ENABLED_SORT_OPTIONS[0] ?? "Alphabetical"
 

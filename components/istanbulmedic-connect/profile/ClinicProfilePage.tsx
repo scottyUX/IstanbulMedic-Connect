@@ -263,7 +263,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
                 yearsInOperation={yearsInOperation}
                 proceduresPerformed={proceduresPerformed}
                 languages={languages}
-                description={clinic.description}
+                description={clinic.description ?? ''}
                 techniques={clinic.techniques ?? []}
               />
             )}

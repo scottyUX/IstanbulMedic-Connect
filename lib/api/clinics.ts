@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/supabase/database.types';
-import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/profile/InstagramSignalsCard';
-import { getInstagramSignals } from './instagram';
+import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/profile/InstagramIntelligenceSection';
+import { getClinicInstagramData } from './instagram';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -662,11 +662,11 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
   const imageUrl = imageMedia[0]?.url ?? null;
 
   // Fetch Instagram signals data (returns null if no Instagram profile exists)
-  const instagramSignals = await getInstagramSignals(clinic.id);
+  const instagramSignals = await getClinicInstagramData(clinic.id);
   
   const scrapedData = Array.isArray(clinic.clinic_scraped_data)
     ? clinic.clinic_scraped_data[0]
-    : (clinic.clinic_scraped_data as { description: string | null } | null);
+    : (clinic.clinic_scraped_data as unknown as { description: string | null } | null);
 
   return {
     id: clinic.id,

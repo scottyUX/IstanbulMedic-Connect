@@ -12,7 +12,11 @@ vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
 
 // ─── Mock Supabase ────────────────────────────────────────────────────────────
 const mockSingle = vi.fn()
-const mockSelect = vi.fn(() => ({ single: mockSingle }))
+const mockSelect = vi.fn(() => ({ 
+  single: mockSingle,
+  eq: vi.fn().mockReturnValue({ single: mockSingle }),
+  order: vi.fn().mockReturnValue({ limit: vi.fn().mockReturnValue({ single: mockSingle }) }),
+}))
 const mockInsert = vi.fn(() => ({ select: mockSelect }))
 const mockUpdate = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
 const mockDelete = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({}) }))
