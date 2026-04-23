@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/supabase/database.types';
 import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/profile/InstagramSignalsCard';
 import { getInstagramSignals } from './instagram';
-import { getForumSignals, type ClinicForumProfile } from './forumSignals';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -63,7 +62,7 @@ export interface ClinicListItem {
   accreditations: string[];
   trustScore: number;
   trustBand: 'A' | 'B' | 'C' | 'D' | null;
-  description: string;
+  description: string | null;
   rating?: number;
   reviewCount?: number;
   aiInsight?: string;
@@ -95,8 +94,7 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   totalReviewCount: number;
   /** Instagram signals data for trust indicators (null if no Instagram data exists) */
   instagramSignals: InstagramSignalsData | null;
-  /** Reddit community signals (null if no Reddit data exists) */
-  redditSignals: ClinicForumProfile | null;
+  techniques: string[] | null;
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -116,6 +114,7 @@ type ClinicCredentialPartial = Pick<ClinicCredentialRow, 'credential_type' | 'cr
 type ClinicMediaPartial = Pick<ClinicMediaRow, 'url' | 'is_primary' | 'display_order' | 'media_type'>;
 type ClinicFactPartial = Pick<ClinicFactRow, 'fact_key' | 'fact_value'>;
 type ClinicGooglePlacesPartial = Pick<ClinicGooglePlacesRow, 'rating' | 'user_ratings_total'>;
+type ClinicScrapedDataPartial = { description: string | null };
 
 type ClinicListQueryRow = {
   id: string;
@@ -129,6 +128,7 @@ type ClinicListQueryRow = {
   clinic_media?: ClinicMediaPartial[] | null;
   clinic_facts?: ClinicFactPartial[] | null;
   clinic_google_places?: ClinicGooglePlacesPartial[] | ClinicGooglePlacesPartial | null;
+  clinic_scraped_data?: ClinicScrapedDataPartial[] | ClinicScrapedDataPartial | null;
 };
 
 const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
@@ -187,6 +187,10 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     ? clinic.clinic_google_places[0]
     : clinic.clinic_google_places;
 
+  const scrapedData = Array.isArray(clinic.clinic_scraped_data)
+    ? clinic.clinic_scraped_data[0]
+    : clinic.clinic_scraped_data;
+
   return {
     id: clinic.id,
     name: clinic.display_name,
@@ -197,7 +201,7 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     accreditations,
     trustScore: score?.overall_score ?? 0,
     trustBand: score?.band ?? null,
-    description: `Quality healthcare clinic in ${clinic.primary_city}.`,
+    description: scrapedData?.description ?? null,
     rating: googlePlaces?.rating ?? undefined,
     reviewCount: googlePlaces?.user_ratings_total ?? undefined,
     aiInsight: undefined,
@@ -479,6 +483,9 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
       clinic_google_places (
         rating,
         user_ratings_total
+      ),
+      clinic_scraped_data (
+        description
       )
     `,
       { count: needsViewSort ? undefined : 'exact' }
@@ -573,7 +580,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
       clinic_pricing (*),
       clinic_team (*),
       clinic_packages (*),
-      clinic_reviews (*, sources (source_name, source_type))
+      clinic_reviews (*, sources (source_name, source_type)),
+      clinic_scraped_data (*)
     `)
     .eq('id', clinicId)
     .single();
@@ -655,9 +663,10 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
 
   // Fetch Instagram signals data (returns null if no Instagram profile exists)
   const instagramSignals = await getInstagramSignals(clinic.id);
-
-  // Fetch Reddit signals data (returns null if no Reddit profile exists)
-  const redditSignals = await getForumSignals(clinic.id, 'reddit');
+  
+  const scrapedData = Array.isArray(clinic.clinic_scraped_data)
+    ? clinic.clinic_scraped_data[0]
+    : (clinic.clinic_scraped_data as { description: string | null } | null);
 
   return {
     id: clinic.id,
@@ -668,7 +677,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     specialties: specialties.length > 0 ? specialties : ['Medical Tourism'],
     trustScore: score?.overall_score ?? 0,
     trustBand: score?.band ?? null,
-    description: `${clinic.display_name} - Quality healthcare in ${clinic.primary_city}.`,
+    description: scrapedData?.description ?? null,
     rating: googlePlaces?.rating ?? undefined,
     reviewCount: googlePlaces?.user_ratings_total ?? undefined,
     aiInsight: undefined,
@@ -695,7 +704,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     proceduresPerformed: clinic.procedures_performed,
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
     instagramSignals,
-    redditSignals,
+    techniques: scrapedData?.techniques ?? null,
   };
 }
 

@@ -258,13 +258,14 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content Column */}
           <div className="space-y-6 lg:col-span-2">
-            {FEATURE_CONFIG.profileOverview && (
+            {FEATURE_CONFIG.profileOverview && (clinic.description || (clinic.techniques ?? []).length > 0) && (
               <OverviewSection
                 specialties={specialties}
                 yearsInOperation={yearsInOperation}
                 proceduresPerformed={proceduresPerformed}
                 languages={languages}
                 description={clinic.description}
+                techniques={clinic.techniques ?? []}
               />
             )}
 
