@@ -162,23 +162,18 @@ describe('runRedditPipeline', () => {
       expect(result.signalRowsInserted).toBe(6) // 2 posts × 3 signals each
     })
 
-    it('skips extractAndStoreSignals when upsert returns no hub id (duplicate thread)', async () => {
+    it('skips extractAndStoreSignals when the extension row already exists (duplicate thread)', async () => {
       mockFetchSubredditPosts.mockResolvedValueOnce([makePost('p1')])
 
-      // First call: upsert fails (row exists) → trigger fetch of existing
+      // sources (1) + hub upsert always returns id (2) + extension upsert returns null = duplicate (3)
       let callCount = 0
       mockFrom.mockImplementation(() => {
         callCount++
-        if (callCount === 2) {
-          // ignoreDuplicates: true — conflict returns no data (isNew = false)
+        if (callCount === 3) {
+          // reddit_thread_content: ignoreDuplicates: true + conflict → no data returned
           return makeChain({ data: null, error: null })
         }
-        if (callCount === 3) {
-          // select existing id
-          return makeChain({ data: { id: 'existing-hub-id' }, error: null })
-        }
-        // callCount === 4: update last_scraped_at on existing row
-        return makeChain({ data: { id: 'source-uuid' }, error: null })
+        return makeChain({ data: { id: 'existing-hub-id' }, error: null })
       })
 
       await runRedditPipeline({ subreddits: ['HairTransplants'], dryRun: false })

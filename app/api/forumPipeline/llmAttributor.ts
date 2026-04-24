@@ -14,6 +14,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
+import { z } from 'zod'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -40,23 +41,25 @@ export interface ClinicNameEntry {
   aliases: string[]      // doctor names, display_name_variants_instagram, etc.
 }
 
-interface LlmOutput {
-  attributed_clinic_name: string | null
-  attributed_doctor_name: string | null
-  sentiment: 'positive' | 'mixed' | 'negative'
-  satisfaction: 'satisfied' | 'mixed' | 'regretful'
-  main_topics: string[]
-  issue_keywords: string[]
-  is_repair_case: boolean
-  secondary_clinic_mentions: {
-    clinic_name: string
-    doctor_name: string | null
-    role: 'mentioned' | 'compared' | 'repair_source'
-    evidence: string
-  }[]
-  evidence_snippets: Record<string, string>
-  summary: string
-}
+const LlmOutputSchema = z.object({
+  attributed_clinic_name: z.string().nullable(),
+  attributed_doctor_name: z.string().nullable(),
+  sentiment: z.enum(['positive', 'mixed', 'negative']),
+  satisfaction: z.enum(['satisfied', 'mixed', 'regretful']),
+  main_topics: z.array(z.string()),
+  issue_keywords: z.array(z.string()),
+  is_repair_case: z.boolean(),
+  secondary_clinic_mentions: z.array(z.object({
+    clinic_name: z.string(),
+    doctor_name: z.string().nullable(),
+    role: z.enum(['mentioned', 'compared', 'repair_source']),
+    evidence: z.string(),
+  })).default([]),
+  evidence_snippets: z.record(z.string()).default({}),
+  summary: z.string(),
+})
+
+type LlmOutput = z.infer<typeof LlmOutputSchema>
 
 // ── Clinic name normalisation ─────────────────────────────────────────────────
 
@@ -152,7 +155,7 @@ ${text}
 
 Respond ONLY with valid JSON matching this exact schema (no markdown, no extra text):
 {
-  "attributed_clinic_name": "<exact name from list, or null>",
+  "attributed_clinic_name": "<the clinic this post is primarily about, exact name from list, or null>",
   "attributed_doctor_name": "<doctor name mentioned, or null>",
   "sentiment": "positive" | "mixed" | "negative",
   "satisfaction": "satisfied" | "mixed" | "regretful",
@@ -165,6 +168,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
 }`
 }
 
+// Cost: ~$0.0004/thread at gpt-4o-mini rates ($0.15/M input, $0.60/M output, ~1065 in + ~350 out tokens).
 async function callLlm(prompt: string): Promise<LlmOutput | null> {
   const client = new OpenAI()
   try {
@@ -175,7 +179,12 @@ async function callLlm(prompt: string): Promise<LlmOutput | null> {
       messages: [{ role: 'user', content: prompt }],
     })
     const text = response.choices[0]?.message?.content ?? ''
-    return JSON.parse(text.trim()) as LlmOutput
+    const parsed = LlmOutputSchema.safeParse(JSON.parse(text.trim()))
+    if (!parsed.success) {
+      console.error('[llmAttributor] LLM response failed schema validation:', parsed.error.flatten())
+      return null
+    }
+    return parsed.data
   } catch (err) {
     console.error('[llmAttributor] LLM call failed:', err instanceof Error ? err.message : err)
     return null
@@ -291,18 +300,21 @@ export async function loadClinicNames(): Promise<ClinicNameEntry[]> {
   const supabase = getSupabaseAdmin()
 
   // Load clinic display names
-  const { data: clinics } = await supabase
+  const { data: clinics, error: clinicsError } = await supabase
     .from('clinics')
     .select('id, display_name')
     .eq('status', 'active')
 
+  if (clinicsError) throw new Error(`[loadClinicNames] Failed to load clinics: ${clinicsError.message}`)
   if (!clinics?.length) return []
 
   // Load display_name_variants_instagram from clinic_facts as aliases
-  const { data: facts } = await supabase
+  const { data: facts, error: factsError } = await supabase
     .from('clinic_facts')
     .select('clinic_id, fact_value')
     .eq('fact_key', 'display_name_variants_instagram')
+
+  if (factsError) throw new Error(`[loadClinicNames] Failed to load clinic_facts: ${factsError.message}`)
 
   const aliasMap: Record<string, string[]> = {}
   for (const f of facts ?? []) {
@@ -313,10 +325,12 @@ export async function loadClinicNames(): Promise<ClinicNameEntry[]> {
   }
 
   // Load doctor names from clinic_team
-  const { data: team } = await supabase
+  const { data: team, error: teamError } = await supabase
     .from('clinic_team')
     .select('clinic_id, name')
     .in('role', ['surgeon', 'medical_director', 'doctor'])
+
+  if (teamError) throw new Error(`[loadClinicNames] Failed to load clinic_team: ${teamError.message}`)
 
   const doctorMap: Record<string, string[]> = {}
   for (const member of team ?? []) {

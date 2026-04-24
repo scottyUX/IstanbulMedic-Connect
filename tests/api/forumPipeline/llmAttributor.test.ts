@@ -209,9 +209,10 @@ describe('attributeThread', () => {
 
   it('returns attributed: false when attributed_clinic_name does not match any clinic', async () => {
     mockMessagesCreate.mockResolvedValueOnce({
-      content: [{
-        type: 'text',
-        text: JSON.stringify({ ...DEFAULT_LLM_OUTPUT, attributed_clinic_name: 'Unknown Clinic XYZ' }),
+      choices: [{
+        message: {
+          content: JSON.stringify({ ...DEFAULT_LLM_OUTPUT, attributed_clinic_name: 'Unknown Clinic XYZ' }),
+        },
       }],
     })
 

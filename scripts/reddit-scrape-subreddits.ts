@@ -12,6 +12,14 @@
 
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
+
+const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const
+const missingEnv = REQUIRED_ENV.filter(k => !process.env[k])
+if (missingEnv.length > 0) {
+  console.error(`Missing required env vars: ${missingEnv.join(', ')}`)
+  process.exit(1)
+}
+
 import { runRedditPipeline } from '../app/api/redditPipeline/redditPipeline'
 
 // ── Parse CLI args ────────────────────────────────────────────────────────────

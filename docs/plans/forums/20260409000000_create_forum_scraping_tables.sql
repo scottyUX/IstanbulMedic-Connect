@@ -249,6 +249,15 @@ COMMENT ON COLUMN clinic_forum_profiles.longterm_thread_count IS 'Threads with 6
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- ROW-LEVEL SECURITY
+-- These tables are accessed server-side only via the service-role key.
+-- RLS is intentionally disabled here — they are internal pipeline tables, not
+-- user-facing. If any of these tables are ever exposed to the anon/authenticated
+-- roles (e.g. a public forum-search endpoint), add RLS policies at that point.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- REDDIT MIGRATION
 -- Migrates clinic_reddit_posts → forum_thread_index + reddit_thread_content
 -- Migrates clinic_reddit_profiles → clinic_forum_profiles

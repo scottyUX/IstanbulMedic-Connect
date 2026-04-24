@@ -103,15 +103,17 @@ export async function recomputeProfile(
   const supabase = getSupabaseAdmin()
 
   // Load all threads for this clinic + source
-  const { data: threads } = await supabase
+  const { data: threads, error: threadsError } = await supabase
     .from('forum_thread_index')
     .select('id, title, thread_url, author_username, post_date, reply_count')
     .eq('clinic_id', clinicId)
     .eq('forum_source', forumSource)
 
+  if (threadsError) throw new Error(`[profileAggregator] Failed to load threads: ${threadsError.message}`)
+
   if (!threads?.length) {
     // No threads — write empty profile
-    await supabase
+    const { error: emptyUpsertError } = await supabase
       .from('clinic_forum_profiles')
       .upsert(
         {
@@ -123,36 +125,42 @@ export async function recomputeProfile(
         },
         { onConflict: 'clinic_id,forum_source' }
       )
+    if (emptyUpsertError) throw new Error(`[profileAggregator] Failed to upsert empty profile: ${emptyUpsertError.message}`)
     return
   }
 
   const threadIds = threads.map(t => t.id)
 
   // Load LLM analysis (current only)
-  const { data: analyses } = await supabase
+  const { data: analyses, error: analysesError } = await supabase
     .from('forum_thread_llm_analysis')
     .select('thread_id, sentiment_label, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short')
     .in('thread_id', threadIds)
     .eq('is_current', true)
 
+  if (analysesError) throw new Error(`[profileAggregator] Failed to load LLM analyses: ${analysesError.message}`)
+
   // For Reddit: distinguish post-type rows from comment-type rows for mention_count vs thread_count
   // For HRN: all rows are posts — mention_count === thread_count
   let postTypeThreadIds: Set<string> = new Set(threadIds)
   if (forumSource === 'reddit') {
-    const { data: redditContent } = await supabase
+    const { data: redditContent, error: redditError } = await supabase
       .from('reddit_thread_content')
       .select('thread_id, post_type')
       .in('thread_id', threadIds)
+    if (redditError) throw new Error(`[profileAggregator] Failed to load reddit_thread_content: ${redditError.message}`)
     postTypeThreadIds = new Set(
       (redditContent ?? []).filter(r => r.post_type === 'post').map(r => r.thread_id)
     )
   }
 
   // Load signals
-  const { data: signals } = await supabase
+  const { data: signals, error: signalsError } = await supabase
     .from('forum_thread_signals')
     .select('thread_id, signal_name, signal_value')
     .in('thread_id', threadIds)
+
+  if (signalsError) throw new Error(`[profileAggregator] Failed to load signals: ${signalsError.message}`)
 
   // Build lookups
   const analysisMap = Object.fromEntries((analyses ?? []).map(a => [a.thread_id, a]))
@@ -245,11 +253,13 @@ export async function recomputeProfile(
 
   // ── LLM summary (single call) ──────────────────────────────────────────────
 
-  const { data: clinicRow } = await supabase
+  const { data: clinicRow, error: clinicError } = await supabase
     .from('clinics')
     .select('display_name')
     .eq('id', clinicId)
     .single()
+
+  if (clinicError) throw new Error(`[profileAggregator] Failed to load clinic name: ${clinicError.message}`)
 
   const summary = clinicRow
     ? await generateSummary(clinicRow.display_name, notableThreads)
@@ -257,7 +267,7 @@ export async function recomputeProfile(
 
   // ── Upsert profile ─────────────────────────────────────────────────────────
 
-  await supabase
+  const { error: upsertError } = await supabase
     .from('clinic_forum_profiles')
     .upsert(
       {
@@ -284,6 +294,8 @@ export async function recomputeProfile(
       { onConflict: 'clinic_id,forum_source' }
     )
 
+  if (upsertError) throw new Error(`[profileAggregator] Failed to upsert profile: ${upsertError.message}`)
+
   console.info(`[profileAggregator] Recomputed ${forumSource} profile for clinic ${clinicId}: ${threads.length} threads`)
 }
 
@@ -296,11 +308,13 @@ export async function recomputeStaleProfiles(
 ): Promise<number> {
   const supabase = getSupabaseAdmin()
 
-  const { data: staleProfiles } = await supabase
+  const { data: staleProfiles, error: staleError } = await supabase
     .from('clinic_forum_profiles')
     .select('clinic_id')
     .eq('forum_source', forumSource)
     .eq('is_stale', true)
+
+  if (staleError) throw new Error(`[profileAggregator] Failed to load stale profiles: ${staleError.message}`)
 
   if (!staleProfiles?.length) {
     console.info(`[profileAggregator] No stale ${forumSource} profiles found`)

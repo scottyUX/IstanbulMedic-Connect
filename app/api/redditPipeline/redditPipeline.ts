@@ -50,9 +50,9 @@ async function upsertThread(
 ): Promise<{ threadId: string | null; isNew: boolean }> {
   const threadUrl = `https://www.reddit.com${post.permalink}`
 
-  // Insert hub row — ignoreDuplicates: true means conflicts return no data,
-  // which is how we distinguish new (data returned) from existing (no data).
-  const { data: hub } = await supabase
+  // ignoreDuplicates: false — on conflict, UPDATE last_scraped_at/reply_count and always
+  // return the id. Eliminates the race condition in the old check-then-select pattern.
+  const { data: hub, error: hubError } = await supabase
     .from('forum_thread_index')
     .upsert(
       {
@@ -65,29 +65,15 @@ async function upsertThread(
         source_id: sourceId,
         last_scraped_at: new Date().toISOString(),
       },
-      { onConflict: 'thread_url', ignoreDuplicates: true }
+      { onConflict: 'thread_url', ignoreDuplicates: false }
     )
     .select('id')
     .single()
 
-  if (!hub) {
-    // Row already exists — fetch its id and refresh scraped metadata
-    const { data: existing } = await supabase
-      .from('forum_thread_index')
-      .select('id')
-      .eq('thread_url', threadUrl)
-      .single()
-    if (existing?.id) {
-      await supabase
-        .from('forum_thread_index')
-        .update({ last_scraped_at: new Date().toISOString(), reply_count: post.num_comments })
-        .eq('id', existing.id)
-    }
-    return { threadId: existing?.id ?? null, isNew: false }
-  }
+  if (hubError || !hub) return { threadId: null, isNew: false }
 
-  // Insert extension row
-  await supabase
+  // ignoreDuplicates: true on the extension row — data returned = newly inserted, null = duplicate.
+  const { data: newContent } = await supabase
     .from('reddit_thread_content')
     .upsert(
       {
@@ -100,10 +86,12 @@ async function upsertThread(
         comment_count: post.num_comments,
         is_firsthand: false, // set by LLM later
       },
-      { onConflict: 'reddit_post_id' }
+      { onConflict: 'reddit_post_id', ignoreDuplicates: true }
     )
+    .select('thread_id')
+    .single()
 
-  return { threadId: hub.id, isNew: true }
+  return { threadId: hub.id, isNew: newContent !== null }
 }
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────

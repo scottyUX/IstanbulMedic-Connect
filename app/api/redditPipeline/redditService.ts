@@ -14,6 +14,8 @@ import { REDDIT_CONFIG, type RawRedditPost, type RawRedditComment, type FetchPos
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
 
+const FETCH_TIMEOUT_MS = 15_000
+
 // ── Core request function ─────────────────────────────────────────────────────
 
 /**
@@ -30,7 +32,7 @@ async function makeRedditRequest(url: string): Promise<unknown | null> {
     try {
       const res = await fetch(url, {
         headers: { 'User-Agent': userAgent },
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       })
 
       // Handle rate limiting: exponential backoff (port of python 429 handler)

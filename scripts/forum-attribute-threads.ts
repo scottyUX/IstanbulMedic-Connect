@@ -20,6 +20,14 @@
 
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
+
+const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENAI_API_KEY'] as const
+const missingEnv = REQUIRED_ENV.filter(k => !process.env[k])
+if (missingEnv.length > 0) {
+  console.error(`Missing required env vars: ${missingEnv.join(', ')}`)
+  process.exit(1)
+}
+
 import { createClient } from '@supabase/supabase-js'
 import { attributeThread, loadClinicNames } from '../app/api/forumPipeline/llmAttributor'
 
@@ -208,6 +216,8 @@ async function main() {
   console.log(`Attributed:         ${attributed}`)
   console.log(`No match:           ${skipped}`)
   console.log(`Failed:             ${failed}`)
+
+  if (failed > 0) process.exit(1)
 
   if (!dryRun && attributed > 0) {
     console.log('\nNext step: recompute profiles for newly attributed clinics:')
