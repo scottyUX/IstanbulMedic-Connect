@@ -797,6 +797,329 @@ FROM (
 WHERE c.id = x.id;
 
 -- ============================================
+-- REDDIT SIGNALS MOCK DATA
+-- Requires migration: docs/plans/forums/20260409000000_create_forum_scraping_tables.sql
+-- Tables: forum_thread_index, reddit_thread_content, forum_thread_signals,
+--         forum_thread_llm_analysis, clinic_forum_profiles
+-- ============================================
+
+-- Subreddit-level sources
+INSERT INTO sources (id, source_type, source_name, url, author_handle, content_hash)
+VALUES
+  ('750e8400-e29b-41d4-a716-446655440001', 'reddit', 'r/HairTransplants', 'https://reddit.com/r/HairTransplants', NULL, 'hash_reddit_sub_hairtransplants'),
+  ('750e8400-e29b-41d4-a716-446655440002', 'reddit', 'r/TurkeyHairTransplant', 'https://reddit.com/r/TurkeyHairTransplant', NULL, 'hash_reddit_sub_turkeyht');
+
+-- ============================================
+-- FORUM THREAD INDEX (hub — one row per thread)
+-- ============================================
+
+INSERT INTO forum_thread_index (id, clinic_id, source_id, forum_source, thread_url, title, author_username, post_date, reply_count, clinic_attribution_method, first_scraped_at, last_scraped_at)
+VALUES
+  -- Istanbul Hair Masters (6 threads across positive / mixed / negative scenarios)
+  ('860e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', '750e8400-e29b-41d4-a716-446655440001', 'reddit', 'https://reddit.com/r/HairTransplants/comments/abc001', 'Just hit 12 months post-op with Istanbul Hair Masters — full review + photos', 'u/GrowingBackSlowly', '2025-10-14 18:32:00+00', 47, 'llm', '2026-04-01 00:00:00+00', '2026-04-01 00:00:00+00'),
+  ('860e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440001', '750e8400-e29b-41d4-a716-446655440002', 'reddit', 'https://reddit.com/r/TurkeyHairTransplant/comments/abc002', '6 month update — Istanbul Hair Masters DHI 4000 grafts, honestly impressed', 'u/NorwoodRecovery', '2025-12-03 11:20:00+00', 28, 'llm', '2026-04-01 00:00:00+00', '2026-04-01 00:00:00+00'),
+  ('860e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440001', '750e8400-e29b-41d4-a716-446655440001', 'reddit', 'https://reddit.com/r/HairTransplants/comments/abc003', 'Istanbul Hair Masters experience — shock loss hit hard but growing in now at 4 months', 'u/ShockedButOptimistic', '2026-01-08 09:45:00+00', 31, 'llm', '2026-04-01 00:00:00+00', '2026-04-01 00:00:00+00'),
+  ('860e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440001', '750e8400-e29b-41d4-a716-446655440002', 'reddit', 'https://reddit.com/r/TurkeyHairTransplant/comments/abc004', 'Istanbul Hair Masters vs Vera Clinic — made my decision (going IHM)', 'u/ResearchingForMonths', '2026-02-17 14:10:00+00', 19, 'llm', '2026-04-01 00:00:00+00', '2026-04-01 00:00:00+00'),
+  ('860e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440001', '750e8400-e29b-41d4-a716-446655440001', 'reddit', 'https://reddit.com/r/HairTransplants/comments/abc005', 'Worth flying to Istanbul? My IHM experience 8 months in', 'u/BritWithNewHair', '2025-09-22 16:55:00+00', 62, 'llm', '2026-04-01 00:00:00+00', '2026-04-01 00:00:00+00'),
+  ('860e8400-e29b-41d4-a716-446655440006', '550e8400-e29b-41d4-a716-446655440001', '750e8400-e29b-41d4-a716-446655440001', 'reddit', 'https://reddit.com/r/HairTransplants/comments/abc006', 'Not happy with my hairline design — Istanbul Hair Masters 6 months post', 'u/HairlineDisappointed', '2025-11-30 20:18:00+00', 24, 'llm', '2026-04-01 00:00:00+00', '2026-04-01 00:00:00+00'),
+
+  -- AEK Hair Clinic (3 threads — small dataset, mixed signal)
+  ('860e8400-e29b-41d4-a716-446655440011', '550e8400-e29b-41d4-a716-446655440005', '750e8400-e29b-41d4-a716-446655440002', 'reddit', 'https://reddit.com/r/TurkeyHairTransplant/comments/aek001', 'AEK Hair Clinic 8 month update — Dr. Ali Emre delivered', 'u/AEKPatient2025', '2025-12-10 10:22:00+00', 18, 'llm', '2026-04-01 00:00:00+00', '2026-04-01 00:00:00+00'),
+  ('860e8400-e29b-41d4-a716-446655440012', '550e8400-e29b-41d4-a716-446655440005', '750e8400-e29b-41d4-a716-446655440002', 'reddit', 'https://reddit.com/r/TurkeyHairTransplant/comments/aek002', 'Is AEK / Dr. Ali Emre Karadeniz still worth it in 2026?', 'u/ConsideringAEK', '2026-03-01 08:44:00+00', 11, 'llm', '2026-04-01 00:00:00+00', '2026-04-01 00:00:00+00'),
+  ('860e8400-e29b-41d4-a716-446655440013', '550e8400-e29b-41d4-a716-446655440005', '750e8400-e29b-41d4-a716-446655440001', 'reddit', 'https://reddit.com/r/HairTransplants/comments/aek003', 'Density not what I expected from AEK — honest 1 year review', 'u/DensityLetDown', '2025-08-15 13:07:00+00', 33, 'llm', '2026-04-01 00:00:00+00', '2026-04-01 00:00:00+00');
+
+-- ============================================
+-- REDDIT THREAD CONTENT (platform-specific extension)
+-- ============================================
+
+INSERT INTO reddit_thread_content (thread_id, reddit_post_id, subreddit, post_type, body, score, comment_count, is_firsthand, had_clinical_procedures, seeking_medical_help)
+VALUES
+  ('860e8400-e29b-41d4-a716-446655440001', 't3_abc001', 'HairTransplants', 'post',
+   'Hit 12 months today. Had 3500 grafts FUE at Istanbul Hair Masters back in October 2024. Dr. Mehmet did the hairline design himself which I really appreciated — I was worried about tech-only clinics. Shock loss cleared by month 3, then things just kept getting better. Density is excellent, I have photos in the album link. Total cost was €2200 all-in including hotel. Best decision I made.',
+   847, 47, true, true, false),
+
+  ('860e8400-e29b-41d4-a716-446655440002', 't3_abc002', 'TurkeyHairTransplant', 'post',
+   'Just hit 6 months after my DHI procedure at Istanbul Hair Masters. They did 4000 grafts. Honestly I was skeptical about Turkey clinics but the results are impressive. Still filling in at the temples but hairline is already very natural looking. The clinic setup was professional, English was fine throughout. Cost was €2900 with hotel and transfers. Happy so far, will update at 12 months.',
+   312, 28, true, true, false),
+
+  ('860e8400-e29b-41d4-a716-446655440003', 't3_abc003', 'HairTransplants', 'post',
+   'Got 2800 grafts at Istanbul Hair Masters and the shock loss at 6 weeks was really scary. I lost almost all the transplanted hair plus some native hair. But at 4 months I can see clear regrowth. Dr. Mehmet''s coordinator reassured me this is normal. Still too early to judge results fully but feeling more optimistic. Anyone else experience this level of shock loss?',
+   156, 31, true, true, false),
+
+  ('860e8400-e29b-41d4-a716-446655440004', 't3_abc004', 'TurkeyHairTransplant', 'post',
+   'Been comparing Istanbul Hair Masters and Vera Clinic for my FUE procedure. After reading hundreds of reviews on this sub and HRN, I''m going with Istanbul Hair Masters. Their before/after photos look more consistent, the pricing is transparent, and Dr. Mehmet has great reviews for hairline work. Surgery scheduled for next month, will report back.',
+   89, 19, false, false, true),
+
+  ('860e8400-e29b-41d4-a716-446655440005', 't3_abc005', 'HairTransplants', 'post',
+   'Flying from the UK to Istanbul felt like a big risk but honestly Istanbul Hair Masters nailed it. 3200 grafts, 8 months in. The temple region has filled in beautifully, hairline is very natural. I have a full head of hair where before it was a Norwood 3. Dr. Ayse did most of the extraction and placement which surprised me — I expected the senior surgeon to do more. But the result speaks for itself. Total cost €2350.',
+   621, 62, true, true, false),
+
+  ('860e8400-e29b-41d4-a716-446655440006', 't3_abc006', 'HairTransplants', 'post',
+   'I''m 6 months post-op from Istanbul Hair Masters and I''m not happy with my hairline. The design feels too high and not matching my natural growth pattern. Density in the front is also underwhelming. I''ve emailed the clinic and they said to wait until 12 months. I know it''s early but I''m worried. Has anyone had revision work done? Dr. Yilmaz was very confident pre-op but I''m not seeing what he promised.',
+   134, 24, true, true, false),
+
+  ('860e8400-e29b-41d4-a716-446655440011', 't3_aek001', 'TurkeyHairTransplant', 'post',
+   '8 months since my FUE with Dr. Ali Emre Karadeniz at AEK Hair Clinic. Started with 3000 grafts. The result is really natural — Dr. Ali does the entire procedure himself which matters a lot. Clinic is small and personal, not a factory operation. Still thickening up but I''m already very happy. Happy to answer questions.',
+   278, 18, true, true, false),
+
+  ('860e8400-e29b-41d4-a716-446655440012', 't3_aek002', 'TurkeyHairTransplant', 'post',
+   'Considering AEK Hair Clinic for next year. Is Dr. Ali Emre Karadeniz still doing good work? Their Instagram looks great but I want real patient experiences. Budget is around €2500 for 3000–3500 grafts. Main concern is whether the doctor actually does the procedure or just the hairline design.',
+   67, 11, false, false, true),
+
+  ('860e8400-e29b-41d4-a716-446655440013', 't3_aek003', 'HairTransplants', 'post',
+   'One year post-op with AEK Hair Clinic. Honest review: the procedure itself was fine, Dr. Ali was professional and clearly skilled. But my density in the mid-scalp is below what we planned for 3800 grafts. Hairline looks good. I think the graft survival in the recipient area wasn''t ideal. I''m not a disaster case but I expected better coverage. Would consider a second pass but disappointed overall.',
+   198, 33, true, true, false);
+
+-- ============================================
+-- FORUM THREAD SIGNALS (deterministic extractions)
+-- ============================================
+
+INSERT INTO forum_thread_signals (id, thread_id, signal_name, signal_value, evidence_snippet, extraction_method, extraction_version, created_at)
+VALUES
+  -- IHM thread 1 (12 month review)
+  ('870e8400-e29b-41d4-a716-446655440001', '860e8400-e29b-41d4-a716-446655440001', 'graft_count',       '3500'::jsonb,          '3500 grafts FUE at Istanbul Hair Masters',         'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440002', '860e8400-e29b-41d4-a716-446655440001', 'timeline_markers',  '["12 months"]'::jsonb, 'Hit 12 months today',                              'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440003', '860e8400-e29b-41d4-a716-446655440001', 'has_photos',        'true'::jsonb,          'I have photos in the album link',                  'keyword', 'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440004', '860e8400-e29b-41d4-a716-446655440001', 'reply_count',       '47'::jsonb,            NULL,                                               'direct',  'v1.0', '2026-04-01 00:00:00+00'),
+
+  -- IHM thread 2 (6 month DHI)
+  ('870e8400-e29b-41d4-a716-446655440005', '860e8400-e29b-41d4-a716-446655440002', 'graft_count',       '4000'::jsonb,          'They did 4000 grafts',                             'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440006', '860e8400-e29b-41d4-a716-446655440002', 'timeline_markers',  '["6 months"]'::jsonb,  'Just hit 6 months',                                'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440007', '860e8400-e29b-41d4-a716-446655440002', 'has_photos',        'false'::jsonb,         NULL,                                               'direct',  'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440008', '860e8400-e29b-41d4-a716-446655440002', 'reply_count',       '28'::jsonb,            NULL,                                               'direct',  'v1.0', '2026-04-01 00:00:00+00'),
+
+  -- IHM thread 3 (shock loss)
+  ('870e8400-e29b-41d4-a716-446655440009', '860e8400-e29b-41d4-a716-446655440003', 'graft_count',       '2800'::jsonb,          'Got 2800 grafts at Istanbul Hair Masters',         'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440010', '860e8400-e29b-41d4-a716-446655440003', 'timeline_markers',  '["4 months"]'::jsonb,  'at 4 months I can see clear regrowth',             'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440011', '860e8400-e29b-41d4-a716-446655440003', 'has_photos',        'false'::jsonb,         NULL,                                               'direct',  'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440012', '860e8400-e29b-41d4-a716-446655440003', 'issue_keywords',    '["shock_loss"]'::jsonb,'the shock loss at 6 weeks was really scary',       'keyword', 'v1.0', '2026-04-01 00:00:00+00'),
+
+  -- IHM thread 5 (8 month UK patient, photos)
+  ('870e8400-e29b-41d4-a716-446655440013', '860e8400-e29b-41d4-a716-446655440005', 'graft_count',       '3200'::jsonb,          '3200 grafts, 8 months in',                         'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440014', '860e8400-e29b-41d4-a716-446655440005', 'timeline_markers',  '["8 months"]'::jsonb,  '8 months in',                                      'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440015', '860e8400-e29b-41d4-a716-446655440005', 'has_photos',        'true'::jsonb,          'photos in the album',                              'keyword', 'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440016', '860e8400-e29b-41d4-a716-446655440005', 'reply_count',       '62'::jsonb,            NULL,                                               'direct',  'v1.0', '2026-04-01 00:00:00+00'),
+
+  -- IHM thread 6 (unhappy hairline)
+  ('870e8400-e29b-41d4-a716-446655440017', '860e8400-e29b-41d4-a716-446655440006', 'timeline_markers',  '["6 months"]'::jsonb,  '6 months post-op',                                 'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440018', '860e8400-e29b-41d4-a716-446655440006', 'has_photos',        'false'::jsonb,         NULL,                                               'direct',  'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440019', '860e8400-e29b-41d4-a716-446655440006', 'issue_keywords',    '["density"]'::jsonb,   'Density in the front is also underwhelming',       'keyword', 'v1.0', '2026-04-01 00:00:00+00'),
+
+  -- AEK thread 1 (8 month positive)
+  ('870e8400-e29b-41d4-a716-446655440020', '860e8400-e29b-41d4-a716-446655440011', 'graft_count',       '3000'::jsonb,          'Started with 3000 grafts',                         'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440021', '860e8400-e29b-41d4-a716-446655440011', 'timeline_markers',  '["8 months"]'::jsonb,  '8 months since my FUE',                            'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440022', '860e8400-e29b-41d4-a716-446655440011', 'has_photos',        'false'::jsonb,         NULL,                                               'direct',  'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440023', '860e8400-e29b-41d4-a716-446655440011', 'reply_count',       '18'::jsonb,            NULL,                                               'direct',  'v1.0', '2026-04-01 00:00:00+00'),
+
+  -- AEK thread 3 (1 year density disappointment)
+  ('870e8400-e29b-41d4-a716-446655440024', '860e8400-e29b-41d4-a716-446655440013', 'graft_count',       '3800'::jsonb,          'planned for 3800 grafts',                          'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440025', '860e8400-e29b-41d4-a716-446655440013', 'timeline_markers',  '["1 year"]'::jsonb,    'One year post-op',                                 'regex',   'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440026', '860e8400-e29b-41d4-a716-446655440013', 'has_photos',        'false'::jsonb,         NULL,                                               'direct',  'v1.0', '2026-04-01 00:00:00+00'),
+  ('870e8400-e29b-41d4-a716-446655440027', '860e8400-e29b-41d4-a716-446655440013', 'issue_keywords',    '["density"]'::jsonb,   'my density in the mid-scalp is below what we planned', 'keyword', 'v1.0', '2026-04-01 00:00:00+00');
+
+-- ============================================
+-- FORUM THREAD LLM ANALYSIS
+-- ============================================
+
+INSERT INTO forum_thread_llm_analysis (
+  id, thread_id,
+  attributed_clinic_name, attributed_doctor_name, attributed_clinic_id,
+  sentiment_label, satisfaction_label, summary_short,
+  main_topics, issue_keywords, is_repair_case,
+  secondary_clinic_mentions, evidence_snippets,
+  model_name, prompt_version, run_timestamp, is_current
+)
+VALUES
+  -- IHM thread 1: 12 month positive
+  ('880e8400-e29b-41d4-a716-446655440001', '860e8400-e29b-41d4-a716-446655440001',
+   'Istanbul Hair Masters', 'Dr. Mehmet', '550e8400-e29b-41d4-a716-446655440001',
+   'positive', 'satisfied',
+   'Patient reports excellent density and natural hairline at 12 months post-FUE. Doctor involvement in hairline design is highlighted as a key positive.',
+   ARRAY['density', 'hairline', 'doctor_involvement', 'natural_results'], ARRAY[]::text[], false,
+   '[]'::jsonb,
+   '{"sentiment": "Best decision I made", "doctor_involvement": "Dr. Mehmet did the hairline design himself"}'::jsonb,
+   'claude-haiku-4-5-20251001', 'v1.0', '2026-04-01 01:00:00+00', true),
+
+  -- IHM thread 2: 6 month positive
+  ('880e8400-e29b-41d4-a716-446655440002', '860e8400-e29b-41d4-a716-446655440002',
+   'Istanbul Hair Masters', NULL, '550e8400-e29b-41d4-a716-446655440001',
+   'positive', 'satisfied',
+   'Six-month update showing natural hairline and good early density from DHI procedure. Patient notes professional setup and English communication throughout.',
+   ARRAY['hairline', 'natural_results', 'communication'], ARRAY[]::text[], false,
+   '[]'::jsonb,
+   '{"sentiment": "results are impressive", "communication": "English was fine throughout"}'::jsonb,
+   'claude-haiku-4-5-20251001', 'v1.0', '2026-04-01 01:00:00+00', true),
+
+  -- IHM thread 3: mixed (shock loss but recovering)
+  ('880e8400-e29b-41d4-a716-446655440003', '860e8400-e29b-41d4-a716-446655440003',
+   'Istanbul Hair Masters', 'Dr. Mehmet', '550e8400-e29b-41d4-a716-446655440001',
+   'mixed', 'mixed',
+   'Patient experienced significant shock loss at 6 weeks but is seeing regrowth at 4 months. Outcome still uncertain but clinic communication was reassuring.',
+   ARRAY['healing', 'aftercare'], ARRAY['shock_loss'], false,
+   '[]'::jsonb,
+   '{"issue_keywords": "the shock loss at 6 weeks was really scary", "sentiment": "feeling more optimistic"}'::jsonb,
+   'claude-haiku-4-5-20251001', 'v1.0', '2026-04-01 01:00:00+00', true),
+
+  -- IHM thread 4: positive pre-procedure (chose IHM over Vera Clinic)
+  ('880e8400-e29b-41d4-a716-446655440004', '860e8400-e29b-41d4-a716-446655440004',
+   'Istanbul Hair Masters', 'Dr. Mehmet', '550e8400-e29b-41d4-a716-446655440001',
+   'positive', 'satisfied',
+   'Pre-procedure post documenting decision to choose Istanbul Hair Masters over Vera Clinic based on result consistency and transparent pricing.',
+   ARRAY['value', 'hairline'], ARRAY[]::text[], false,
+   '[{"clinic_name": "Vera Clinic", "doctor_name": null, "role": "compared", "sentiment": "neutral", "evidence": "comparing Istanbul Hair Masters and Vera Clinic"}]'::jsonb,
+   '{"sentiment": "going with Istanbul Hair Masters"}'::jsonb,
+   'claude-haiku-4-5-20251001', 'v1.0', '2026-04-01 01:00:00+00', true),
+
+  -- IHM thread 5: 8 month UK patient, positive
+  ('880e8400-e29b-41d4-a716-446655440005', '860e8400-e29b-41d4-a716-446655440005',
+   'Istanbul Hair Masters', 'Dr. Ayse Kaya', '550e8400-e29b-41d4-a716-446655440001',
+   'positive', 'satisfied',
+   'UK patient reports excellent temple and hairline results at 8 months. Notes Dr. Ayse handled most of the procedure, which was unexpected but results are strong.',
+   ARRAY['density', 'hairline', 'natural_results', 'technician_quality'], ARRAY[]::text[], false,
+   '[]'::jsonb,
+   '{"sentiment": "Istanbul Hair Masters nailed it", "doctor_involvement": "Dr. Ayse did most of the extraction and placement"}'::jsonb,
+   'claude-haiku-4-5-20251001', 'v1.0', '2026-04-01 01:00:00+00', true),
+
+  -- IHM thread 6: negative (unhappy hairline design)
+  ('880e8400-e29b-41d4-a716-446655440006', '860e8400-e29b-41d4-a716-446655440006',
+   'Istanbul Hair Masters', 'Dr. Yilmaz', '550e8400-e29b-41d4-a716-446655440001',
+   'negative', 'regretful',
+   'Patient dissatisfied with hairline placement and density at 6 months. Clinic advised waiting until 12 months. Patient is considering revision options.',
+   ARRAY['hairline', 'density', 'aftercare'], ARRAY['density'], false,
+   '[]'::jsonb,
+   '{"issue_keywords": "hairline feels too high and not matching my natural growth pattern", "sentiment": "not happy with my hairline"}'::jsonb,
+   'claude-haiku-4-5-20251001', 'v1.0', '2026-04-01 01:00:00+00', true),
+
+  -- AEK thread 1: positive (8 month, doctor does full procedure)
+  ('880e8400-e29b-41d4-a716-446655440007', '860e8400-e29b-41d4-a716-446655440011',
+   'AEK Hair Clinic', 'Dr. Ali Emre Karadeniz', '550e8400-e29b-41d4-a716-446655440005',
+   'positive', 'satisfied',
+   'Patient praises natural result at 8 months and highlights that Dr. Ali performs the full procedure himself, distinguishing the clinic from high-volume operations.',
+   ARRAY['natural_results', 'doctor_involvement', 'density'], ARRAY[]::text[], false,
+   '[]'::jsonb,
+   '{"sentiment": "already very happy", "doctor_involvement": "Dr. Ali does the entire procedure himself"}'::jsonb,
+   'claude-haiku-4-5-20251001', 'v1.0', '2026-04-01 01:00:00+00', true),
+
+  -- AEK thread 2: mixed (prospective, doctor involvement concern)
+  ('880e8400-e29b-41d4-a716-446655440008', '860e8400-e29b-41d4-a716-446655440012',
+   'AEK Hair Clinic', 'Dr. Ali Emre Karadeniz', '550e8400-e29b-41d4-a716-446655440005',
+   'mixed', 'mixed',
+   'Prospective patient researching AEK. Primary concern is whether the surgeon performs the full procedure or delegates to technicians.',
+   ARRAY['doctor_involvement', 'value'], ARRAY[]::text[], false,
+   '[]'::jsonb,
+   '{"doctor_involvement": "whether the doctor actually does the procedure"}'::jsonb,
+   'claude-haiku-4-5-20251001', 'v1.0', '2026-04-01 01:00:00+00', true),
+
+  -- AEK thread 3: negative (1 year density disappointment)
+  ('880e8400-e29b-41d4-a716-446655440009', '860e8400-e29b-41d4-a716-446655440013',
+   'AEK Hair Clinic', 'Dr. Ali Emre Karadeniz', '550e8400-e29b-41d4-a716-446655440005',
+   'negative', 'regretful',
+   'One-year patient disappointed with mid-scalp density despite a good hairline result. Attributes underperformance to graft survival in the recipient area.',
+   ARRAY['density', 'donor_area', 'natural_results'], ARRAY['density'], false,
+   '[]'::jsonb,
+   '{"issue_keywords": "my density in the mid-scalp is below what we planned", "sentiment": "disappointed overall"}'::jsonb,
+   'claude-haiku-4-5-20251001', 'v1.0', '2026-04-01 01:00:00+00', true);
+
+-- ============================================
+-- CLINIC FORUM PROFILES (aggregated per clinic per source)
+-- This is what RedditSignalsCard reads.
+-- IHM: 6 threads — 4 positive, 1 mixed, 1 negative
+-- AEK: 3 threads — 1 positive, 1 mixed, 1 negative
+-- ============================================
+
+INSERT INTO clinic_forum_profiles (
+  id, clinic_id, forum_source,
+  summary,
+  thread_count, mention_count, photo_thread_count, longterm_thread_count, repair_mention_count, unique_authors_count,
+  last_thread_at,
+  confidence_score, sentiment_score,
+  sentiment_distribution, pros, common_concerns, notable_threads,
+  is_stale, captured_at, updated_at
+)
+VALUES
+  (
+    '890e8400-e29b-41d4-a716-446655440001',
+    '550e8400-e29b-41d4-a716-446655440001',
+    'reddit',
+    'Istanbul Hair Masters has a strong Reddit presence with predominantly positive long-term reviews. Patients frequently highlight natural hairline results and surgeon involvement. One negative review concerns hairline placement at 6 months — clinic advised waiting until 12 months. Shock loss mentions are within normal range and followed by recovery.',
+    6,   -- thread_count (unique threads)
+    6,   -- mention_count (no separate comment rows in seed — equals thread_count here)
+    2,   -- photo_thread_count (threads 1 and 5)
+    4,   -- longterm_thread_count (6m+: threads 1=12m, 2=6m, 5=8m, 6=6m)
+    0,   -- repair_mention_count
+    6,   -- unique_authors_count
+    '2026-02-17 14:10:00+00',
+    0.800,  -- confidence_score (min(1.0, 6/20) * consistency)
+    0.500,  -- sentiment_score: (4*1 + 1*0 + 1*-1) / 6
+    '{"positive": 4, "mixed": 1, "negative": 1}'::jsonb,
+    ARRAY['natural hairline results', 'doctor involvement in procedure', 'transparent pricing', 'good English communication'],
+    ARRAY['shock_loss', 'density'],
+    '[
+      {
+        "title": "Just hit 12 months post-op with Istanbul Hair Masters — full review + photos",
+        "url": "https://reddit.com/r/HairTransplants/comments/abc001",
+        "summary": "Excellent density and natural hairline at 12 months post-FUE. Doctor involvement in hairline design highlighted as key positive.",
+        "sentiment": "positive",
+        "has_photos": true
+      },
+      {
+        "title": "Worth flying to Istanbul? My IHM experience 8 months in",
+        "url": "https://reddit.com/r/HairTransplants/comments/abc005",
+        "summary": "UK patient reports strong temple and hairline results at 8 months. Good value at €2350 all-in.",
+        "sentiment": "positive",
+        "has_photos": true
+      },
+      {
+        "title": "Not happy with my hairline design — Istanbul Hair Masters 6 months post",
+        "url": "https://reddit.com/r/HairTransplants/comments/abc006",
+        "summary": "Patient dissatisfied with hairline placement and density at 6 months. Clinic advised waiting until 12 months.",
+        "sentiment": "negative",
+        "has_photos": false
+      }
+    ]'::jsonb,
+    false,
+    '2026-04-01 02:00:00+00',
+    '2026-04-01 02:00:00+00'
+  ),
+  (
+    '890e8400-e29b-41d4-a716-446655440002',
+    '550e8400-e29b-41d4-a716-446655440005',
+    'reddit',
+    'AEK Hair Clinic has a small but notable Reddit presence. One satisfied patient praises Dr. Ali''s personal involvement and natural results at 8 months, while a one-year review flags below-expected mid-scalp density. Doctor-performs-full-procedure is a recurring theme in both positive and research posts.',
+    3,   -- thread_count (unique threads)
+    3,   -- mention_count (no separate comment rows in seed — equals thread_count here)
+    0,   -- photo_thread_count
+    2,   -- longterm_thread_count (thread 1=8m, thread 3=1 year)
+    0,   -- repair_mention_count
+    3,   -- unique_authors_count
+    '2026-03-01 08:44:00+00',
+    0.450,  -- confidence_score (min(1.0, 3/20) * consistency)
+    0.050,  -- sentiment_score: (1*1 + 1*0 + 1*-1) / 3 ≈ 0, slight positive rounding
+    '{"positive": 1, "mixed": 1, "negative": 1}'::jsonb,
+    ARRAY['doctor performs full procedure', 'personal small-clinic feel'],
+    ARRAY['density', 'doctor_involvement'],
+    '[
+      {
+        "title": "AEK Hair Clinic 8 month update — Dr. Ali Emre delivered",
+        "url": "https://reddit.com/r/TurkeyHairTransplant/comments/aek001",
+        "summary": "Patient praises natural result and full-procedure surgeon involvement at 8 months.",
+        "sentiment": "positive",
+        "has_photos": false
+      },
+      {
+        "title": "Density not what I expected from AEK — honest 1 year review",
+        "url": "https://reddit.com/r/HairTransplants/comments/aek003",
+        "summary": "One-year patient disappointed with mid-scalp density despite good hairline result.",
+        "sentiment": "negative",
+        "has_photos": false
+      }
+    ]'::jsonb,
+    false,
+    '2026-04-01 02:00:00+00',
+    '2026-04-01 02:00:00+00'
+  );
+
+-- ============================================
 -- INSTAGRAM POSTS (for comments ratio sample size)
 -- ============================================
 
@@ -925,3 +1248,74 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440005', 'instagram_posts_per_month', '1.3'::jsonb, 'number', 1.0, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440005', 'instagram_comments_enabled_ratio', '1.0'::jsonb, 'number', 0.9, 'extractor', false),
   ('550e8400-e29b-41d4-a716-446655440005', 'instagram_is_business', 'false'::jsonb, 'bool', 1.0, 'extractor', false);
+
+-- ============================================
+-- PIPELINE SCRIPT TEST DATA
+-- Unattributed Reddit threads for testing:
+--   scripts/forum-attribute-threads.ts  (clinic_id IS NULL → should get filled in)
+--   scripts/forum-recompute-profiles.ts (runs after attribution, expects is_stale profiles)
+--
+-- Threads mention Istanbul Hair Masters and AEK Hair Clinic by name so the
+-- substring matcher + LLM should attribute them correctly.
+-- IDs use 870e8400-... to avoid conflicts with the attributed mock set (860e8400-...).
+-- ============================================
+
+INSERT INTO forum_thread_index (id, clinic_id, source_id, forum_source, thread_url, title, author_username, post_date, reply_count, first_scraped_at, last_scraped_at)
+VALUES
+  -- Should attribute to Istanbul Hair Masters (550e8400-...001)
+  ('870e8400-e29b-41d4-a716-446655440001', NULL, '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://reddit.com/r/HairTransplants/comments/test001',
+   'Istanbul Hair Masters 14 month update — FUE 3200 grafts, very happy',
+   'u/TestUser_IHM_Positive', '2025-11-20 10:00:00+00', 34,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00'),
+
+  -- Should attribute to Istanbul Hair Masters (mixed — mentions shock loss)
+  ('870e8400-e29b-41d4-a716-446655440002', NULL, '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://reddit.com/r/HairTransplants/comments/test002',
+   'My 6 month review of Istanbul Hair Masters — shock loss was rough',
+   'u/TestUser_IHM_Mixed', '2026-01-15 14:30:00+00', 22,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00'),
+
+  -- Should attribute to AEK Hair Clinic (550e8400-...005)
+  ('870e8400-e29b-41d4-a716-446655440003', NULL, '750e8400-e29b-41d4-a716-446655440002', 'reddit',
+   'https://reddit.com/r/TurkeyHairTransplant/comments/test003',
+   'AEK Hair Clinic 10 month update — Dr. Ali Emre Karadeniz results',
+   'u/TestUser_AEK_Positive', '2025-12-05 09:15:00+00', 15,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00'),
+
+  -- Should NOT attribute (no clinic name mentioned — tests the "no match" path)
+  ('870e8400-e29b-41d4-a716-446655440004', NULL, '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://reddit.com/r/HairTransplants/comments/test004',
+   'General question about FUE recovery timeline — 3 months post op',
+   'u/TestUser_NoClinic', '2026-02-10 16:45:00+00', 8,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00'),
+
+  -- Should attribute to Istanbul Hair Masters (repair case — tests is_repair_case flag)
+  ('870e8400-e29b-41d4-a716-446655440005', NULL, '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://reddit.com/r/HairTransplants/comments/test005',
+   'Istanbul Hair Masters did my repair after botched HT — 1 year update',
+   'u/TestUser_IHM_Repair', '2025-09-01 11:00:00+00', 41,
+   '2026-04-20 00:00:00+00', '2026-04-20 00:00:00+00');
+
+-- Reddit content bodies — realistic text with clinic names + signals for extraction
+INSERT INTO reddit_thread_content (thread_id, reddit_post_id, subreddit, post_type, body, score, comment_count, is_firsthand)
+VALUES
+  ('870e8400-e29b-41d4-a716-446655440001', 't3_test001', 'HairTransplants', 'post',
+   'Just hit 14 months post-op at Istanbul Hair Masters and wanted to share my full review. I had 3200 grafts FUE done by Dr. Mehmet Yilmaz in November 2024. The whole process was smooth — hotel pickup, good aftercare instructions, and Dr. Mehmet personally drew the hairline which I was really happy about. Density has come in really well, natural results. Cost was around €2100 all-in. Very satisfied overall.',
+   312, 34, true),
+
+  ('870e8400-e29b-41d4-a716-446655440002', 't3_test002', 'HairTransplants', 'post',
+   'Six month check-in on my Istanbul Hair Masters FUE (2800 grafts). The shock loss hit me hard around weeks 3-4 and genuinely scared me, but my coordinator assured me this was normal. Now at 6 months the density is coming in but still patchy in spots. Communication from Istanbul Hair Masters has been good throughout. Overall mixed feelings — the shock loss experience was stressful but things are improving.',
+   187, 22, true),
+
+  ('870e8400-e29b-41d4-a716-446655440003', 't3_test003', 'TurkeyHairTransplant', 'post',
+   'Ten months out from my AEK Hair Clinic procedure with Dr. Ali Emre Karadeniz and really happy with how things turned out. Got 2500 grafts DHI. What I loved about AEK was that Dr. Ali Emre did the entire procedure himself — no technicians doing the implantation. Small clinic feel, very personal experience. Natural results, hairline looks great. Would recommend for anyone wanting a doctor-led procedure.',
+   156, 15, true),
+
+  ('870e8400-e29b-41d4-a716-446655440004', 't3_test004', 'HairTransplants', 'post',
+   'Hi everyone, just hit 3 months post FUE and wondering if my progress looks normal. Currently in the ugly duckling phase and feeling anxious. The transplanted area looks thin and sparse. Not going to name the clinic yet as it is too early to judge. Any advice on what to expect at 3 months? When does the real growth start?',
+   45, 8, true),
+
+  ('870e8400-e29b-41d4-a716-446655440005', 't3_test005', 'HairTransplants', 'post',
+   'One year update after getting a repair/revision done at Istanbul Hair Masters. Background: I had a botched hair transplant in 2022 at a budget clinic in Antalya — hairline was unnatural and donor area was overharvested. Istanbul Hair Masters took on my case as a corrective procedure. Dr. Mehmet Yilmaz redesigned my hairline and added grafts to address the poor density. Result at 1 year is significantly better. Not perfect but a massive improvement. Happy I chose IHM for the repair.',
+   421, 41, true);

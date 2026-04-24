@@ -127,6 +127,80 @@ export type Database = {
           },
         ]
       }
+      clinic_forum_profiles: {
+        Row: {
+          id: string
+          clinic_id: string
+          forum_source: Database["public"]["Enums"]["forum_source_enum"]
+          summary: string | null
+          thread_count: number
+          photo_thread_count: number
+          longterm_thread_count: number
+          repair_mention_count: number
+          unique_authors_count: number | null
+          last_thread_at: string | null
+          confidence_score: number | null
+          sentiment_score: number | null
+          sentiment_distribution: Json
+          pros: string[]
+          common_concerns: string[]
+          notable_threads: Json
+          is_stale: boolean
+          captured_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          forum_source: Database["public"]["Enums"]["forum_source_enum"]
+          summary?: string | null
+          thread_count?: number
+          photo_thread_count?: number
+          longterm_thread_count?: number
+          repair_mention_count?: number
+          unique_authors_count?: number | null
+          last_thread_at?: string | null
+          confidence_score?: number | null
+          sentiment_score?: number | null
+          sentiment_distribution?: Json
+          pros?: string[]
+          common_concerns?: string[]
+          notable_threads?: Json
+          is_stale?: boolean
+          captured_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          forum_source?: Database["public"]["Enums"]["forum_source_enum"]
+          summary?: string | null
+          thread_count?: number
+          photo_thread_count?: number
+          longterm_thread_count?: number
+          repair_mention_count?: number
+          unique_authors_count?: number | null
+          last_thread_at?: string | null
+          confidence_score?: number | null
+          sentiment_score?: number | null
+          sentiment_distribution?: Json
+          pros?: string[]
+          common_concerns?: string[]
+          notable_threads?: Json
+          is_stale?: boolean
+          captured_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_forum_profiles_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_google_places: {
         Row: {
           clinic_id: string
@@ -1373,6 +1447,7 @@ export type Database = {
       computed_by_enum: "extractor" | "human" | "inquiry" | "model"
       desired_density: "maximum" | "high" | "medium" | "low"
       doc_type_enum: "html" | "pdf" | "post" | "comment" | "review"
+      forum_source_enum: "hrn" | "reddit" | "realself"
       doctor_involvement_levels: "high" | "medium" | "low"
       donor_area_availability: "good" | "adequate" | "limited"
       donor_area_quality: "excellent" | "good" | "adequate" | "poor"
@@ -1599,6 +1674,7 @@ export const Constants = {
       computed_by_enum: ["extractor", "human", "inquiry", "model"],
       desired_density: ["maximum", "high", "medium", "low"],
       doc_type_enum: ["html", "pdf", "post", "comment", "review"],
+      forum_source_enum: ["hrn", "reddit", "realself"],
       doctor_involvement_levels: ["high", "medium", "low"],
       donor_area_availability: ["good", "adequate", "limited"],
       donor_area_quality: ["excellent", "good", "adequate", "poor"],
