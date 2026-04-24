@@ -1,7 +1,7 @@
 # HRN Implementation — Architecture & Design Reference
 
-**Last Updated:** 2026-04-21  
-**Status:** Complete. Frontend showing real data. Pending HRN permission + full batch scrape.
+**Last Updated:** 2026-04-23  
+**Status:** Complete. Frontend showing real data. HRN Score implemented. Pending HRN permission + full batch scrape.
 
 For development history, test results, and solved blockers see `docs/hrn-scraper-progress.md`.
 
@@ -194,6 +194,7 @@ Joins in memory using Maps (O(1) lookup per thread). Computes aggregates in JS:
 - `longTermFollowups` — count of threads with the followup signal
 - `repairCases` — count of threads where `is_repair_case = true`
 - `topTopics` — top 5 topics by frequency, flattened across all `main_topics` arrays
+- `hrnScore` + `hrnScoreBreakdown` — computed via `computeHRNScore()` from `lib/scoring/hrn.ts`
 
 Returns `null` if no threads are attributed to this clinic.
 
@@ -208,7 +209,7 @@ Returns `null` if no threads are attributed to this clinic.
 ### `components/istanbulmedic-connect/profile/HRNSignalsCard.tsx`
 
 Self-contained card component. Accepts `HRNSignalsData` and renders:
-- **HRN Score** — numeric display when present, "Coming soon" placeholder otherwise
+- **HRN Score** — numeric display with color coding (emerald ≥ 7.5, amber 5.0–7.4, red < 5.0), confidence tier badge ("High confidence / Moderate / Low confidence · N threads"), inline score breakdown (sentiment contribution, follow-up bonus, repair penalty, severity penalty), and a "How is this calculated?" tooltip. Shows "Insufficient data" when `hrnScore` is undefined.
 - **Community Sentiment** — segmented bar (positive / mixed / negative) with AI-assisted badge
 - **Stats list** — photo %, followup %, repair cases (zero = green checkmark, non-zero = amber wrench)
 - **Topic tags** — top topics prettified from snake_case
@@ -229,6 +230,7 @@ Renders `<HRNSignalsCard>` in the full-width section below reviews, alongside th
 |---|---|
 | `tests/unit/hrnEntityFilter.test.ts` | 14 tests — `buildEntityRegex` + `matchesKnownEntity`. Covers full name, bare surname, case insensitivity, stopword filtering, special characters. |
 | `tests/unit/hrn-api.test.ts` | 9 tests — `getHRNSignals`. Covers null/error cases, sentiment aggregation, partial data (no LLM analysis), photo threads, followup signal, repair cases, topic frequency ranking. |
+| `tests/unit/hrn-score.test.ts` | 19 tests — `computeHRNScore`. Covers: minimum threshold (`effectiveN < 4` → undefined), confidence tiers, Bayesian shrinkage, recency decay, repair penalty and cap, follow-up bonus and cap, HIGH/MED severity issue penalties and cap, score clamping to 0–10, null `sentimentScore` fallback. |
 
 ---
 
@@ -252,6 +254,9 @@ Copies `clinics` + `clinic_team` from prod → local Supabase via the API (no DB
 | Hub + extension table pattern | Single wide table | Allows Reddit/RealSelf extension without schema changes |
 | Deterministic signals separate from LLM | Combined table | Different versioning semantics — signals are immutable, LLM rows are versioned |
 | Aggregate in JS, not SQL | SQL aggregation | Avoids complex multi-join query; data volumes are small per clinic |
+| HRN Score computed at query time (v1) | Pre-computed in `clinic_forum_profiles` | Unblocks the UI before batch data exists; simple migration to pre-compute once full batch runs |
+| Bayesian shrinkage toward 5.0 | Raw mean | Prevents low-N clinics (2–3 threads) from dominating the leaderboard with extreme scores |
+| Recency decay (1.0 / 0.7 / 0.5 / 0.3) | Equal weighting | Hair transplant results evolve; a clinic's reputation 3+ years ago is less relevant than recent posts |
 
 ---
 
@@ -259,5 +264,6 @@ Copies `clinics` + `clinic_team` from prod → local Supabase via the API (no DB
 
 1. **Contact HRN for permission** — ToS prohibits automated access. The implementation is ready; the question is whether to proceed. Contact: `copyright@HairTransplantNetwork.com`.
 2. **50-thread pilot** — Validate pipeline at scale before the full run. Check attribution accuracy, cost per thread, and error rate on a diverse sample.
-3. **Full batch** — 28K threads across 4 parallel Playwright contexts (~29 hours, ~$23 LLM cost). Pipeline needs resume capability before starting (skip already-processed URLs via the unique constraint on `thread_url`).
-4. **`clinic_forum_profiles` aggregation job** — Once data exists at scale, replace raw-table queries with reads from the pre-aggregated table.
+3. **Calibrate score constants** — After the pilot, check the real score distribution and tune `k` (prior weight), decay weights, and penalty caps in `lib/scoring/hrn.ts`. See `docs/hrn-score-plan.md` for the full formula.
+4. **Full batch** — 28K threads across 4 parallel Playwright contexts (~29 hours, ~$23 LLM cost). Pipeline needs resume capability before starting (skip already-processed URLs via the unique constraint on `thread_url`).
+5. **`clinic_forum_profiles` aggregation job** — Once data exists at scale, replace raw-table queries with reads from the pre-aggregated table, and move score computation into the pipeline rather than at query time.

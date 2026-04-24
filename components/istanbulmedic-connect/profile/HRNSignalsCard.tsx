@@ -53,8 +53,17 @@ export interface HRNSignalsData {
   photoThreadsList: HRNThread[]
   allThreads: HRNThread[]
 
-  // Optional pre-computed score (0–10). Absent = "Coming soon"
+  // Optional pre-computed score (0–10). Absent = insufficient data
   hrnScore?: number
+  hrnScoreBreakdown?: {
+    score: number
+    effectiveN: number
+    confidenceTier: 'high' | 'moderate' | 'low'
+    sentimentContribution: number
+    repairPenalty: number
+    followupBonus: number
+    severityPenalty: number
+  }
 }
 
 // ── Demo data ─────────────────────────────────────────────────────────────────
@@ -462,7 +471,7 @@ export function HRNSignalsCard({ data = DEMO_HRN_SIGNALS }: { data?: HRNSignalsD
 
   return (
     <>
-      <Card variant="profile" className="overflow-hidden">
+      <Card variant="profile">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -494,18 +503,73 @@ export function HRNSignalsCard({ data = DEMO_HRN_SIGNALS }: { data?: HRNSignalsD
         <CardContent className="space-y-5">
 
           {/* HRN Score */}
-          <div className="flex items-center gap-3 rounded-lg border border-dashed border-border/60 bg-muted/30 px-4 py-3">
-            <div className="flex-1">
-              <p className="text-xs font-medium text-muted-foreground">HRN Score</p>
-              {data.hrnScore !== undefined
-                ? <p className="text-2xl font-bold text-foreground tracking-tight">{data.hrnScore} <span className="text-sm font-normal text-muted-foreground">/ 10</span></p>
-                : <p className="text-2xl font-bold text-muted-foreground/40 tracking-tight">— / 10</p>
-              }
+          <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 px-4 py-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">HRN Score</p>
+                  {/* How is this calculated? */}
+                  <span className="group relative inline-flex items-center cursor-help">
+                    <Info className="h-3 w-3 text-muted-foreground/50" />
+                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-64 rounded-md bg-foreground px-2.5 py-2 text-[11px] text-background opacity-0 group-hover:opacity-100 transition-opacity z-50 leading-snug">
+                      <span className="font-semibold block mb-1">How is this calculated?</span>
+                      Based on patient sentiment (recency-weighted), long-term follow-up rate, repair case rate, and severity of reported issues. Clinics with fewer than 5 threads show no score. Scores reflect self-reported experiences on HairRestorationNetwork.com, not clinical outcomes.
+                    </span>
+                  </span>
+                </div>
+                {data.hrnScore !== undefined ? (
+                  <p className={cn(
+                    "text-2xl font-bold tracking-tight",
+                    data.hrnScore >= 7.5 ? "text-emerald-600" :
+                    data.hrnScore >= 5.0 ? "text-amber-600" :
+                    "text-red-600"
+                  )}>
+                    {data.hrnScore}
+                    <span className="text-sm font-normal text-muted-foreground ml-0.5">/ 10</span>
+                  </p>
+                ) : (
+                  <p className="text-2xl font-bold text-muted-foreground/40 tracking-tight">— <span className="text-sm font-normal">/ 10</span></p>
+                )}
+              </div>
+
+              {/* Confidence tier / insufficient data badge */}
+              {data.hrnScore !== undefined && data.hrnScoreBreakdown ? (
+                <span className={cn(
+                  "rounded-full px-2.5 py-1 text-xs font-medium flex-shrink-0",
+                  data.hrnScoreBreakdown.confidenceTier === 'high'     && "bg-emerald-50 text-emerald-700",
+                  data.hrnScoreBreakdown.confidenceTier === 'moderate' && "bg-amber-50 text-amber-700",
+                  data.hrnScoreBreakdown.confidenceTier === 'low'      && "bg-muted text-muted-foreground",
+                )}>
+                  {data.hrnScoreBreakdown.confidenceTier === 'high'     && "High confidence"}
+                  {data.hrnScoreBreakdown.confidenceTier === 'moderate' && "Moderate"}
+                  {data.hrnScoreBreakdown.confidenceTier === 'low'      && "Low confidence"}
+                  {" · "}{Math.round(data.hrnScoreBreakdown.effectiveN)} threads
+                </span>
+              ) : (
+                <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground flex-shrink-0">
+                  Insufficient data
+                </span>
+              )}
             </div>
-            {data.hrnScore === undefined && (
-              <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
-                Coming soon
-              </span>
+
+            {/* Score breakdown — visible when score exists */}
+            {data.hrnScoreBreakdown && (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 pt-1 border-t border-border/30">
+                <span className="text-[11px] text-muted-foreground">Sentiment</span>
+                <span className="text-[11px] text-foreground text-right">+{data.hrnScoreBreakdown.sentimentContribution}</span>
+                {data.hrnScoreBreakdown.followupBonus > 0 && <>
+                  <span className="text-[11px] text-muted-foreground">Follow-up bonus</span>
+                  <span className="text-[11px] text-emerald-600 text-right">+{data.hrnScoreBreakdown.followupBonus}</span>
+                </>}
+                {data.hrnScoreBreakdown.repairPenalty > 0 && <>
+                  <span className="text-[11px] text-muted-foreground">Repair penalty</span>
+                  <span className="text-[11px] text-red-500 text-right">−{data.hrnScoreBreakdown.repairPenalty}</span>
+                </>}
+                {data.hrnScoreBreakdown.severityPenalty > 0 && <>
+                  <span className="text-[11px] text-muted-foreground">Issue severity</span>
+                  <span className="text-[11px] text-red-500 text-right">−{data.hrnScoreBreakdown.severityPenalty}</span>
+                </>}
+              </div>
             )}
           </div>
 

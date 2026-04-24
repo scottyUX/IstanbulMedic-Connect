@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { HRNSignalsData, HRNThread } from '@/components/istanbulmedic-connect/profile/HRNSignalsCard';
 import { getMockHRNSignals } from './hrn.mock';
+import { computeHRNScore } from '@/lib/scoring/hrn';
 
 const USE_MOCK_HRN = process.env.NEXT_PUBLIC_USE_MOCK_HRN === 'true';
 
@@ -43,7 +44,7 @@ export async function getHRNSignals(clinicId: string, clinicName = ''): Promise<
     ] = await Promise.all([
       supabase
         .from('forum_thread_llm_analysis')
-        .select('thread_id, sentiment_label, summary_short, main_topics, is_repair_case')
+        .select('thread_id, sentiment_label, sentiment_score, summary_short, main_topics, issue_keywords, is_repair_case')
         .in('thread_id', threadIds)
         .eq('is_current', true),
 
@@ -142,6 +143,20 @@ export async function getHRNSignals(clinicId: string, clinicName = ''): Promise<
     // Use the most recent thread's post_date as lastUpdated
     const lastUpdated = threads[0]?.post_date ?? new Date().toISOString();
 
+    // Compute HRN score from per-thread signals
+    const scoreBreakdown = computeHRNScore(
+      threads.map(t => {
+        const analysis = analysisMap.get(t.id);
+        return {
+          postDate: t.post_date ?? new Date().toISOString(),
+          sentimentScore: analysis?.sentiment_score ?? null,
+          isRepairCase: analysis?.is_repair_case ?? false,
+          hasLongTermFollowup: followupSet.has(t.id),
+          issueKeywords: analysis?.issue_keywords ?? [],
+        };
+      })
+    );
+
     return {
       clinicName: clinic?.display_name ?? '',
       totalThreads: allThreads.length,
@@ -153,6 +168,8 @@ export async function getHRNSignals(clinicId: string, clinicName = ''): Promise<
       topTopics,
       photoThreadsList,
       allThreads,
+      hrnScore: scoreBreakdown?.score,
+      hrnScoreBreakdown: scoreBreakdown,
     };
   } catch (error) {
     console.error('Error fetching HRN signals:', error);
