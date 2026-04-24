@@ -2,16 +2,11 @@
 
 import { useState } from "react"
 import {
-  Calendar,
-  Heart,
   Share2,
   Plus,
   Bookmark,
   Search,
   Star,
-  ShieldCheck,
-  X,
-  ChevronRight,
   Menu,
 } from "lucide-react"
 import { Dancing_Script, Merriweather, Poppins } from "next/font/google"

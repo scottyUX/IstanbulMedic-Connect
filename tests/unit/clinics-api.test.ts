@@ -4,7 +4,6 @@ import {
   getClinicById,
   getClinicCities,
   getServiceCategories,
-  type ClinicsQuery,
 } from '@/lib/api/clinics';
 
 // Mock the Supabase server client
@@ -21,8 +20,6 @@ import { getInstagramSignals } from '@/lib/api/instagram';
 // Helper to create a mock query builder with chainable methods
 const createMockQueryBuilder = (data: unknown = [], error: unknown = null, count: number | null = null) => {
   const builder: Record<string, Mock> = {};
-
-  const chainable = () => builder;
 
   builder.select = vi.fn().mockReturnValue(builder);
   builder.eq = vi.fn().mockReturnValue(builder);

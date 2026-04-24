@@ -1,207 +1,151 @@
 # User Profile — Architecture
 
-This document explains how the Digital Treatment Passport feature is built: file structure, component logic, API contracts, data persistence, and the database schema.
+How the Treatment Passport feature is built: file structure, component logic, API contracts, and data persistence.
 
 ---
 
-## File Structure
+## File structure
 
 ```
-app/profile/                              # Pages (Next.js App Router)
-├── page.tsx                              # Dashboard page
-├── get-started/page.tsx                  # Phase 1 page
-└── treatment-profile/page.tsx            # Phase 2 page
+app/profile/
+├── page.tsx                              # Renders ProfileDashboard
+└── get-started/page.tsx                  # Renders GetStarted wizard
 
 components/istanbulmedic-connect/user-profile/
-├── UserProfileDashboard.tsx              # Progress dashboard (4-phase stepper + cards)
-├── GetStarted.tsx                        # Phase 1 multi-step form
-└── TreatmentProfile.tsx                  # Phase 2 multi-step form
+├── ProfileDashboard.tsx                  # Sidebar-nav shell, section router
+├── GetStarted.tsx                        # Onboarding wizard (6 steps)
+└── sections/
+    ├── ProfileHome.tsx                   # Welcome banner + photo upload
+    ├── ProfilePersonalInfo.tsx           # Contact details + treatment prefs
+    ├── ProfileMedicalHistory.tsx         # Transplants, surgeries, allergies
+    ├── ProfileHairLossStatus.tsx         # Norwood scale + duration
+    └── ProfileConsultations.tsx          # Coming soon placeholder
 
 app/api/profile/
-├── qualification/route.ts                # GET + POST — Phase 1 data
-├── treatment/route.ts                    # GET + POST — Phase 2 data
-├── status/route.ts                       # GET — Phase completion flags
-└── photos/route.ts                       # GET + DELETE — Photo management
+├── qualification/route.ts                # GET + POST — qualification data
+├── treatment/route.ts                    # GET + POST — treatment profile data
+└── photos/route.ts                       # GET + DELETE — photo management
 
-lib/api/userProfile.ts                    # All Supabase operations
-types/patient-profile.ts                  # TypeScript types and enums
+app/api/auth/
+└── callback/route.ts                     # OAuth callback + user bootstrap
+
+lib/api/userProfile.ts                    # All Supabase read/write logic
+types/user.ts                             # UserProfile interface
 ```
 
 ---
 
-## Phase 1 — Get Started (`GetStarted.tsx`)
+## GetStarted wizard
 
-An 8-step form collecting qualification and contact information.
+A 6-step form at `/profile/get-started`. Each step saves its answer to `localStorage` under the key `im.qualification`. Steps whose data is already present in localStorage are skipped on re-entry (`computeVisibleSteps()`). See [README.md](./README.md) for the database tables written and how to verify data after submission.
 
 ### Steps
 
-| # | Step | Field(s) |
-|---|------|----------|
-| 1 | Age | `ageTier` |
-| 2 | Gender | `gender` |
-| 3 | Hair Loss Pattern | `hairLossPattern` |
-| 4 | Country | `country` |
-| 5 | Budget | `budgetTier` |
-| 6 | Timeline | `timeline` |
-| 7 | Contact Info | `fullName`, `email`, `whatsApp`, `preferredLanguage` |
-| 8 | Terms & Review | `termsAccepted` |
+| Index | Question | Field |
+|-------|----------|-------|
+| 0 | Age | `ageTier` |
+| 1 | Gender | `gender` |
+| 2 | Norwood scale | `norwoodScale` |
+| 3 | Country | `country` |
+| 4 | Budget | `budgetTier` |
+| 5 | Timeline | `timeline` |
+| 6 | Contact (name, phone, consent) | Submitted on "Create my account" |
 
-### Enums
+### Submission
 
-- **AgeTier**: `18_24`, `25_34`, `35_44`, `45_54`, `55_64`, `65_plus`
-- **Gender**: `male`, `female`, `other`, `prefer_not_to_say`
-- **BudgetTier**: `under_2000`, `2000_5000`, `5000_8000`, `8000_12000`, `12000_plus`
-- **Timeline**: `asap`, `1_3_months`, `3_6_months`, `6_12_months`, `12_plus_months`
+On "Create my account": POST to `/api/profile/qualification` with the full payload including `termsAccepted: true`. On success, the user is redirected to `/profile`.
 
-### Persistence Logic
-
-The form uses a hybrid localStorage + database strategy:
-
-1. **Every step** saves to `localStorage` under the key `im.qualification`
-2. **On mount** for a signed-in user:
-   - If `im.qualification.complete === "true"` and local data exists → keep local data, fire a background POST to sync it to the DB. This handles the case where a user fills out the form and then signs in with an existing account — their fresh local answers override old DB data.
-   - Otherwise → fetch from DB and populate the form
-3. **On final submit** → POST to `/api/profile/qualification`, set `im.qualification.complete = "true"`
-
-### Database Tables Written
+### Tables written on submit
 
 - `users` — `auth_id`, `name`, `email`
-- `user_profiles` — `first_name`, `last_name`, `gender`, `preferred_language`
-- `user_qualification` — `age_tier`, `country`, `hair_loss_pattern`, `budget_tier`, `timeline`, `whatsapp_number`, `terms_accepted`
+- `user_profiles` — `given_name`, `family_name`, `preferred_language`
+- `user_qualification` — all qualification fields + `terms_accepted`
+- `user_treatment_profiles` — `norwood_scale` (duplicate write for quick clinic matching)
 
 ---
 
-## Phase 2 — Treatment Profile (`TreatmentProfile.tsx`)
+## ProfileDashboard
 
-An 11-step form collecting detailed medical and physical information.
-
-### Steps
-
-| # | Step | Field(s) |
-|---|------|----------|
-| 1 | Norwood Scale | `norwoodScale` (1–7) |
-| 2 | Hair Loss Duration | `durationYears` |
-| 3 | Donor Area Quality | `donorAreaQuality` |
-| 4 | Donor Area Availability | `donorAreaAvailability` |
-| 5 | Desired Density | `desiredDensity` |
-| 6 | Prior Transplants | `hadPriorTransplant`, `priorTransplants[]` |
-| 7 | Photos | 5 photo views uploaded to Supabase Storage |
-| 8 | Allergies | `allergies[]` |
-| 9 | Medications | `medications[]` |
-| 10 | Prior Surgeries | `priorSurgeries[]` |
-| 11 | Medical Conditions | `otherConditions[]` |
-
-### Photo Uploads
-
-Photos are stored in the `user-photos` Supabase Storage bucket. Five views are collected:
-
-| View Key | Label |
-|----------|-------|
-| `front` | Front view |
-| `left_side` | Left side |
-| `right_side` | Right side |
-| `top` | Top/crown |
-| `donor_area` | Donor area |
-
-Accepted formats: JPG, PNG, WebP. Max size: 10 MB per photo.
-
-### Enums
-
-- **DonorAreaQuality**: `poor`, `adequate`, `good`, `excellent`
-- **DonorAreaAvailability**: `limited`, `adequate`, `good`
-- **DesiredDensity**: `low`, `medium`, `high`, `maximum`
-
-### Persistence Logic
-
-On mount for a signed-in user:
-1. Restore form state from `localStorage`
-2. Fetch DB record and override localStorage (DB is source of truth for Phase 2)
-3. Load existing photos from DB
-
-On final submit → POST to `/api/profile/treatment`, set `im.treatment-profile.complete = "true"`
-
-### Database Tables Written
-
-- `user_treatment_profiles` — main medical fields
-- `user_prior_transplants` — list of past transplants (deleted and re-inserted on each save)
-- `user_prior_surgeries` — list of past surgeries (deleted and re-inserted on each save)
-- `user_photos` — photo metadata (storage URL, view, file size, MIME type)
-
----
-
-## Dashboard — `UserProfileDashboard.tsx`
-
-The dashboard at `/profile` gives users an overview of their progress.
-
-### Progress
-
-Overall progress is calculated as `completedPhases / 4 * 100`. With 4 phases each worth 25%:
-
-| Phases complete | Overall % |
-|----------------|-----------|
-| 0 | 0% |
-| 1 | 25% |
-| 2 | 50% |
-| 3 | 75% |
-| 4 | 100% |
-
-### Phase States
-
-Each phase card and stepper node can be in one of four states:
-
-| State | Condition | Visual |
-|-------|-----------|--------|
-| `locked` | Previous phase not complete | Grey, no link |
-| `available` | Previous phase complete, not yet started | Blue outline, links to phase route |
-| `in-progress` | Started but not complete (future use) | Dark blue, shows progress bar |
-| `complete` | 100% done | Teal, check icon |
-
-### Data Loading
-
-On mount, the dashboard fetches `/api/profile/status`. If the request fails (network error or non-OK response), it falls back to reading `im.qualification.complete` and `im.treatment-profile.complete` from `localStorage`.
+Layout shell at `/profile`. Renders a sticky sidebar (desktop) and a scrollable tab strip (mobile) with five nav items. Keeps the active section in `useState`; scrolls to top on section change.
 
 ```
-/api/profile/status
-  → { qualificationComplete: boolean, treatmentComplete: boolean }
-  → maps to: get-started: 0 or 100, treatment-profile: 0 or 100
+ProfileDashboard
+└── active state: 'home' | 'personal-info' | 'medical-history' | 'hair-loss-status' | 'consultations'
 ```
 
----
-
-## API Routes
-
-All routes are thin wrappers around `lib/api/userProfile.ts`. They handle auth errors (401) and unexpected errors (500) uniformly.
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/api/profile/qualification` | Returns Phase 1 data, or `null` fields if not yet saved |
-| POST | `/api/profile/qualification` | Saves Phase 1 data. Returns `{ success: true, userId }` |
-| GET | `/api/profile/treatment` | Returns Phase 2 data including `priorTransplants[]` and `priorSurgeries[]`, or `null` |
-| POST | `/api/profile/treatment` | Saves Phase 2 data. Replaces all transplants and surgeries. Returns `{ success: true, userId }` |
-| GET | `/api/profile/status` | Returns `{ qualificationComplete: boolean, treatmentComplete: boolean }`. 401 if unauthenticated |
-| GET | `/api/profile/photos` | Returns `[{ photo_view, storage_url }]` for the signed-in user |
-| DELETE | `/api/profile/photos` | Body: `{ view }`. Deletes the photo for that view. 400 if `view` is missing |
+Shows user initials or avatar from `useAuth()`. Falls back to email prefix when no name is available.
 
 ---
 
-## localStorage Keys
+## Section components
 
-| Key | Type | Purpose |
-|-----|------|---------|
-| `im.qualification` | JSON string | Phase 1 form draft |
-| `im.qualification.complete` | `"true"` | Phase 1 completion flag |
-| `im.treatment-profile` | JSON string | Phase 2 form draft |
-| `im.treatment-profile.complete` | `"true"` | Phase 2 completion flag |
+All editable sections follow the same autosave pattern:
 
-These keys are written after a successful submit and read on mount as a fallback when the user is unauthenticated or the API is unreachable.
+1. Fetch existing data on mount via the relevant GET endpoint.
+2. On any field change, cancel any pending debounce timer, set `saveState = 'pending'`, and start a new 800 ms timer.
+3. When the timer fires, POST the full section payload. Update `saveState` to `'saving'`, then `'saved'` or `'error'`.
+4. A `CardHeader` sub-component renders the section title and current `saveState` inline.
+
+### ProfilePersonalInfo
+
+- GET/POST `/api/profile/qualification`
+- Fields: first name, last name, gender, birthday, phone (WhatsApp), country, preferred language, budget range, timeline
+- Email is read-only (sourced from `useAuth().profile.email`)
+
+### ProfileMedicalHistory
+
+- GET/POST `/api/profile/treatment`
+- Fields: prior transplants (year, grafts, country), prior surgeries (type, year, notes), allergies[], medications[], other conditions[]
+- Each list is replaced in full on every save
+
+### ProfileHairLossStatus
+
+- GET/POST `/api/profile/treatment`
+- Fields: Norwood scale (1–7), hair loss duration
+
+### ProfileHome
+
+- Fetches photos via GET `/api/profile/photos` on mount
+- Uploads go directly to Supabase Storage (`user-photos` bucket), then the public URL is written to `user_photos` via POST `/api/profile/treatment`
+- Renders section nav cards that call `onNavigate(sectionId)` to switch the dashboard view
 
 ---
 
-## Environment Variables
+## Photo uploads
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-```
+- 5 views: `front`, `left_side`, `right_side`, `top`, `donor_area`
+- Storage path: `{auth_user_id}/{view}.{ext}`
+- Upserted to `user_photos` with `onConflict: 'user_id,photo_view'`
+- Accepted types: `image/jpeg`, `image/png`, `image/webp` · Max size: 10 MB
+- Old photo file is removed from Storage before the new one is uploaded
 
-These are used by the Supabase server client in `lib/supabase/server.ts` to authenticate API requests server-side using the user's session cookie.
+---
+
+## Auth bootstrap (`/api/auth/callback`)
+
+On first Google sign-in:
+1. Supabase exchanges the OAuth code for a session.
+2. Insert into `users` (`auth_id`, `name`, `email`).
+3. Insert into `user_profiles` (`given_name`, `family_name`, `avatar_url`, `preferred_language`).
+4. Redirect to `/profile/get-started`.
+
+On subsequent sign-ins, existing rows are left unchanged and the user is redirected to `/profile`.
+
+---
+
+## API routes
+
+| Method | Route | Lib function | Description |
+|--------|-------|-------------|-------------|
+| GET | `/api/profile/qualification` | `getQualification()` | Returns qualification data; `null` fields if no row |
+| POST | `/api/profile/qualification` | `upsertQualification(payload)` | Upserts qualification data across 3 tables |
+| GET | `/api/profile/treatment` | `getTreatmentProfile()` | Returns treatment profile including transplants/surgeries |
+| POST | `/api/profile/treatment` | `upsertTreatmentProfile(payload)` | Upserts treatment data; replaces transplants/surgeries lists |
+| GET | `/api/profile/photos` | `getUserPhotos()` | Returns `[{ photo_view, storage_url }]` |
+| DELETE | `/api/profile/photos` | — | Deletes one photo by `view`. Body: `{ view }` |
+
+All routes return `401` for `'Unauthenticated'` errors and `500` for unexpected errors.
+
+---
+
+For the full database table breakdown and environment variable setup, see [README.md](./README.md).
