@@ -74,6 +74,8 @@ export async function fetchSubredditPosts(
 ): Promise<RawRedditPost[]> {
   const maxPosts = options.maxPosts ?? REDDIT_CONFIG.postsPerSubreddit
   const lookbackDays = options.lookbackDays ?? REDDIT_CONFIG.lookbackDays
+  const sortOrder = options.sortOrder ?? 'new'
+  const timePeriod = options.timePeriod
   const cutoffUtc = Date.now() / 1000 - lookbackDays * 86400
 
   const posts: RawRedditPost[] = []
@@ -81,7 +83,8 @@ export async function fetchSubredditPosts(
   const maxPages = 20 // safety limit (same as reddit-auto max_requests = 20)
 
   for (let page = 0; page < maxPages && posts.length < maxPosts; page++) {
-    let url = `${REDDIT_CONFIG.baseUrl}/r/${subreddit}/new.json?limit=100`
+    let url = `${REDDIT_CONFIG.baseUrl}/r/${subreddit}/${sortOrder}.json?limit=100`
+    if (timePeriod && (sortOrder === 'top' || sortOrder === 'controversial')) url += `&t=${timePeriod}`
     if (after) url += `&after=${after}`
 
     const data = await makeRedditRequest(url) as { data?: { children?: { data: unknown }[]; after?: string | null } } | null

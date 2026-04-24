@@ -46,8 +46,18 @@ export interface RawRedditComment {
   parent_id: string
 }
 
+export type SortOrder = 'new' | 'top' | 'controversial' | 'hot' | 'rising'
+export type TimePeriod = 'hour' | 'day' | 'week' | 'month' | 'year' | 'all'
+
+export interface SortSlice {
+  sortOrder: SortOrder
+  timePeriod?: TimePeriod  // only applies to 'top' and 'controversial'
+}
+
 /** Options for fetchSubredditPosts */
 export interface FetchPostsOptions {
   maxPosts?: number
   lookbackDays?: number
+  sortOrder?: SortOrder
+  timePeriod?: TimePeriod
 }

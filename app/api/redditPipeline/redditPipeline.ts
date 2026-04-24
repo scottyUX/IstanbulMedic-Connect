@@ -10,7 +10,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { REDDIT_CONFIG, type RawRedditPost } from './redditConfig'
+import { REDDIT_CONFIG, type RawRedditPost, type SortSlice } from './redditConfig'
 import { fetchSubredditPosts, fetchPostComments } from './redditService'
 import { extractAndStoreSignals } from '../forumPipeline/deterministicExtractor'
 
@@ -27,6 +27,7 @@ export interface PipelineOptions {
   subreddits?: string[]
   maxPostsPerSubreddit?: number
   lookbackDays?: number
+  sortSlices?: SortSlice[]  // defaults to [{ sortOrder: 'new' }]
   includeComments?: boolean
   commentScoreThreshold?: number // Only fetch comments for posts above this score
   dryRun?: boolean
@@ -100,6 +101,7 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
   const subreddits = options.subreddits ?? REDDIT_CONFIG.subreddits
   const maxPosts = options.maxPostsPerSubreddit ?? REDDIT_CONFIG.postsPerSubreddit
   const lookbackDays = options.lookbackDays ?? REDDIT_CONFIG.lookbackDays
+  const sortSlices = options.sortSlices ?? [{ sortOrder: 'new' as const }]
   const includeComments = options.includeComments ?? false
   const commentScoreThreshold = options.commentScoreThreshold ?? 10
   const dryRun = options.dryRun ?? false
@@ -141,21 +143,45 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
   for (const subreddit of subreddits) {
     console.info(`[redditPipeline] Scraping r/${subreddit}...`)
 
-    let posts: RawRedditPost[]
-    try {
-      posts = await fetchSubredditPosts(subreddit, { maxPosts, lookbackDays })
-    } catch (err) {
-      const msg = `Failed to fetch r/${subreddit}: ${err instanceof Error ? err.message : err}`
-      console.error(`[redditPipeline] ${msg}`)
-      result.errors.push(msg)
-      continue
+    // Fetch all sort slices and deduplicate by post id
+    const seenIds = new Set<string>()
+    const posts: RawRedditPost[] = []
+    let fetchFailed = false
+
+    for (const slice of sortSlices) {
+      const label = slice.timePeriod ? `${slice.sortOrder}?t=${slice.timePeriod}` : slice.sortOrder
+      console.info(`[redditPipeline] r/${subreddit}: fetching /${label}...`)
+      try {
+        const batch = await fetchSubredditPosts(subreddit, {
+          maxPosts,
+          lookbackDays,
+          sortOrder: slice.sortOrder,
+          timePeriod: slice.timePeriod,
+        })
+        let newInSlice = 0
+        for (const post of batch) {
+          if (!seenIds.has(post.id)) {
+            seenIds.add(post.id)
+            posts.push(post)
+            newInSlice++
+          }
+        }
+        console.info(`[redditPipeline] r/${subreddit} /${label}: ${batch.length} fetched, ${newInSlice} unique`)
+      } catch (err) {
+        const msg = `Failed to fetch r/${subreddit} /${label}: ${err instanceof Error ? err.message : err}`
+        console.error(`[redditPipeline] ${msg}`)
+        result.errors.push(msg)
+        fetchFailed = true
+      }
     }
+
+    if (fetchFailed && posts.length === 0) continue
 
     result.postsFound += posts.length
     result.subredditsProcessed.push(subreddit)
 
     if (dryRun) {
-      console.info(`[redditPipeline] [DRY RUN] r/${subreddit}: ${posts.length} posts (not written)`)
+      console.info(`[redditPipeline] [DRY RUN] r/${subreddit}: ${posts.length} unique posts across ${sortSlices.length} sort(s) (not written)`)
       for (const p of posts.slice(0, 3)) {
         console.info(`  - ${p.title.slice(0, 80)} [score: ${p.score}]`)
       }
