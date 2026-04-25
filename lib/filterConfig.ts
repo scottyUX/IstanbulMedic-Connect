@@ -72,7 +72,7 @@ export const FEATURE_CONFIG = {
   personalizedOffers: false, // landing page "Receive Personalized Offers" step
 
   // Profile sections - disabled until real data
-  profileOverview: false,
+  profileOverview: true,
   profilePricing: false,
   profilePackages: false,
   profileDoctors: false,
