@@ -99,10 +99,15 @@ export async function fetchSubredditPosts(
 
       const p = child.data as Record<string, unknown>
 
-      // Skip posts outside the lookback window (port of time_limit_days check)
+      // Skip posts outside the lookback window
       if (typeof p.created_utc === 'number' && p.created_utc < cutoffUtc) {
-        console.info(`[reddit] Reached lookback cutoff in r/${subreddit}`)
-        return posts // Sorted by new — once we hit the cutoff, remaining posts are older
+        if (sortOrder === 'new') {
+          // Chronological order — all remaining posts are older, safe to exit early
+          console.info(`[reddit] Reached lookback cutoff in r/${subreddit}`)
+          return posts
+        }
+        // Score/controversy order — older posts can appear anywhere, skip individually
+        continue
       }
 
       if (!p.id || !p.author || p.author === '[deleted]') continue

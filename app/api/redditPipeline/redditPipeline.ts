@@ -152,9 +152,17 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
       const label = slice.timePeriod ? `${slice.sortOrder}?t=${slice.timePeriod}` : slice.sortOrder
       console.info(`[redditPipeline] r/${subreddit}: fetching /${label}...`)
       try {
+        // For non-chronological sorts (top, controversial), lookbackDays filtering
+        // skips individual old posts rather than exiting early — but it still silently
+        // drops historically high-scoring posts if the caller left lookbackDays at the
+        // default. Pass Infinity unless the caller explicitly set a lookback.
+        const effectiveLookback = slice.sortOrder === 'new'
+          ? lookbackDays
+          : (options.lookbackDays !== undefined ? lookbackDays : Infinity)
+
         const batch = await fetchSubredditPosts(subreddit, {
           maxPosts,
-          lookbackDays,
+          lookbackDays: effectiveLookback,
           sortOrder: slice.sortOrder,
           timePeriod: slice.timePeriod,
         })

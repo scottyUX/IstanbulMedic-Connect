@@ -105,7 +105,7 @@ describe('fetchSubredditPosts', () => {
     expect(result).toHaveLength(3)
   })
 
-  it('stops when a post falls outside the lookback window', async () => {
+  it('stops when a post falls outside the lookback window (new sort — chronological early exit)', async () => {
     const recentPost = makePost({ id: 'recent', created_utc: NOW_UTC - 86400 })      // 1 day ago
     const oldPost = makePost({ id: 'old', created_utc: NOW_UTC - 100 * 86400 })      // 100 days ago
 
@@ -114,7 +114,28 @@ describe('fetchSubredditPosts', () => {
       json: async () => makeSubredditResponse([recentPost, oldPost], 't3_more'),
     }))
 
-    const result = await fetchSubredditPosts('HairTransplants', { maxPosts: 10, lookbackDays: 30 })
+    const result = await fetchSubredditPosts('HairTransplants', { maxPosts: 10, lookbackDays: 30, sortOrder: 'new' })
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('recent')
+  })
+
+  it('skips old posts individually for top sort when an explicit lookbackDays is provided', async () => {
+    // In normal usage top:all defaults to Infinity lookback (no cutoff).
+    // But if a caller explicitly passes lookbackDays, old posts should be skipped
+    // individually (continue) not cause an early exit (return) — because top is
+    // ordered by score, not time, so an old post anywhere in the list should not
+    // abort the entire fetch.
+    const oldPost = makePost({ id: 'old', created_utc: NOW_UTC - 500 * 86400, score: 999 })   // 500 days ago, high score
+    const recentPost = makePost({ id: 'recent', created_utc: NOW_UTC - 86400, score: 10 })    // 1 day ago, lower score
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
+      ok: true, status: 200,
+      json: async () => makeSubredditResponse([oldPost, recentPost]),
+    }))
+
+    // With sortOrder: 'new' this would early-exit after oldPost and return []
+    // With sortOrder: 'top' it should skip oldPost and still return recentPost
+    const result = await fetchSubredditPosts('HairTransplants', { maxPosts: 10, lookbackDays: 30, sortOrder: 'top' })
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('recent')
   })
