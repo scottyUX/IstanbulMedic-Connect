@@ -8,7 +8,7 @@ export interface Clinic {
   accreditations: string[]
   trustScore: number
   trustBand?: 'A' | 'B' | 'C' | 'D' | null
-  description: string
+  description: string | null
   rating?: number
   reviewCount?: number
   aiInsight?: string

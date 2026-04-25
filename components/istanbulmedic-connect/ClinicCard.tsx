@@ -26,7 +26,7 @@ interface ClinicCardProps {
   image: string | null
   specialties: string[]
   trustScore: number
-  description: string
+  description: string | null
   rating?: number
   reviewCount?: number
   aiInsight?: string
