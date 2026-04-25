@@ -210,6 +210,102 @@ describe('runRedditPipeline', () => {
     })
   })
 
+  // ── Sort slices ─────────────────────────────────────────────────────────────
+
+  describe('sortSlices', () => {
+    it('calls fetchSubredditPosts once per slice', async () => {
+      mockFetchSubredditPosts
+        .mockResolvedValueOnce([makePost('p1')])   // new
+        .mockResolvedValueOnce([makePost('p2')])   // top:all
+        .mockResolvedValueOnce([makePost('p3')])   // controversial:all
+
+      const chain = makeChain({ data: { id: 'hub-uuid' }, error: null })
+      mockFrom.mockReturnValue(chain)
+
+      const result = await runRedditPipeline({
+        subreddits: ['HairTransplants'],
+        sortSlices: [
+          { sortOrder: 'new' },
+          { sortOrder: 'top', timePeriod: 'all' },
+          { sortOrder: 'controversial', timePeriod: 'all' },
+        ],
+        dryRun: false,
+      })
+
+      expect(mockFetchSubredditPosts).toHaveBeenCalledTimes(3)
+      expect(result.postsFound).toBe(3)
+    })
+
+    it('deduplicates posts that appear in multiple slices', async () => {
+      const sharedPost = makePost('shared')
+      mockFetchSubredditPosts
+        .mockResolvedValueOnce([sharedPost, makePost('unique1')])  // new
+        .mockResolvedValueOnce([sharedPost, makePost('unique2')])  // top:all — sharedPost is a duplicate
+
+      const chain = makeChain({ data: { id: 'hub-uuid' }, error: null })
+      mockFrom.mockReturnValue(chain)
+
+      const result = await runRedditPipeline({
+        subreddits: ['HairTransplants'],
+        sortSlices: [{ sortOrder: 'new' }, { sortOrder: 'top', timePeriod: 'all' }],
+        dryRun: false,
+      })
+
+      // 3 unique posts despite 4 total fetched (sharedPost counted once)
+      expect(result.postsFound).toBe(3)
+    })
+
+    it('deduplication across slices prevents double extraction of same post', async () => {
+      const sharedPost = makePost('shared')
+      mockFetchSubredditPosts
+        .mockResolvedValueOnce([sharedPost])
+        .mockResolvedValueOnce([sharedPost])  // same post in second slice
+
+      const chain = makeChain({ data: { id: 'hub-uuid' }, error: null })
+      mockFrom.mockReturnValue(chain)
+
+      await runRedditPipeline({
+        subreddits: ['HairTransplants'],
+        sortSlices: [{ sortOrder: 'new' }, { sortOrder: 'top', timePeriod: 'all' }],
+        dryRun: false,
+      })
+
+      // extractAndStoreSignals should only be called once for the shared post
+      expect(mockExtractAndStoreSignals).toHaveBeenCalledTimes(1)
+    })
+
+    it('defaults to a single new slice when sortSlices is not provided', async () => {
+      mockFetchSubredditPosts.mockResolvedValueOnce([makePost('p1')])
+      const chain = makeChain({ data: { id: 'hub-uuid' }, error: null })
+      mockFrom.mockReturnValue(chain)
+
+      await runRedditPipeline({ subreddits: ['HairTransplants'], dryRun: false })
+
+      expect(mockFetchSubredditPosts).toHaveBeenCalledTimes(1)
+      expect(mockFetchSubredditPosts).toHaveBeenCalledWith(
+        'HairTransplants',
+        expect.objectContaining({ sortOrder: 'new' })
+      )
+    })
+
+    it('passes sortOrder and timePeriod to fetchSubredditPosts', async () => {
+      mockFetchSubredditPosts.mockResolvedValueOnce([])
+      const chain = makeChain({ data: { id: 'uuid' }, error: null })
+      mockFrom.mockReturnValue(chain)
+
+      await runRedditPipeline({
+        subreddits: ['HairTransplants'],
+        sortSlices: [{ sortOrder: 'top', timePeriod: 'all' }],
+        dryRun: true,
+      })
+
+      expect(mockFetchSubredditPosts).toHaveBeenCalledWith(
+        'HairTransplants',
+        expect.objectContaining({ sortOrder: 'top', timePeriod: 'all' })
+      )
+    })
+  })
+
   // ── Error handling ──────────────────────────────────────────────────────────
 
   describe('error handling', () => {

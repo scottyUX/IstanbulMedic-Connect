@@ -8,6 +8,12 @@
  *   npx tsx scripts/reddit-scrape-subreddits.ts --dry-run
  *   npx tsx scripts/reddit-scrape-subreddits.ts --subreddits HairTransplants,TurkeyHairTransplant
  *   npx tsx scripts/reddit-scrape-subreddits.ts --max-posts 50 --lookback-days 180
+ *
+ * Sort slices (comma-separated, each optionally with :timePeriod):
+ *   npx tsx scripts/reddit-scrape-subreddits.ts --sorts new,top:all,controversial:all
+ *   npx tsx scripts/reddit-scrape-subreddits.ts --sorts top:year
+ *
+ * timePeriod values: hour, day, week, month, year, all
  */
 
 import dotenv from 'dotenv'
@@ -21,6 +27,7 @@ if (missingEnv.length > 0) {
 }
 
 import { runRedditPipeline } from '../app/api/redditPipeline/redditPipeline'
+import type { SortSlice, SortOrder, TimePeriod } from '../app/api/redditPipeline/redditConfig'
 
 // ── Parse CLI args ────────────────────────────────────────────────────────────
 
@@ -35,6 +42,15 @@ function getArg(flag: string): string | undefined {
 const subredditsArg = getArg('--subreddits')
 const maxPostsArg = getArg('--max-posts')
 const lookbackArg = getArg('--lookback-days')
+const sortsArg = getArg('--sorts')
+
+// Parse "--sorts new,top:all,controversial:all" into SortSlice[]
+const sortSlices: SortSlice[] | undefined = sortsArg
+  ? sortsArg.split(',').map(s => {
+      const [sortOrder, timePeriod] = s.trim().split(':')
+      return { sortOrder: sortOrder as SortOrder, timePeriod: timePeriod as TimePeriod | undefined }
+    })
+  : undefined
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
@@ -47,6 +63,7 @@ async function main() {
     subreddits: subredditsArg ? subredditsArg.split(',').map(s => s.trim()) : undefined,
     maxPostsPerSubreddit: maxPostsArg ? parseInt(maxPostsArg) : undefined,
     lookbackDays: lookbackArg ? parseInt(lookbackArg) : undefined,
+    sortSlices,
     dryRun,
   })
 

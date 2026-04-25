@@ -74,6 +74,8 @@ export async function fetchSubredditPosts(
 ): Promise<RawRedditPost[]> {
   const maxPosts = options.maxPosts ?? REDDIT_CONFIG.postsPerSubreddit
   const lookbackDays = options.lookbackDays ?? REDDIT_CONFIG.lookbackDays
+  const sortOrder = options.sortOrder ?? 'new'
+  const timePeriod = options.timePeriod
   const cutoffUtc = Date.now() / 1000 - lookbackDays * 86400
 
   const posts: RawRedditPost[] = []
@@ -81,7 +83,8 @@ export async function fetchSubredditPosts(
   const maxPages = 20 // safety limit (same as reddit-auto max_requests = 20)
 
   for (let page = 0; page < maxPages && posts.length < maxPosts; page++) {
-    let url = `${REDDIT_CONFIG.baseUrl}/r/${subreddit}/new.json?limit=100`
+    let url = `${REDDIT_CONFIG.baseUrl}/r/${subreddit}/${sortOrder}.json?limit=100`
+    if (timePeriod && (sortOrder === 'top' || sortOrder === 'controversial')) url += `&t=${timePeriod}`
     if (after) url += `&after=${after}`
 
     const data = await makeRedditRequest(url) as { data?: { children?: { data: unknown }[]; after?: string | null } } | null
@@ -96,10 +99,15 @@ export async function fetchSubredditPosts(
 
       const p = child.data as Record<string, unknown>
 
-      // Skip posts outside the lookback window (port of time_limit_days check)
+      // Skip posts outside the lookback window
       if (typeof p.created_utc === 'number' && p.created_utc < cutoffUtc) {
-        console.info(`[reddit] Reached lookback cutoff in r/${subreddit}`)
-        return posts // Sorted by new — once we hit the cutoff, remaining posts are older
+        if (sortOrder === 'new') {
+          // Chronological order — all remaining posts are older, safe to exit early
+          console.info(`[reddit] Reached lookback cutoff in r/${subreddit}`)
+          return posts
+        }
+        // Score/controversy order — older posts can appear anywhere, skip individually
+        continue
       }
 
       if (!p.id || !p.author || p.author === '[deleted]') continue
