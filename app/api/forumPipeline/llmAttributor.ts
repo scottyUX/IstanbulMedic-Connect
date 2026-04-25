@@ -44,19 +44,19 @@ export interface ClinicNameEntry {
 const LlmOutputSchema = z.object({
   attributed_clinic_name: z.string().nullable(),
   attributed_doctor_name: z.string().nullable(),
-  sentiment: z.enum(['positive', 'mixed', 'negative']),
-  satisfaction: z.enum(['satisfied', 'mixed', 'regretful']),
-  main_topics: z.array(z.string()),
-  issue_keywords: z.array(z.string()),
-  is_repair_case: z.boolean(),
+  sentiment: z.enum(['positive', 'mixed', 'negative']).catch('mixed'),
+  satisfaction: z.enum(['satisfied', 'mixed', 'regretful']).catch('mixed'),
+  main_topics: z.array(z.string()).default([]),
+  issue_keywords: z.array(z.string()).default([]),
+  is_repair_case: z.boolean().default(false),
   secondary_clinic_mentions: z.array(z.object({
-    clinic_name: z.string(),
+    clinic_name: z.string().nullable(),
     doctor_name: z.string().nullable(),
-    role: z.enum(['mentioned', 'compared', 'repair_source']),
-    evidence: z.string(),
+    role: z.enum(['mentioned', 'compared', 'repair_source']).nullable(),
+    evidence: z.string().nullable(),
   })).default([]),
-  evidence_snippets: z.record(z.string()).default({}),
-  summary: z.string(),
+  evidence_snippets: z.record(z.string().nullable()).default({}),
+  summary: z.string().default(''),
 })
 
 type LlmOutput = z.infer<typeof LlmOutputSchema>
