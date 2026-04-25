@@ -128,7 +128,7 @@ type ClinicListQueryRow = {
   clinic_media?: ClinicMediaPartial[] | null;
   clinic_facts?: ClinicFactPartial[] | null;
   clinic_google_places?: ClinicGooglePlacesPartial[] | ClinicGooglePlacesPartial | null;
-  clinic_scraped_data?: ClinicScrapedDataPartial[] | ClinicScrapedDataPartial | null;
+  clinic_scraped_data?: any;
 };
 
 const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
@@ -419,10 +419,7 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
         rating,
         user_ratings_total
       ),
-      clinic_scraped_data (
-        description,
-        techniques
-      )
+      clinic_scraped_data!clinic_id (*)
     `,
       { count: 'exact' }
     )
@@ -533,7 +530,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
       clinic_team (*),
       clinic_packages (*),
       clinic_reviews (*, sources (source_name, source_type)),
-      clinic_scraped_data (*)
+      clinic_scraped_data!clinic_id (*)
     `)
     .eq('id', clinicId)
     .single();
