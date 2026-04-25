@@ -1,52 +1,102 @@
-import { describe, it, expect } from 'vitest';
+/**
+ * tests/unit/components/OverviewSection.test.tsx
+ *
+ * Tests for OverviewSection component.
+ * Updated for website-scraping feature — yearsInOperation, proceduresPerformed,
+ * and languages have been removed from the UI. Techniques from clinic_scraped_data
+ * now replace procedures performed.
+ */
+
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+
+vi.mock('next/font/google', () => ({
+  Merriweather: () => ({ className: 'mocked-merriweather' }),
+}));
+
 import { OverviewSection } from '@/components/istanbulmedic-connect/profile/OverviewSection';
 
 describe('OverviewSection', () => {
   const defaultProps = {
-    specialties: ['Hair Transplant', 'Dental'],
-    yearsInOperation: 15,
-    proceduresPerformed: 50000,
-    languages: ['English', 'Turkish'],
-    description: 'A great clinic for medical tourism.',
+    specialties: ['Hair Transplant'],
+    yearsInOperation: null,
+    proceduresPerformed: null,
+    languages: [],
+    description: 'Located in Turkey, AEK Hair Clinic specializes in high-quality hair transplants using FUT and FUE techniques.',
+    techniques: ['FUE', 'FUT'],
   };
 
-  it('renders with full data', () => {
+  // ── Rendering ──────────────────────────────────────────────────────────────
+
+  it('renders the overview heading', () => {
     render(<OverviewSection {...defaultProps} />);
+    expect(screen.getByText('Overview')).toBeInTheDocument();
+  });
 
+  it('renders specialties as badges', () => {
+    render(<OverviewSection {...defaultProps} specialties={['Hair Transplant', 'Beard Transplant']} />);
     expect(screen.getByText('Hair Transplant')).toBeInTheDocument();
-    expect(screen.getByText('Dental')).toBeInTheDocument();
-    expect(screen.getByText('15')).toBeInTheDocument();
-    expect(screen.getByText('50,000')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument(); // languages count
-    expect(screen.getByText('A great clinic for medical tourism.')).toBeInTheDocument();
+    expect(screen.getByText('Beard Transplant')).toBeInTheDocument();
   });
 
-  it('shows "Not available" for null yearsInOperation', () => {
-    render(<OverviewSection {...defaultProps} yearsInOperation={null} />);
+  // ── Description ────────────────────────────────────────────────────────────
 
-    const notAvailable = screen.getAllByText('Not available');
-    expect(notAvailable.length).toBeGreaterThanOrEqual(1);
+  it('renders description from clinic_scraped_data', () => {
+    render(<OverviewSection {...defaultProps} />);
+    expect(
+      screen.getByText(
+        'Located in Turkey, AEK Hair Clinic specializes in high-quality hair transplants using FUT and FUE techniques.'
+      )
+    ).toBeInTheDocument();
   });
 
-  it('shows "Not available" for null proceduresPerformed', () => {
-    render(<OverviewSection {...defaultProps} proceduresPerformed={null} />);
-
-    const notAvailable = screen.getAllByText('Not available');
-    expect(notAvailable.length).toBeGreaterThanOrEqual(1);
+  it('renders AHD Clinic description correctly', () => {
+    render(
+      <OverviewSection
+        {...defaultProps}
+        description="AHD Clinic, founded by Dr. Hakan Doğanay, is a pioneer in hair transplant Turkey with 22 years of experience."
+      />
+    );
+    expect(screen.getByText(/AHD Clinic, founded by Dr. Hakan/)).toBeInTheDocument();
   });
 
-  it('shows "Not available" for empty languages', () => {
-    render(<OverviewSection {...defaultProps} languages={[]} />);
-
-    const notAvailable = screen.getAllByText('Not available');
-    expect(notAvailable.length).toBeGreaterThanOrEqual(1);
+  it('does not crash when description is null', () => {
+    render(<OverviewSection {...defaultProps} description={null} />);
+    expect(screen.getByText('Overview')).toBeInTheDocument();
   });
 
-  it('renders empty specialties without crashing', () => {
+  // ── Techniques ─────────────────────────────────────────────────────────────
+
+  it('renders techniques joined as a string', () => {
+    render(<OverviewSection {...defaultProps} techniques={['FUE', 'DHI', 'Sapphire FUE']} />);
+    expect(screen.getByText('FUE, DHI, Sapphire FUE')).toBeInTheDocument();
+  });
+
+  it('renders single technique without comma', () => {
+    render(<OverviewSection {...defaultProps} techniques={['DHI']} />);
+    expect(screen.getByText('DHI')).toBeInTheDocument();
+  });
+
+  it('does not render techniques stat block when techniques is empty', () => {
+    render(<OverviewSection {...defaultProps} techniques={[]} />);
+    expect(screen.queryByText('Techniques')).not.toBeInTheDocument();
+  });
+  // ── Empty state ────────────────────────────────────────────────────────────
+
+  it('renders without crashing when specialties is empty', () => {
     render(<OverviewSection {...defaultProps} specialties={[]} />);
+    expect(screen.getByText('Overview')).toBeInTheDocument();
+  });
 
-    // Should still render the section
+  it('renders without crashing for a fully unscraped clinic', () => {
+    render(
+      <OverviewSection
+        {...defaultProps}
+        description={null}
+        techniques={[]}
+        specialties={[]}
+      />
+    );
     expect(screen.getByText('Overview')).toBeInTheDocument();
   });
 });
