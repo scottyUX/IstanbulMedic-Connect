@@ -768,8 +768,14 @@ Options:
 
   // Single thread mode
   const threadUrl = args[0];
-  if (!threadUrl.includes("hairrestorationnetwork.com")) {
-    console.error("Invalid URL. Must be a HairRestorationNetwork thread URL.");
+  try {
+    const { hostname } = new URL(threadUrl);
+    if (hostname !== "www.hairrestorationnetwork.com" && hostname !== "hairrestorationnetwork.com") {
+      console.error("Invalid URL. Must be a HairRestorationNetwork thread URL.");
+      return;
+    }
+  } catch {
+    console.error("Invalid URL.");
     return;
   }
 
