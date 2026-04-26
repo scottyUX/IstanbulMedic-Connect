@@ -74,7 +74,7 @@ async function reseedInstagramFacts() {
 
   let success = 0
   let failed = 0
-  const errors: any[] = []
+  const errors: { username: string; error: string }[] = []
 
   for (const importData of imports) {
     const username = importData.instagramData.instagram?.username || 'unknown'
@@ -95,9 +95,10 @@ async function reseedInstagramFacts() {
         console.log(`✓ @${username}: ${result.summary?.factsCreated || 0} facts`)
         success++
       }
-    } catch (err: any) {
-      console.log(`✗ @${username}: ${err.message}`)
-      errors.push({ username, error: err.message })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.log(`✗ @${username}: ${message}`)
+      errors.push({ username, error: message })
       failed++
     }
 
@@ -111,7 +112,7 @@ async function reseedInstagramFacts() {
 
   if (errors.length) {
     console.log('\nErrors:')
-    errors.forEach((e: any) => console.log(`  - @${e.username}: ${e.error}`))
+    errors.forEach((e) => console.log(`  - @${e.username}: ${e.error}`))
   }
 }
 

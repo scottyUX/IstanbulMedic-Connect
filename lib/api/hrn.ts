@@ -31,7 +31,7 @@ export async function getHRNSignals(clinicId: string, clinicName = ''): Promise<
       return null;
     }
 
-    if (!threads || threads.length === 0) return getMockHRNSignals(clinicId, clinicName);
+    if (!threads || threads.length === 0) return null;
 
     const threadIds = threads.map(t => t.id);
 

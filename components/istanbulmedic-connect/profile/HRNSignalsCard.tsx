@@ -582,7 +582,7 @@ export function HRNSignalsCard({ data = DEMO_HRN_SIGNALS }: { data?: HRNSignalsD
                   <Sparkles className="h-2.5 w-2.5" />
                   AI-assisted
                   <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-56 rounded-md bg-foreground px-2.5 py-1.5 text-[11px] text-background opacity-0 group-hover:opacity-100 transition-opacity z-10 leading-snug">
-                    Sentiment is determined by AI analysis of each thread's text. It reflects the overall tone of patient posts, not a manual review.
+                    Sentiment is determined by AI analysis of each thread&apos;s text. It reflects the overall tone of patient posts, not a manual review.
                   </span>
                 </span>
               </div>

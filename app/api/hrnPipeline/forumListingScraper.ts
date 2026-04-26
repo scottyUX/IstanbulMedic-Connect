@@ -13,6 +13,7 @@
  */
 
 import { chromium, Browser } from 'playwright';
+import type { Page } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -80,7 +81,7 @@ function saveOutput(threadUrls: string[]): void {
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2));
 }
 
-async function extractThreadUrlsFromPage(page: any, debug = false): Promise<string[]> {
+async function extractThreadUrlsFromPage(page: Page, debug = false): Promise<string[]> {
   const result = await page.evaluate(() => {
     const allLinks = Array.from(document.querySelectorAll('a[href*="/topic/"]'));
     const threadUrls = [...new Set(allLinks.map(a => {
