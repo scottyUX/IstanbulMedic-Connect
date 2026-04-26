@@ -177,8 +177,10 @@ export type Database = {
           is_stale: boolean
           last_thread_at: string | null
           longterm_thread_count: number
+          mention_count: number
           notable_threads: Json | null
           photo_thread_count: number
+          pros: string[] | null
           repair_mention_count: number
           sentiment_distribution: Json | null
           sentiment_score: number | null
@@ -197,8 +199,10 @@ export type Database = {
           is_stale?: boolean
           last_thread_at?: string | null
           longterm_thread_count?: number
+          mention_count?: number
           notable_threads?: Json | null
           photo_thread_count?: number
+          pros?: string[] | null
           repair_mention_count?: number
           sentiment_distribution?: Json | null
           sentiment_score?: number | null
@@ -217,8 +221,10 @@ export type Database = {
           is_stale?: boolean
           last_thread_at?: string | null
           longterm_thread_count?: number
+          mention_count?: number
           notable_threads?: Json | null
           photo_thread_count?: number
+          pros?: string[] | null
           repair_mention_count?: number
           sentiment_distribution?: Json | null
           sentiment_score?: number | null
@@ -700,163 +706,6 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "sources"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clinic_reddit_posts: {
-        Row: {
-          author_username: string | null
-          body: string | null
-          captured_at: string
-          clinic_id: string
-          comment_count: number | null
-          had_clinical_procedures: boolean | null
-          id: string
-          is_firsthand: boolean | null
-          medical_summary: string | null
-          post_type: Database["public"]["Enums"]["reddit_post_type"]
-          posted_at: string | null
-          reddit_post_id: string
-          score: number | null
-          seeking_medical_help: boolean | null
-          source_id: string | null
-          subreddit: string | null
-          title: string | null
-          url: string
-        }
-        Insert: {
-          author_username?: string | null
-          body?: string | null
-          captured_at?: string
-          clinic_id: string
-          comment_count?: number | null
-          had_clinical_procedures?: boolean | null
-          id?: string
-          is_firsthand?: boolean | null
-          medical_summary?: string | null
-          post_type: Database["public"]["Enums"]["reddit_post_type"]
-          posted_at?: string | null
-          reddit_post_id: string
-          score?: number | null
-          seeking_medical_help?: boolean | null
-          source_id?: string | null
-          subreddit?: string | null
-          title?: string | null
-          url: string
-        }
-        Update: {
-          author_username?: string | null
-          body?: string | null
-          captured_at?: string
-          clinic_id?: string
-          comment_count?: number | null
-          had_clinical_procedures?: boolean | null
-          id?: string
-          is_firsthand?: boolean | null
-          medical_summary?: string | null
-          post_type?: Database["public"]["Enums"]["reddit_post_type"]
-          posted_at?: string | null
-          reddit_post_id?: string
-          score?: number | null
-          seeking_medical_help?: boolean | null
-          source_id?: string | null
-          subreddit?: string | null
-          title?: string | null
-          url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinic_reddit_posts_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinic_reddit_posts_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinics_with_scores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinic_reddit_posts_source_id_fkey"
-            columns: ["source_id"]
-            isOneToOne: false
-            referencedRelation: "sources"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clinic_reddit_profiles: {
-        Row: {
-          captured_at: string
-          caution_flags: Json | null
-          clinic_id: string
-          confidence_score: number | null
-          cons: string[] | null
-          id: string
-          last_mentioned_at: string | null
-          mention_count: number
-          notable_mentions: Json | null
-          pros: string[] | null
-          sentiment_score: number | null
-          summary: string | null
-          themes: Json | null
-          thread_count: number
-          unique_authors_count: number | null
-          updated_at: string
-        }
-        Insert: {
-          captured_at?: string
-          caution_flags?: Json | null
-          clinic_id: string
-          confidence_score?: number | null
-          cons?: string[] | null
-          id?: string
-          last_mentioned_at?: string | null
-          mention_count?: number
-          notable_mentions?: Json | null
-          pros?: string[] | null
-          sentiment_score?: number | null
-          summary?: string | null
-          themes?: Json | null
-          thread_count?: number
-          unique_authors_count?: number | null
-          updated_at?: string
-        }
-        Update: {
-          captured_at?: string
-          caution_flags?: Json | null
-          clinic_id?: string
-          confidence_score?: number | null
-          cons?: string[] | null
-          id?: string
-          last_mentioned_at?: string | null
-          mention_count?: number
-          notable_mentions?: Json | null
-          pros?: string[] | null
-          sentiment_score?: number | null
-          summary?: string | null
-          themes?: Json | null
-          thread_count?: number
-          unique_authors_count?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinic_reddit_profiles_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: true
-            referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinic_reddit_profiles_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: true
-            referencedRelation: "clinics_with_scores"
             referencedColumns: ["id"]
           },
         ]
@@ -1510,6 +1359,53 @@ export type Database = {
           },
         ]
       }
+      reddit_thread_content: {
+        Row: {
+          body: string | null
+          comment_count: number | null
+          had_clinical_procedures: boolean | null
+          is_firsthand: boolean | null
+          post_type: string
+          reddit_post_id: string
+          score: number | null
+          seeking_medical_help: boolean | null
+          subreddit: string | null
+          thread_id: string
+        }
+        Insert: {
+          body?: string | null
+          comment_count?: number | null
+          had_clinical_procedures?: boolean | null
+          is_firsthand?: boolean | null
+          post_type: string
+          reddit_post_id: string
+          score?: number | null
+          seeking_medical_help?: boolean | null
+          subreddit?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string | null
+          comment_count?: number | null
+          had_clinical_procedures?: boolean | null
+          is_firsthand?: boolean | null
+          post_type?: string
+          reddit_post_id?: string
+          score?: number | null
+          seeking_medical_help?: boolean | null
+          subreddit?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_thread_content_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: true
+            referencedRelation: "forum_thread_index"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       source_documents: {
         Row: {
           doc_type: Database["public"]["Enums"]["doc_type_enum"]
@@ -1578,6 +1474,343 @@ export type Database = {
         }
         Relationships: []
       }
+      user_photos: {
+        Row: {
+          deleted: boolean | null
+          file_size_bytes: number | null
+          id: string
+          mime_type: string | null
+          photo_view: Database["public"]["Enums"]["photo_view"]
+          storage_url: string
+          uploaded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          deleted?: boolean | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          photo_view: Database["public"]["Enums"]["photo_view"]
+          storage_url: string
+          uploaded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          deleted?: boolean | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          photo_view?: Database["public"]["Enums"]["photo_view"]
+          storage_url?: string
+          uploaded_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_photos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_prior_surgeries: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          surgery_type: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          surgery_type: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          surgery_type?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_prior_surgeries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_prior_transplants: {
+        Row: {
+          clinic_country: string | null
+          created_at: string | null
+          estimated_grafts: number | null
+          id: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          clinic_country?: string | null
+          created_at?: string | null
+          estimated_grafts?: number | null
+          id?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          clinic_country?: string | null
+          created_at?: string | null
+          estimated_grafts?: number | null
+          id?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_prior_transplants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          date_of_birth: string | null
+          deleted: boolean | null
+          first_name: string | null
+          gender: string | null
+          id: string
+          last_name: string | null
+          nationality: string | null
+          preferred_language: string | null
+          profile_picture_url: string | null
+          timezone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          deleted?: boolean | null
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          last_name?: string | null
+          nationality?: string | null
+          preferred_language?: string | null
+          profile_picture_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          deleted?: boolean | null
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          last_name?: string | null
+          nationality?: string | null
+          preferred_language?: string | null
+          profile_picture_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_qualification: {
+        Row: {
+          age_tier: Database["public"]["Enums"]["age_tier"] | null
+          budget_tier: Database["public"]["Enums"]["budget_tier"] | null
+          country: string | null
+          created_at: string | null
+          deleted: boolean | null
+          hair_loss_pattern:
+            | Database["public"]["Enums"]["hair_loss_pattern"]
+            | null
+          id: string
+          preferred_language: string | null
+          terms_accepted: boolean
+          timeline: Database["public"]["Enums"]["treatment_timeline"] | null
+          updated_at: string | null
+          user_id: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          age_tier?: Database["public"]["Enums"]["age_tier"] | null
+          budget_tier?: Database["public"]["Enums"]["budget_tier"] | null
+          country?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          hair_loss_pattern?:
+            | Database["public"]["Enums"]["hair_loss_pattern"]
+            | null
+          id?: string
+          preferred_language?: string | null
+          terms_accepted?: boolean
+          timeline?: Database["public"]["Enums"]["treatment_timeline"] | null
+          updated_at?: string | null
+          user_id: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          age_tier?: Database["public"]["Enums"]["age_tier"] | null
+          budget_tier?: Database["public"]["Enums"]["budget_tier"] | null
+          country?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          hair_loss_pattern?:
+            | Database["public"]["Enums"]["hair_loss_pattern"]
+            | null
+          id?: string
+          preferred_language?: string | null
+          terms_accepted?: boolean
+          timeline?: Database["public"]["Enums"]["treatment_timeline"] | null
+          updated_at?: string | null
+          user_id?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_qualification_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_treatment_profiles: {
+        Row: {
+          allergies: string[] | null
+          created_at: string | null
+          deleted: boolean | null
+          desired_density: Database["public"]["Enums"]["desired_density"] | null
+          donor_area_availability:
+            | Database["public"]["Enums"]["donor_area_availability"]
+            | null
+          donor_area_quality:
+            | Database["public"]["Enums"]["donor_area_quality"]
+            | null
+          had_prior_transplant: boolean | null
+          hair_loss_duration_years: number | null
+          id: string
+          medications: string[] | null
+          norwood_scale: number | null
+          other_conditions: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          allergies?: string[] | null
+          created_at?: string | null
+          deleted?: boolean | null
+          desired_density?:
+            | Database["public"]["Enums"]["desired_density"]
+            | null
+          donor_area_availability?:
+            | Database["public"]["Enums"]["donor_area_availability"]
+            | null
+          donor_area_quality?:
+            | Database["public"]["Enums"]["donor_area_quality"]
+            | null
+          had_prior_transplant?: boolean | null
+          hair_loss_duration_years?: number | null
+          id?: string
+          medications?: string[] | null
+          norwood_scale?: number | null
+          other_conditions?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          allergies?: string[] | null
+          created_at?: string | null
+          deleted?: boolean | null
+          desired_density?:
+            | Database["public"]["Enums"]["desired_density"]
+            | null
+          donor_area_availability?:
+            | Database["public"]["Enums"]["donor_area_availability"]
+            | null
+          donor_area_quality?:
+            | Database["public"]["Enums"]["donor_area_quality"]
+            | null
+          had_prior_transplant?: boolean | null
+          hair_loss_duration_years?: number | null
+          id?: string
+          medications?: string[] | null
+          norwood_scale?: number | null
+          other_conditions?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_treatment_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          auth_id: string | null
+          created_at: string | null
+          deleted: boolean | null
+          email: string | null
+          id: string
+          name: string | null
+          phone_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_id?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_id?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       clinics_with_scores: {
@@ -1633,6 +1866,13 @@ export type Database = {
       }
     }
     Enums: {
+      age_tier: "18_24" | "25_34" | "35_44" | "45_54" | "55_64" | "65_plus"
+      budget_tier:
+        | "under_2000"
+        | "2000_5000"
+        | "5000_8000"
+        | "8000_12000"
+        | "12000_plus"
       clinic_credential_types:
         | "license"
         | "accreditation"
@@ -1675,9 +1915,13 @@ export type Database = {
       clinic_service_name: "Hair Transplant" | "Rhinoplasty" | "Other"
       clinic_status: "active" | "inactive" | "under_review"
       computed_by_enum: "extractor" | "human" | "inquiry" | "model"
+      desired_density: "maximum" | "high" | "medium" | "low"
       doc_type_enum: "html" | "pdf" | "post" | "comment" | "review"
       doctor_involvement_levels: "high" | "medium" | "low"
+      donor_area_availability: "good" | "adequate" | "limited"
+      donor_area_quality: "excellent" | "good" | "adequate" | "poor"
       forum_source_enum: "hrn" | "reddit" | "realself"
+      hair_loss_pattern: "early" | "moderate" | "advanced" | "extensive"
       instagram_post_type: "Image" | "Video" | "Sidecar"
       mention_topic_enum:
         | "pricing"
@@ -1691,7 +1935,7 @@ export type Database = {
         | "response_time"
         | "package_accuracy"
         | "before_after"
-      reddit_post_type: "post" | "comment"
+      photo_view: "front" | "left_side" | "right_side" | "top" | "donor_area"
       score_band_enum: "A" | "B" | "C" | "D"
       sentiment_enum: "negative" | "neutral" | "positive"
       social_platform_enum:
@@ -1711,6 +1955,11 @@ export type Database = {
         | "social_media"
         | "mystery_inquiry"
         | "internal_note"
+      treatment_timeline:
+        | "1_3_months"
+        | "3_6_months"
+        | "6_12_months"
+        | "12_plus_months"
       value_type_enum: "string" | "number" | "bool" | "json"
     }
     CompositeTypes: {
@@ -1842,6 +2091,14 @@ export const Constants = {
   },
   public: {
     Enums: {
+      age_tier: ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"],
+      budget_tier: [
+        "under_2000",
+        "2000_5000",
+        "5000_8000",
+        "8000_12000",
+        "12000_plus",
+      ],
       clinic_credential_types: [
         "license",
         "accreditation",
@@ -1888,9 +2145,13 @@ export const Constants = {
       clinic_service_name: ["Hair Transplant", "Rhinoplasty", "Other"],
       clinic_status: ["active", "inactive", "under_review"],
       computed_by_enum: ["extractor", "human", "inquiry", "model"],
+      desired_density: ["maximum", "high", "medium", "low"],
       doc_type_enum: ["html", "pdf", "post", "comment", "review"],
       doctor_involvement_levels: ["high", "medium", "low"],
+      donor_area_availability: ["good", "adequate", "limited"],
+      donor_area_quality: ["excellent", "good", "adequate", "poor"],
       forum_source_enum: ["hrn", "reddit", "realself"],
+      hair_loss_pattern: ["early", "moderate", "advanced", "extensive"],
       instagram_post_type: ["Image", "Video", "Sidecar"],
       mention_topic_enum: [
         "pricing",
@@ -1905,7 +2166,7 @@ export const Constants = {
         "package_accuracy",
         "before_after",
       ],
-      reddit_post_type: ["post", "comment"],
+      photo_view: ["front", "left_side", "right_side", "top", "donor_area"],
       score_band_enum: ["A", "B", "C", "D"],
       sentiment_enum: ["negative", "neutral", "positive"],
       social_platform_enum: [
@@ -1926,6 +2187,12 @@ export const Constants = {
         "social_media",
         "mystery_inquiry",
         "internal_note",
+      ],
+      treatment_timeline: [
+        "1_3_months",
+        "3_6_months",
+        "6_12_months",
+        "12_plus_months",
       ],
       value_type_enum: ["string", "number", "bool", "json"],
     },

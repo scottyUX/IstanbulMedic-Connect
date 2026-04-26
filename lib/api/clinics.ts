@@ -4,6 +4,7 @@ import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/pr
 import { getInstagramSignals } from './instagram';
 import type { HRNSignalsData } from '@/components/istanbulmedic-connect/profile/HRNSignalsCard';
 import { getHRNSignals } from './hrn';
+import { getForumSignals, type ClinicForumProfile } from './forumSignals';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -98,6 +99,8 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   instagramSignals: InstagramSignalsData | null;
   /** HRN forum signals (null if no threads attributed to this clinic) */
   hrnSignals: HRNSignalsData | null;
+  /** Reddit community signals (null if no Reddit data exists) */
+  redditSignals: ClinicForumProfile | null;
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -660,6 +663,9 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     getHRNSignals(clinic.id, clinic.display_name),
   ]);
 
+  // Fetch Reddit signals data (returns null if no Reddit profile exists)
+  const redditSignals = await getForumSignals(clinic.id, 'reddit');
+
   return {
     id: clinic.id,
     name: clinic.display_name,
@@ -697,6 +703,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
     instagramSignals,
     hrnSignals,
+    redditSignals,
   };
 }
 

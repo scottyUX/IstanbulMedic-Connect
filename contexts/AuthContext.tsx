@@ -11,7 +11,7 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (next?: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
 }
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setProfile(null);
         }
-      } catch (error) {
+      } catch {
         setIsAuthenticated(false);
         setUser(null);
         setProfile(null);
@@ -140,6 +140,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Fetch user profile when user signs in
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           await fetchUserProfile();
+          // Sync any pending localStorage qualification data to the DB
+          if (event === 'SIGNED_IN') {
+            syncLocalQualificationData();
+          }
         }
       } else {
         setIsAuthenticated(false);
@@ -154,23 +158,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const loginWithGoogle = async () => {
+  const syncLocalQualificationData = () => {
+    try {
+      const stored = window.localStorage.getItem('im.qualification');
+      const complete = window.localStorage.getItem('im.qualification.complete') === 'true';
+      if (!stored || !complete) return;
+      const data = JSON.parse(stored);
+      // Fire-and-forget — data is safe in localStorage as fallback
+      fetch('/api/profile/qualification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, termsAccepted: true }),
+      }).catch(() => {});
+    } catch {
+      // ignore
+    }
+  };
+
+  const loginWithGoogle = async (next?: string) => {
     try {
       const supabase = createClient();
       if (!supabase) {
         throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
       }
+      const callbackUrl = new URL(`${window.location.origin}/auth/callback`);
+      if (next) callbackUrl.searchParams.set('next', next);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl.toString(),
+          scopes: [
+            'profile',
+            'email',
+            'https://www.googleapis.com/auth/user.birthday.read',
+            'https://www.googleapis.com/auth/user.gender.read',
+            'https://www.googleapis.com/auth/user.phonenumbers.read',
+            'https://www.googleapis.com/auth/user.addresses.read',
+          ].join(' '),
         },
       });
-
-      if (error) {
-        throw error;
-      }
-      // Redirect will happen automatically
+      if (error) throw error;
     } catch (error) {
       throw error;
     }
@@ -182,15 +209,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (supabase) {
         await supabase.auth.signOut();
       }
+    } catch {
+      // continue regardless
+    } finally {
       setIsAuthenticated(false);
       setUser(null);
       setProfile(null);
-      router.push('/');
-    } catch (error) {
-      // Still clear local state even if signOut fails
-      setIsAuthenticated(false);
-      setUser(null);
-      setProfile(null);
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+      }
       router.push('/');
     }
   };

@@ -37,16 +37,18 @@ describe('calculateRelativePosition', () => {
   });
 
   it('returns correct position for middle value', () => {
-    // value=5, min=1, max=10 => (5-1)/(10-1) = 4/9 ≈ 44%
-    expect(calculateRelativePosition(5, [1, 5, 10])).toBe(44);
+    // rank-based: 5 is at rank 1 of 3 values => 1/(3-1)*100 = 50%
+    expect(calculateRelativePosition(5, [1, 5, 10])).toBe(50);
   });
 
   it('filters out NaN values', () => {
-    expect(calculateRelativePosition(5, [1, NaN, 10])).toBe(44);
+    // after filtering NaN: [1, 10]; 5 is between them at rank 0.5 => 0.5/(2-1)*100 = 50%
+    expect(calculateRelativePosition(5, [1, NaN, 10])).toBe(50);
   });
 
   it('filters out null values', () => {
-    expect(calculateRelativePosition(5, [1, null as unknown as number, 10])).toBe(44);
+    // after filtering null: [1, 10]; same as above => 50%
+    expect(calculateRelativePosition(5, [1, null as unknown as number, 10])).toBe(50);
   });
 });
 
@@ -308,8 +310,8 @@ describe('getInstagramSignals', () => {
 
     expect(postingSignal).toBeDefined();
     expect(postingSignal?.metric).toBe('8/mo');
-    // 8 in range [2, 12] => (8-2)/(12-2) = 0.6 = 60%
-    expect(postingSignal?.percentile).toBe(60);
+    // rank-based: 8 is rank 1 of [2, 8, 12] => 1/(3-1)*100 = 50%
+    expect(postingSignal?.percentile).toBe(50);
     expect(postingSignal?.status).toBe('positive');
     expect(postingSignal?.statusText).toBe('Active');
   });

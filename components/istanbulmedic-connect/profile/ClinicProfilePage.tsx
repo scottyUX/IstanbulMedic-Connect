@@ -13,6 +13,7 @@ import { normalizeReviewSource } from "@/lib/review-sources"
 import { CommunitySignalsSection } from "./CommunitySignalsSection"
 import { InstagramSignalsCard } from "./InstagramSignalsCard"
 import { HRNSignalsCard } from "./HRNSignalsCard"
+import { RedditSignalsCard } from "./RedditSignalsCard"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
 import type { ClinicDetail } from "@/lib/api/clinics"
@@ -334,6 +335,10 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
 
           {FEATURE_CONFIG.profileHRN && clinic.hrnSignals && (
             <HRNSignalsCard data={clinic.hrnSignals} />
+          )}
+
+          {FEATURE_CONFIG.profileRedditSignals && clinic.redditSignals && (
+            <RedditSignalsCard data={clinic.redditSignals} />
           )}
         </div>
       </div>

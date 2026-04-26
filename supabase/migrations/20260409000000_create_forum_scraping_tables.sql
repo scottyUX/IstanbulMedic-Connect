@@ -1,17 +1,14 @@
 -- Forum scraping schema: hub + extensions pattern
--- Creates HRN tables with unified downstream tables for signals and profiles.
+-- Creates HRN and Reddit tables with unified downstream tables for signals and profiles.
 --
 -- Tables created:
 --   forum_source_enum            new enum
 --   forum_thread_index           hub — one row per thread URL across all sources
 --   hrn_thread_content           HRN-specific extension (1:1 with hub)
+--   reddit_thread_content        Reddit-specific extension (1:1 with hub)
 --   forum_thread_signals         deterministic signals (regex/keyword), EAV
 --   forum_thread_llm_analysis    LLM-derived signals, versioned per prompt run
 --   clinic_forum_profiles        aggregated clinic profile per forum source
---
--- NOTE: Reddit tables are NOT modified here. reddit_thread_content and
--- Reddit migration will be handled in a separate migration once the
--- Reddit implementation is finalized.
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -94,7 +91,38 @@ COMMENT ON COLUMN hrn_thread_content.sitemap_lastmod IS 'lastmod from HRN sitema
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 3. forum_thread_signals  (deterministic, EAV)
+-- 3. reddit_thread_content  (Reddit extension)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE public.reddit_thread_content (
+  thread_id                  uuid PRIMARY KEY REFERENCES forum_thread_index(id) ON DELETE CASCADE,
+
+  reddit_post_id             varchar NOT NULL,  -- e.g. t3_abc123 — Reddit's internal ID
+  subreddit                  varchar,            -- without r/ prefix, e.g. HairTransplants
+  post_type                  varchar NOT NULL,   -- 'post' | 'comment'
+
+  body                       text,
+  score                      integer DEFAULT 0,
+  comment_count              integer DEFAULT 0,
+
+  -- Classification
+  is_firsthand               boolean DEFAULT false,
+
+  -- Medical signals (from scraper analysis)
+  had_clinical_procedures    boolean,
+  seeking_medical_help       boolean,
+
+  CONSTRAINT reddit_thread_content_post_id_unique UNIQUE (reddit_post_id)
+);
+
+COMMENT ON TABLE  reddit_thread_content IS 'Reddit-specific fields. Always joined to forum_thread_index via thread_id.';
+COMMENT ON COLUMN reddit_thread_content.reddit_post_id IS 'Reddit internal post/comment ID (e.g. t3_abc123). Used for deduplication.';
+COMMENT ON COLUMN reddit_thread_content.post_type IS 'post = top-level thread, comment = reply to a thread.';
+COMMENT ON COLUMN reddit_thread_content.is_firsthand IS 'True if the author describes their own personal experience, false for hearsay or questions.';
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 4. forum_thread_signals  (deterministic, EAV)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE public.forum_thread_signals (
@@ -121,7 +149,7 @@ COMMENT ON COLUMN forum_thread_signals.evidence_snippet IS 'The exact text that 
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4. forum_thread_llm_analysis  (LLM-derived, versioned)
+-- 5. forum_thread_llm_analysis  (LLM-derived, versioned)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE public.forum_thread_llm_analysis (
@@ -171,7 +199,7 @@ COMMENT ON COLUMN forum_thread_llm_analysis.evidence_snippets IS 'Map of signal 
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 5. clinic_forum_profiles  (aggregated, one row per clinic per source)
+-- 6. clinic_forum_profiles  (aggregated, one row per clinic per source)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE public.clinic_forum_profiles (
@@ -184,6 +212,7 @@ CREATE TABLE public.clinic_forum_profiles (
 
   -- Volume signals (deterministic)
   thread_count            integer NOT NULL DEFAULT 0,
+  mention_count           integer NOT NULL DEFAULT 0,  -- total posts + comments (thread_count counts unique threads; mention_count counts all matched rows)
   photo_thread_count      integer NOT NULL DEFAULT 0,
   longterm_thread_count   integer NOT NULL DEFAULT 0,  -- threads with 6m+ or 12m+ timeline markers
   repair_mention_count    integer NOT NULL DEFAULT 0,
@@ -196,7 +225,8 @@ CREATE TABLE public.clinic_forum_profiles (
 
   -- Aggregated intel
   sentiment_distribution  jsonb,    -- { "positive": 14, "mixed": 6, "negative": 3 }
-  common_concerns         text[],
+  pros                    text[] DEFAULT '{}',   -- recurring positives across threads
+  common_concerns         text[] DEFAULT '{}',   -- recurring negatives / issues
   notable_threads         jsonb,    -- [{ title, url, summary, sentiment, has_photos }]
 
   -- Staleness: set true when a new thread is attributed, triggers nightly recompute

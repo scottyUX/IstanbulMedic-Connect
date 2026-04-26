@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu } from "lucide-react"
+import { LayoutDashboard, LogOut, Menu, User } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import Container from "@/components/ui/container"
@@ -11,7 +11,6 @@ import Logo from "@/components/common/Logo"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
-import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
 const NAV_ITEMS = [
   { label: "Home", href: "/" },
@@ -24,12 +23,23 @@ const CONSULTATION_LINK = "https://cal.com/team/istanbul-medic/istanbul-medic-15
 
 export const TopNav = () => {
   const [open, setOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [logoutToast, setLogoutToast] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
   const prefetchedRoutes = useRef<Set<string>>(new Set())
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, loading: authLoading, logout } = useAuth()
+
+  const handleSignOut = async () => {
+    setOpen(false)
+    setUserMenuOpen(false)
+    setLogoutToast(true)
+    setTimeout(() => setLogoutToast(false), 3000)
+    await logout()
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
@@ -46,6 +56,16 @@ export const TopNav = () => {
     if (open) document.addEventListener("mousedown", onDocClick)
     return () => document.removeEventListener("mousedown", onDocClick)
   }, [open])
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!userMenuOpen) return
+      const el = userMenuRef.current
+      if (el && !el.contains(e.target as Node)) setUserMenuOpen(false)
+    }
+    if (userMenuOpen) document.addEventListener("mousedown", onDocClick)
+    return () => document.removeEventListener("mousedown", onDocClick)
+  }, [userMenuOpen])
 
   const prefetchRoute = useCallback(
     (href: string) => {
@@ -169,29 +189,57 @@ export const TopNav = () => {
           >
             Talk to Leila
           </Button>
-          {FEATURE_CONFIG.auth && (
-            isAuthenticated ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setOpen(false)
-                  logout()
-                }}
-                aria-label="Log out"
-                className="shrink-0"
+          {authLoading ? (
+            <div className="h-9 w-9 shrink-0" />
+          ) : isAuthenticated ? (
+            <div className="relative shrink-0" ref={userMenuRef}>
+              <button
+                type="button"
+                aria-label="User menu"
+                aria-haspopup="true"
+                aria-expanded={userMenuOpen}
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white transition-colors duration-200"
               >
-                Log out
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                href="/auth/login"
-                aria-label="Login or sign up"
-                className="shrink-0"
-              >
-                Login / Sign up
-              </Button>
-            )
+                <User className="h-4 w-4" />
+              </button>
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    className="absolute right-0 mt-2 w-44 rounded-xl border border-black/5 bg-white py-1.5 shadow-lg"
+                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                  >
+                    <Link
+                      href="/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-[#0F2446] hover:bg-slate-50"
+                    >
+                      <LayoutDashboard className="h-4 w-4 shrink-0 text-[#17375B]" />
+                      Dashboard
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4 shrink-0" />
+                      Sign out
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              href="/auth/login"
+              className="shrink-0 border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white"
+            >
+              Sign in / Sign up
+            </Button>
           )}
         </div>
 
@@ -276,28 +324,40 @@ export const TopNav = () => {
                       >
                         Talk to Leila
                       </Button>
-                      {FEATURE_CONFIG.auth && (
-                        isAuthenticated ? (
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setOpen(false)
-                              logout()
-                            }}
-                            className="w-full"
-                          >
-                            Log out
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            href="/auth/login"
+                      {authLoading ? (
+                        <div className="h-12 w-full" />
+                      ) : isAuthenticated ? (
+                        <>
+                          <Link
+                            href="/profile"
                             onClick={() => setOpen(false)}
-                            className="w-full"
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 font-semibold text-[#0F2446] hover:text-[#0D1E32]"
                           >
-                            Login / Sign up
-                          </Button>
-                        )
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#17375B] bg-white">
+                              <LayoutDashboard className="h-4 w-4 text-[#17375B]" />
+                            </span>
+                            Dashboard
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={handleSignOut}
+                            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-semibold text-red-600 hover:text-red-700"
+                          >
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-red-200 bg-red-50">
+                              <LogOut className="h-4 w-4 text-red-500" />
+                            </span>
+                            Sign out
+                          </button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          href="/auth/login"
+                          onClick={() => setOpen(false)}
+                          className="w-full border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white"
+                        >
+                          Sign in / Sign up
+                        </Button>
                       )}
                     </nav>
                   </motion.div>
@@ -307,6 +367,21 @@ export const TopNav = () => {
           </div>
         </div>
       </Container>
+
+      {/* Logout success toast */}
+      <AnimatePresence>
+        {logoutToast && (
+          <motion.div
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 shadow-lg"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.2 }}
+          >
+            <p className="text-sm font-semibold text-emerald-700">You&apos;ve been signed out successfully.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }

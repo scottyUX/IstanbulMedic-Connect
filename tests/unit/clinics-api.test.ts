@@ -4,7 +4,6 @@ import {
   getClinicById,
   getClinicCities,
   getServiceCategories,
-  type ClinicsQuery,
 } from '@/lib/api/clinics';
 
 // Mock the Supabase server client
@@ -22,8 +21,6 @@ import { getInstagramSignals } from '@/lib/api/instagram';
 const createMockQueryBuilder = (data: unknown = [], error: unknown = null, count: number | null = null) => {
   const builder: Record<string, Mock> = {};
 
-  const chainable = () => builder;
-
   builder.select = vi.fn().mockReturnValue(builder);
   builder.eq = vi.fn().mockReturnValue(builder);
   builder.ilike = vi.fn().mockReturnValue(builder);
@@ -35,9 +32,9 @@ const createMockQueryBuilder = (data: unknown = [], error: unknown = null, count
   builder.single = vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] : data, error });
 
   // For direct queries without range (like filter queries)
-  builder.then = (resolve: (value: unknown) => unknown) => {
+  builder.then = vi.fn().mockImplementation((resolve: (value: unknown) => unknown) => {
     return Promise.resolve({ data, error }).then(resolve);
-  };
+  });
 
   return builder;
 };
