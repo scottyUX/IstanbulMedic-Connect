@@ -1,0 +1,637 @@
+# HRN Forum Scraper — Progress Documentation
+
+**Last Updated:** 2026-04-08
+**Status:** Forum Listing Scraper In Progress — Cloudflare blocking issue on pagination
+
+---
+
+## Quick Resume (Start Here)
+
+### What's Built
+- **Thread scraper** (`app/api/hrnPipeline/hrnScraperTest.ts`) - Working Playwright scraper that extracts title, author, date, OP text, photos, and last author update from any HRN thread URL
+- **Test runner** (`app/api/hrnPipeline/runTest.ts`) - Run with `npx tsx app/api/hrnPipeline/runTest.ts [url]`
+
+### Key Decisions Made
+1. **Playwright over BeautifulSoup** - HRN has Cloudflare protection, needs real browser
+2. **Hybrid extraction** - Regex for unambiguous signals (graft count, timeline), LLM for context-dependent signals (clinic attribution, sentiment)
+3. **Targeted forums** - Scrape forums 17, 24, 89 only (~5K threads) not all 14.5K
+4. **LLM for clinic attribution** - URL only contains clinic name ~38% of time, need LLM to determine which clinic a thread is about
+5. **Re-scraping via lastmod** - Use sitemap `lastmod` timestamp to detect thread updates
+
+### Where We Left Off
+**Building forum listing scraper** - hit Cloudflare blocking issue on pagination.
+
+- Ran `investigateForum.ts` and confirmed page counts (730, 410, 6)
+- Verified last page of forum 24 has real content (17 threads on page 730)
+- Created `forumListingScraper.ts` but encountering issues (see below)
+
+### Immediate Next Steps
+1. ~~Run forum investigation script to understand pagination~~ ✅ Done
+2. **Fix forum listing scraper Cloudflare issue** (see Current Blockers below)
+3. Build LLM extraction prompt
+4. Create database migration
+
+### Current Blockers (2026-04-08)
+
+**Issue:** Forum listing scraper works on page 1 but subsequent pages return empty content.
+
+**Symptoms:**
+- Page 1 (base URL): 362 total links, 119 topic links → 25 unique thread URLs ✅
+- Page 2 (`/page/2/`): 2 total links, 0 topic links → 0 URLs ❌
+- Page 3 (`/page/3/`): 2 total links, 0 topic links → 0 URLs ❌
+
+**Root Cause (suspected):** Cloudflare is blocking/challenging requests after the first page when using the same browser context. A standalone debug script hitting page 2 directly works fine (348 links, 107 topic links).
+
+**Potential Solutions:**
+1. **Fresh browser context per page** - Create new context for each request to avoid session-based blocking
+2. **Longer delays** - Increase delay between requests from 4s to 8-10s
+3. **Randomized delays** - Add jitter to avoid detection patterns
+4. **Cookie/session handling** - Preserve and reuse Cloudflare cookies across requests
+5. **Stealth plugins** - Use `playwright-extra` with stealth plugin to avoid bot detection
+6. **Headful mode** - Run with `headless: false` to pass more bot checks
+
+**Files Created:**
+- `app/api/hrnPipeline/forumListingScraper.ts` - Partially working, needs Cloudflare fix
+- `app/api/hrnPipeline/data/` - Directory for output files
+
+### Estimated Costs (Revised 2026-04-08)
+Based on verified forum page counts:
+
+| Forum | Pages | Threads |
+|-------|-------|---------|
+| 24 (Reviews) | 730 | ~18,250 |
+| 17 (Clinic Results) | 410 | ~10,250 |
+| 89 (Repairs) | 6 | ~150 |
+| **Total** | 1,146 | **~28,650** |
+
+- LLM extraction: **~$8-9** (Haiku at $0.0003/thread)
+- Scrape time (sequential): ~117 hours
+- Scrape time (4 parallel): **~29 hours**
+
+---
+
+## Table of Contents
+1. [Implementation Progress](#implementation-progress)
+2. [Legal & Compliance Research](#legal--compliance-research)
+3. [Technical Findings](#technical-findings)
+4. [Signal Extraction Strategy](#signal-extraction-strategy)
+5. [Open Questions](#open-questions)
+6. [Next Steps](#next-steps)
+
+---
+
+## Implementation Progress
+
+### Files Created
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `docs/hrn-forum-scraping-mvp-plan.md` | Full MVP plan with signal schema, DB design, execution phases | Complete |
+| `app/api/hrnPipeline/hrnScraperTest.ts` | Core Playwright-based scraper | Complete |
+| `app/api/hrnPipeline/runTest.ts` | Simple test runner script | Complete |
+| `app/api/hrnPipeline/debugStructure.ts` | DOM structure inspector for debugging | Complete |
+| `app/api/hrnPipeline/investigateForum.ts` | Forum pagination investigator | Complete |
+| `app/api/hrnPipeline/forumListingScraper.ts` | Collects thread URLs from forum pages | In Progress (Cloudflare issue) |
+
+### Dependencies Added
+
+```bash
+npm install -D tsx  # For running TypeScript files directly
+npx playwright install chromium  # Browser for scraping
+```
+
+### Scraper Capabilities (Verified Working)
+
+The scraper successfully extracts the following from HRN threads:
+
+| Field | Extraction Method | Status |
+|-------|-------------------|--------|
+| Thread title | `h1` selector | ✅ Working |
+| Author username | `.ipsUsername` selector | ✅ Working |
+| Post date | `time[datetime]` attribute | ✅ Working |
+| Reply count | Regex on page text | ✅ Working |
+| View count | Regex on page text | ⚠️ Partial (not always present) |
+| OP text (full) | `[data-role="commentContent"]` | ✅ Working |
+| OP HTML | Same selector, innerHTML | ✅ Working |
+| Photo detection | Image URL extraction + keyword detection | ✅ Working |
+| Image URLs | `img` tags excluding emojis/avatars | ✅ Working |
+| Multi-page detection | Pagination element parsing | ✅ Working |
+| Last author post | Navigate to last page, find by author | ✅ Working |
+
+### Test Results
+
+**Test 1: Single-page thread**
+- URL: `https://www.hairrestorationnetwork.com/topic/57598-9-months-results-dr-taleb-barghouthi/`
+- Result: Success
+- Title: "9 months results- Dr. Taleb Barghouthi"
+- Author: aabud14
+- OP text: 2,374 characters
+- Images: 23 URLs extracted
+- Duration: ~11 seconds
+
+**Test 2: Multi-page diary thread**
+- URL: `https://www.hairrestorationnetwork.com/topic/61571-my-story-2580-fue-may-10-2021-microscope-diary-beginning-october-27-2021/`
+- Result: Success
+- Title: "My story: 2580 FUE, May 10, 2021 (Microscope diary...)"
+- Author: Lightmare
+- Pages detected: 2
+- Replies: 79
+- OP text: 3,926 characters
+- Duration: ~21 seconds
+
+### Technical Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    hrnScraperTest.ts                     │
+├─────────────────────────────────────────────────────────┤
+│  scrapeHRNThread(url, options)                          │
+│    ├── Launch Chromium via Playwright                   │
+│    ├── Navigate to thread URL                           │
+│    ├── extractThreadMetadata(page)                      │
+│    │     └── title, author, date, replies, pages        │
+│    ├── extractOriginalPost(page)                        │
+│    │     └── text, html, photos, imageUrls              │
+│    └── extractLastAuthorPost(page, browser, ...)        │
+│          └── Navigate to last page if multi-page        │
+│          └── Find most recent post by OP                │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Usage
+
+```bash
+# Run test on default URL
+npx tsx app/api/hrnPipeline/runTest.ts
+
+# Run test on specific thread
+npx tsx app/api/hrnPipeline/runTest.ts "https://www.hairrestorationnetwork.com/topic/XXXXX-thread-slug/"
+```
+
+---
+
+## Legal & Compliance Research
+
+### Summary
+
+| Aspect | Finding | Risk Level |
+|--------|---------|------------|
+| robots.txt compliance | `/topic/*` URLs are ALLOWED | ✅ Low |
+| ToS automated access clause | Gray area - we use real browser | ⚠️ Medium |
+| ToS user data collection | We collect posts, not user data | ✅ Low |
+| Cloudflare protection | Present but passable with browser | ⚠️ Medium |
+
+### robots.txt Analysis
+
+**Source:** `https://www.hairrestorationnetwork.com/robots.txt`
+
+```
+User-Agent: *
+# Block pages with no unique content
+Disallow: /startTopic/
+Disallow: /discover/unread/
+Disallow: /markallread/
+Disallow: /staff/
+Disallow: /cookies/
+Disallow: /online/
+Disallow: /discover/
+Disallow: /leaderboard/
+Disallow: /search/
+Disallow: /*?advancedSearchForm=
+Disallow: /register/
+Disallow: /lostpassword/
+Disallow: /login/
+Disallow: /*currency=
+Disallow: /*?sortby=
+Disallow: /*?filter=
+Disallow: /*?tab=
+Disallow: /*?do=
+Disallow: /*ref=
+Disallow: /*?forumId*
+Disallow: /*?&controller=embed
+Disallow: /cdn-cgi/
+
+Sitemap: https://www.hairrestorationnetwork.com/sitemap.php
+```
+
+**Key Finding:** `/topic/*` URLs are NOT in the Disallow list, meaning they explicitly permit crawling of thread content.
+
+### Terms of Service Analysis
+
+**Relevant Clauses:**
+
+1. **Robot Compliance Requirement:**
+   > "These Terms of Use also mandate that robots, spiders, Web crawlers... are Standard for Robot Exclusion (SRE)-compliant robots."
+
+   **Our Status:** Compliant — we respect robots.txt which allows `/topic/*`
+
+2. **Interface Restriction:**
+   > "You agree not to access our Web Sites by any means other than through the interface that is provided by us for use in accessing our Web Sites."
+
+   **Our Status:** Gray area — Playwright uses a real Chromium browser (the same interface humans use), but it's automated. This is the most ambiguous clause.
+
+3. **User Data Collection:**
+   > "You agree not to access or use these Sites in order to collect information about Site visitors or registered users of the Sites."
+
+   **Our Status:** Likely compliant — we're collecting post content, not user profiles or personal data. Author usernames are incidental metadata attached to posts, not "information about users."
+
+4. **Security Violations:**
+   > Prohibits attempting to "probe, scan or test the vulnerability of a system" or "interfere with service."
+
+   **Our Status:** Compliant — we're not probing security, just reading public pages.
+
+### Risk Mitigation Recommendations
+
+1. **Rate Limiting (Strongly Recommended)**
+   - Add 3-5 second delays between requests
+   - Don't scrape more than ~100-200 threads per session
+   - Consider time-of-day scheduling (off-peak hours)
+
+2. **Attribution (Strongly Recommended)**
+   - Always link back to original thread URLs in UI
+   - Consider "Source: Hair Restoration Network" attribution
+
+3. **Data Minimization**
+   - Don't store unnecessary personal data
+   - Consider anonymizing author usernames in aggregated views
+   - Only store what's needed for the signal extraction
+
+4. **Permission Request (Optional but Safest)**
+   - Contact: `copyright@HairTransplantNetwork.com`
+   - Or: Media Visions, Inc., 14260 W. Newberry Road #355, Newberry, FL 32669
+   - Pitch: "Building a clinic comparison tool that would drive traffic back to HRN threads"
+
+### Legal Precedent Context
+
+- **hiQ Labs v. LinkedIn (2022):** Established that scraping publicly accessible data is not necessarily a CFAA (Computer Fraud and Abuse Act) violation. However, this doesn't override ToS breach as a civil matter.
+
+- **Key Distinction:** We're accessing public content that they explicitly allow crawlers to index (per robots.txt). We're not bypassing authentication or accessing private data.
+
+---
+
+## Technical Findings
+
+### HRN Forum Stack
+
+- **Platform:** Invision Community (IPBoard) CMS
+- **Protection:** Cloudflare (blocks direct HTTP requests, allows real browsers)
+- **DOM Structure:** Uses `article.ipsEntry--post` for posts, `.ipsUsername` for authors
+
+### Key CSS Selectors Discovered
+
+```javascript
+// Thread title
+'h1'
+
+// First post (OP)
+'article[data-ips-first-post]'
+'.cTopic article:first-of-type'
+
+// Post content
+'[data-role="commentContent"]'
+
+// Author username
+'.ipsUsername'
+'.ipsEntry__username a'
+
+// Post date
+'time[datetime]'
+
+// Pagination
+'.ipsPagination_page'
+'.ipsPagination_last a'
+
+// Images (excluding avatars/emojis)
+'img:not([src*="emoji"]):not([src*="avatar"]):not([src*="rank"])'
+```
+
+### Performance Characteristics
+
+| Metric | Value |
+|--------|-------|
+| Single-page thread | ~11-12 seconds |
+| Multi-page thread (2 pages) | ~20-22 seconds |
+| Browser launch overhead | ~2-3 seconds |
+| Per-page navigation | ~5-8 seconds |
+
+### Limitations Identified
+
+1. **View count** not consistently available on all threads
+2. **Cloudflare** occasionally shows challenge page (mitigated by using real browser UA)
+3. **Multi-page last author post** requires separate page load (adds latency)
+
+---
+
+## Signal Extraction Strategy
+
+### Raw Data → Signal Mapping
+
+The scraper collects raw data that must be transformed into the MVP signals. Here's how each signal will be derived:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        WHAT WE SCRAPE (Raw Data)                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  threadUrl, threadTitle, author, postDate,                                  │
+│  replyCount, viewCount, hasPhotos, imageUrls                                │
+│                                    │                                        │
+│                                    ▼                                        │
+│                          Direct passthrough to signals                      │
+│                                                                             │
+│  opText + lastAuthorPost.text                                               │
+│                                    │                                        │
+│                                    ▼                                        │
+│                    Text requiring extraction processing                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                    ┌────────────────┴────────────────┐
+                    ▼                                 ▼
+          ┌─────────────────┐               ┌─────────────────┐
+          │   Regex Layer   │               │    LLM Layer    │
+          │  (cheap/fast)   │               │ (smart/context) │
+          └─────────────────┘               └─────────────────┘
+                    │                                 │
+                    ▼                                 ▼
+          • graft_count                     • clinic_name
+          • timeline_markers                • doctor_name
+          • has_photos                      • issue_keywords (with context)
+                                            • is_repair_case
+                                            • sentiment_label
+                                            • satisfaction_label
+                                            • summary_short
+                                            • main_topics
+```
+
+### Decision: Hybrid Regex + LLM Approach
+
+After analysis, we determined that **pure regex extraction is unreliable for context-dependent signals**.
+
+#### The Problem with Regex
+
+```
+Example 1 - Doctor attribution:
+"I was considering Dr. Koray but ultimately went with Dr. Pekiner"
+→ Regex finds BOTH names, but which is THE doctor for this thread?
+
+Example 2 - Negated issues:
+"Unlike my friend who had shock loss, I didn't experience any"
+→ Regex finds "shock loss", but it's actually a NEGATIVE (good) signal
+
+Example 3 - Repair context:
+"This was a repair case after my botched HT at Clinic X, now with Clinic Y"
+→ Which clinic do we attribute this to? Regex can't determine.
+```
+
+#### The Solution: Tiered Extraction
+
+| Signal | Method | Rationale |
+|--------|--------|-----------|
+| `thread_url` | Direct | From scrape |
+| `thread_title` | Direct | From scrape |
+| `author` | Direct | From scrape |
+| `post_date` | Direct | From scrape |
+| `reply_count` | Direct | From scrape |
+| `view_count` | Direct | From scrape (when available) |
+| `has_photos` | Direct | From scrape |
+| `graft_count` | **Regex** | Numbers are unambiguous ("3000 grafts") |
+| `timeline_markers` | **Regex** | Patterns like "6 months" are unambiguous |
+| `clinic_name` | **LLM** | Context needed to identify THE clinic |
+| `doctor_name` | **LLM** | Context needed to identify THE doctor |
+| `issue_keywords` | **LLM** | Negation matters ("no shock loss" ≠ "shock loss") |
+| `is_repair_case` | **LLM** | Need to understand if THIS procedure was repair |
+| `sentiment_label` | **LLM** | Requires understanding tone |
+| `satisfaction_label` | **LLM** | Requires understanding outcome |
+| `summary_short` | **LLM** | Requires comprehension |
+| `main_topics` | **LLM** | Requires categorization |
+
+### Cost Analysis
+
+Using Claude Haiku for LLM extraction:
+
+| Metric | Estimate |
+|--------|----------|
+| Avg thread text size | ~3,000 characters (~1K tokens) |
+| LLM output | ~200 tokens |
+| Cost per thread | ~$0.0003 |
+| Cost for 1,000 threads | ~$0.30 |
+| Cost for 28,650 threads | ~$8.60 |
+
+**Conclusion:** LLM extraction is cheap enough to use broadly. Even at ~28K threads, total cost is under $10. The accuracy gain justifies the minimal cost.
+
+### Transparency & Auditability
+
+Per the MVP plan, every signal will store its extraction metadata:
+
+```typescript
+{
+  signal_name: "is_repair_case",
+  signal_value: true,
+  evidence_snippet: "This was my second HT after a botched procedure at...",
+  extraction_method: "llm",        // "regex" | "keyword" | "llm"
+  extraction_version: "v1.0",
+  model_name: "claude-3-haiku",    // LLM fields only
+  prompt_version: "v1.0",          // LLM fields only
+  run_timestamp: "2026-04-08T..."  // LLM fields only
+}
+```
+
+This allows users to understand HOW each signal was determined and trace back to the source evidence.
+
+---
+
+## Thread Discovery (Investigated)
+
+### Sitemap Findings
+
+The HRN sitemap (`sitemap.php`) contains:
+- **290 topic sitemap files** (`Topic_1` through `Topic_290`)
+- **~14,500 threads total** across all forums
+- Each entry includes `lastmod` timestamp (useful for detecting updates)
+
+**Sample sitemap entry:**
+```xml
+<url>
+  <loc>https://www.hairrestorationnetwork.com/topic/78247-smile-hair-clinic...</loc>
+  <lastmod>2026-04-01T11:20:14-03:00</lastmod>
+</url>
+```
+
+### URL Analysis
+
+Analyzed 80 sample thread URLs:
+- **~38% have clinic/doctor name in URL** (e.g., `dr-koray-3000-grafts-...`)
+- **~62% are generic** (e.g., `my-hair-transplant-journey`, `need-advice`)
+
+**Conclusion:** URL filtering alone would miss ~60% of relevant threads. LLM classification is needed.
+
+### Forum Structure
+
+Key forums identified for scraping:
+
+| Forum | ID | Content |
+|-------|-----|---------|
+| Results Posted by Clinics | 17 | Official clinic before/after |
+| Hair Transplant Reviews | 24 | Patient experiences |
+| Hair Transplant Repairs | 89 | Repair/revision cases |
+
+Thread pages include breadcrumb showing forum:
+```
+Home → Surgical Hair Restoration → Hair Transplant Reviews (forum/24)
+```
+
+### Discovery Strategy (Decided)
+
+**Approach:** Scrape forum listing pages directly rather than filtering sitemap.
+
+1. Scrape `/forum/17-...`, `/forum/24-...`, `/forum/89-...` listing pages
+2. Paginate to collect all thread URLs from those forums
+3. Scrape only those threads (~5K estimated)
+4. Use LLM to classify clinic/doctor (can't rely on URL alone)
+
+**Estimated cost:** ~$8-9 (Haiku) for full extraction on ~28K threads
+
+### Clinic/Doctor Attribution (Decided)
+
+**Decision:** LLM determines clinic/doctor from thread content.
+
+Rationale:
+- URL only contains clinic name ~38% of the time
+- Even when present, context matters ("considered Dr. X, went with Dr. Y")
+- LLM can handle this reliably in same call as other signal extraction
+
+---
+
+## Scraping & Re-scraping Strategy
+
+### Initial Scrape
+
+One-time scrape of all threads from target forums (17, 24, 89):
+- Estimated **~28,650 threads** (verified via pagination)
+- Playwright scrape: ~11-20 sec per thread
+- Full scrape time (sequential): ~117 hours
+- Full scrape time (4 parallel): **~29 hours**
+- LLM extraction cost: **~$8-9**
+
+### Incremental Updates (New Threads)
+
+**Frequency:** Weekly
+
+**Process:**
+1. Re-fetch sitemap
+2. Identify new thread URLs not in our database
+3. Scrape and process only new threads
+
+**Expected volume:** ~20-50 new threads/week in target forums
+
+> **Note (2026-04-08):** This estimate is based on forum activity rate, not historical thread count. The larger base (28K vs original 5K estimate) doesn't change the rate of new thread creation.
+
+### Re-scraping (Thread Updates)
+
+**Why:** Capture long-term updates (e.g., "12 month results" added to old thread)
+
+**Strategy:** Use sitemap `lastmod` timestamp
+
+```
+For each thread in our DB:
+  if sitemap.lastmod > our.last_scraped_at:
+    re-scrape thread
+    re-run LLM extraction
+```
+
+**Frequency:** Weekly, alongside new thread check
+
+**Cost:** Negligible (~$0.0006 per updated thread)
+
+> **Note (2026-04-08):** Even with 28K threads, if 5% update weekly = ~1,430 re-scrapes = ~$0.86/week. The larger thread base doesn't significantly impact incremental costs.
+
+### Database Fields for Tracking
+
+```sql
+thread_url         -- unique identifier
+first_scraped_at   -- when we first captured this thread
+last_scraped_at    -- when we last scraped it
+sitemap_lastmod    -- lastmod from sitemap (to detect changes)
+```
+
+---
+
+## Open Questions
+
+### Forum Listing Pagination
+
+Need to verify:
+- How many pages per forum?
+- How many threads per page?
+- Total thread count for forums 17, 24, 89
+
+(Initial test showed unexpected results - needs further investigation)
+
+---
+
+## Next Steps
+
+### Immediate Priority: Forum Listing Scraper
+
+- [x] Investigate HRN sitemap - DONE (290 files, ~14.5K threads)
+- [x] Decide on discovery strategy - DONE (scrape forum listings for targeted forums)
+- [x] Verify pagination and total thread counts per forum - DONE (~28.6K threads total)
+- [ ] Build forum listing scraper to collect thread URLs from forums 17, 24, 89
+  - [x] Basic scraper structure created
+  - [ ] **Fix Cloudflare blocking on pagination** ← CURRENT BLOCKER
+
+### Phase 3: Extraction Layer
+
+- [ ] Build regex extractors for unambiguous signals:
+  - Timeline markers ("6 months", "1 year", "12 month update")
+  - Graft counts (numbers near "grafts")
+- [ ] Build LLM extraction prompt for context-dependent signals:
+  - clinic_name, doctor_name
+  - issue_keywords (with negation handling)
+  - is_repair_case
+  - sentiment_label, satisfaction_label
+  - summary_short, main_topics
+- [ ] Add evidence snippet storage (exact text that triggered each signal)
+
+### Database & Pipeline
+
+- [ ] Create Supabase migration for HRN tables:
+  - `clinic_hrn_threads`
+  - `hrn_thread_signals`
+  - `hrn_thread_llm_analysis`
+- [ ] Build HRN service layer following Instagram pipeline pattern
+- [ ] Create batch scraper with rate limiting (3-5 sec between requests)
+
+### QA & UI
+
+- [ ] Manual QA process for first 30-50 threads
+- [ ] Basic UI component for displaying HRN signals per clinic
+- [ ] Attribution links back to source threads
+
+---
+
+## Appendix: Sample Scraped Data
+
+```json
+{
+  "threadUrl": "https://www.hairrestorationnetwork.com/topic/57598-9-months-results-dr-taleb-barghouthi/",
+  "threadTitle": "9 months results- Dr. Taleb Barghouthi",
+  "author": "aabud14",
+  "postDate": "2020-08-31T09:15:39Z",
+  "replyCount": 3,
+  "viewCount": null,
+  "opText": "Dear community, \n\nIt is my first time posting here as to be honest I was not aware of this forum in my region until I recently was informed by some friends to post and share experiences. I am a 38 years old and have suffered with male pattern hair loss for few years...",
+  "hasPhotos": true,
+  "imageUrls": [
+    "//media.invisioncic.com/o278943/monthly_2020_08/IMG_6617.thumb.jpg...",
+    "//media.invisioncic.com/o278943/monthly_2020_08/IMG_6618.thumb.jpg...",
+    // ... 21 more images
+  ],
+  "lastAuthorPost": {
+    "text": "Thank you @Melvin-Moderator",
+    "date": "2020-09-01T11:14:42Z",
+    "pageNumber": 1
+  },
+  "scrapeStrategy": "op_and_last",
+  "totalPages": 1
+}
+```

@@ -2,8 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { CopilotKit } from "@copilotkit/react-core";
-import { createA2UIMessageRenderer } from "@copilotkit/a2ui-renderer";
-import { a2uiViewerTheme } from "@/lib/a2ui/viewer-theme";
+import type { ReactActivityMessageRenderer } from "@copilotkitnext/react";
 import LeilaHero from "@/components/leila/LeilaHero";
 import LeilaNarrative from "@/components/leila/LeilaNarrative";
 import LeilaChat from "@/components/leila/LeilaChat";
@@ -38,14 +37,23 @@ export default function LeilaPage() {
     }
   }, [user, profile, isAuthenticated]);
 
-  // Create A2UI renderer - must be stable (useMemo)
-  const A2UIRenderer = useMemo(
-    () => createA2UIMessageRenderer({ theme: a2uiViewerTheme }),
-    []
-  );
+  // Load A2UI renderer client-side only — @a2ui/lit registers web components and
+  // cannot run during SSR (would throw "CustomElementRegistry: already defined").
+  const [A2UIRenderer, setA2UIRenderer] = useState<ReactActivityMessageRenderer<unknown> | null>(null);
+  useEffect(() => {
+    Promise.all([
+      import("@copilotkitnext/react"),
+      import("@/lib/a2ui/viewer-theme"),
+    ]).then(([{ createA2UIMessageRenderer }, { a2uiViewerTheme }]) => {
+      setA2UIRenderer(() => createA2UIMessageRenderer({ theme: a2uiViewerTheme }));
+    });
+  }, []);
 
   // Memoize the renderActivityMessages array to prevent React warnings
-  const renderActivityMessages = useMemo(() => [A2UIRenderer], [A2UIRenderer]);
+  const renderActivityMessages = useMemo(
+    () => (A2UIRenderer ? [A2UIRenderer] : []),
+    [A2UIRenderer]
+  );
 
   const handleStartConsultation = (question: string) => {
     if (question.trim()) {

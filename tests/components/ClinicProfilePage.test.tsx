@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ClinicProfilePage } from '@/components/istanbulmedic-connect/profile/ClinicProfilePage';
 import type { ClinicDetail } from '@/lib/api/clinics';
-import type { InstagramIntelligenceVM } from '@/components/istanbulmedic-connect/types';
 
 // Mock Next.js components and hooks
 vi.mock('next/navigation', () => ({
@@ -27,14 +26,6 @@ vi.mock('next/font/google', () => ({
   Merriweather: () => ({
     className: 'mocked-merriweather',
   }),
-}));
-
-vi.mock('@/components/istanbulmedic-connect/profile/instagram/InstagramTabContent', () => ({
-  InstagramTabContent: ({ data }: { data?: InstagramIntelligenceVM | null }) => (
-    <div data-testid="instagram-tab-content">
-      {data?.username ? `@${data.username}` : 'No Instagram data'}
-    </div>
-  ),
 }));
 
 // Mock recharts to avoid rendering issues
@@ -98,7 +89,8 @@ describe('ClinicProfilePage', () => {
     yearsInOperation: null,
     proceduresPerformed: null,
     totalReviewCount: 0,
-    instagram: null,
+    instagramSignals: null,
+    redditSignals: null,
     ...overrides,
   });
 
@@ -133,24 +125,38 @@ describe('ClinicProfilePage', () => {
     expect(elements.length).toBeGreaterThan(0);
   });
 
-  it('renders instagram data when present', () => {
+  it('renders instagram signals card when present', () => {
     const clinic = createMinimalClinic({
-      instagram: {
+      instagramSignals: {
         username: 'istanbulclinic',
+        followersCount: 25000,
+        lastUpdated: '2026-03-01T00:00:00Z',
+        signals: [
+          {
+            id: 'engagement',
+            label: 'Engagement',
+            status: 'positive',
+            type: 'percentile',
+            percentile: 72,
+            metric: '2.3%',
+            statusText: 'Above average',
+            explanation: 'Genuine engagement suggests real patients are following.',
+          },
+        ],
       },
     });
     render(<ClinicProfilePage clinic={clinic} />);
 
-    expect(screen.getByText('Social Presence & Brand Signals')).toBeInTheDocument();
+    expect(screen.getByText('Social Media Presence')).toBeInTheDocument();
     expect(screen.getByText('@istanbulclinic')).toBeInTheDocument();
   });
 
-  it('renders instagram empty state when instagram data is null', () => {
-    const clinic = createMinimalClinic({ instagram: null });
+  it('does not render instagram card when instagramSignals is null', () => {
+    const clinic = createMinimalClinic({ instagramSignals: null });
     render(<ClinicProfilePage clinic={clinic} />);
 
-    expect(screen.getByText('Social Presence & Brand Signals')).toBeInTheDocument();
-    expect(screen.getByText('No Instagram data')).toBeInTheDocument();
+    // The signals card should not be present when there's no data
+    expect(screen.queryByText('Social Media Presence')).not.toBeInTheDocument();
   });
 
   // TODO: Unskip when FEATURE_CONFIG.profileOverview is enabled
@@ -160,30 +166,27 @@ describe('ClinicProfilePage', () => {
         {
           id: 'srv-1',
           clinic_id: 'clinic-1',
-          service_name: 'FUE Hair Transplant',
-          service_category: 'Hair',
+          service_name: 'Hair Transplant',
+          service_category: 'Medical Tourism',
           is_primary_service: true,
-          created_at: null,
-          updated_at: null,
-          raw_text: null,
         },
       ],
     });
     render(<ClinicProfilePage clinic={clinic} />);
-    expect(screen.getByText(/FUE Hair Transplant/)).toBeInTheDocument();
+    expect(screen.getByText(/Hair Transplant/)).toBeInTheDocument();
   });
 
   // TODO: Unskip when FEATURE_CONFIG.profileLanguages is enabled
   it.skip('renders languages from clinic_languages', () => {
     const clinic = createMinimalClinic({
       languages: [
-        { id: 'lang-1', clinic_id: 'clinic-1', language: 'English', proficiency_level: 'native', created_at: null },
-        { id: 'lang-2', clinic_id: 'clinic-1', language: 'Turkish', proficiency_level: 'native', created_at: null },
+        { id: 'lang-1', clinic_id: 'clinic-1', language: 'English', support_type: 'staff' },
+        { id: 'lang-2', clinic_id: 'clinic-1', language: 'German', support_type: 'staff' },
       ],
     });
     render(<ClinicProfilePage clinic={clinic} />);
     expect(screen.getByText(/English/)).toBeInTheDocument();
-    expect(screen.getByText(/Turkish/)).toBeInTheDocument();
+    expect(screen.getByText(/German/)).toBeInTheDocument();
   });
 
   // TODO: Unskip when FEATURE_CONFIG.profileDoctors is enabled
@@ -198,9 +201,7 @@ describe('ClinicProfilePage', () => {
           photo_url: 'https://example.com/dr-smith.jpg',
           credentials: 'ISHRS Member',
           years_experience: 15,
-          bio: null,
-          created_at: null,
-          updated_at: null,
+          doctor_involvement_level: 'high',
         },
       ],
     });
@@ -226,13 +227,9 @@ describe('ClinicProfilePage', () => {
           credential_type: 'accreditation',
           credential_name: 'JCI Accredited',
           issuing_body: 'Joint Commission International',
-          credential_number: null,
+          credential_id: null,
           valid_from: null,
-          valid_until: null,
-          document_url: null,
-          verified: true,
-          created_at: null,
-          updated_at: null,
+          valid_to: null,
         },
       ],
     });
@@ -247,17 +244,11 @@ describe('ClinicProfilePage', () => {
         {
           id: 'rev-1',
           clinic_id: 'clinic-1',
-          platform: 'google',
+          source_id: 'source-1',
           rating: '5/5',
           review_text: 'Excellent experience, highly recommend!',
           review_date: '2025-01-15',
-          author_name: null,
-          author_location: null,
-          procedure_type: null,
-          has_before_after: null,
-          verified: true,
-          source_url: null,
-          created_at: null,
+          language: null,
         },
       ],
     });
@@ -273,19 +264,14 @@ describe('ClinicProfilePage', () => {
           id: 'price-1',
           clinic_id: 'clinic-1',
           service_name: 'FUE Hair Transplant',
-          service_type: null,
+          pricing_type: 'range',
           price_min: 2500,
           price_max: 4000,
           currency: 'USD',
-          pricing_model: 'per_graft',
-          graft_count_min: 2000,
-          graft_count_max: 4000,
-          includes_accommodation: null,
-          includes_transport: null,
-          includes_aftercare: null,
+          is_verified: null,
+          last_verified_at: null,
           notes: null,
-          created_at: null,
-          updated_at: null,
+          source_id: null,
         },
       ],
     });
@@ -301,14 +287,14 @@ describe('ClinicProfilePage', () => {
           id: 'pkg-1',
           clinic_id: 'clinic-1',
           package_name: 'Premium Hair Transplant Package',
-          package_description: 'All-inclusive package',
-          price_base: 3500,
           currency: 'USD',
           nights_included: 3,
           transport_included: true,
-          aftercare_included: true,
-          created_at: null,
-          updated_at: null,
+          aftercare_duration_days: null,
+          excludes: [],
+          includes: [],
+          price_min: null,
+          price_max: null,
         },
       ],
     });
@@ -323,11 +309,11 @@ describe('ClinicProfilePage', () => {
         {
           id: 'sc-1',
           clinic_id: 'clinic-1',
-          component_name: 'transparency',
+          component_key: 'transparency',
           score: 95,
+          weight: 1.0,
+          computed_at: '2025-01-01T00:00:00Z',
           explanation: 'This clinic has excellent transparency practices.',
-          created_at: null,
-          updated_at: null,
         },
       ],
     });
@@ -346,15 +332,10 @@ describe('ClinicProfilePage', () => {
           mention_text: 'Had a great experience at this clinic!',
           sentiment: 'positive',
           topic: 'praise',
-          relevance_score: 0.9,
           created_at: '2025-01-20T00:00:00Z',
           sources: {
-            id: 'source-1',
             source_type: 'reddit',
             source_name: 'r/HairTransplants',
-            url: 'https://reddit.com/r/HairTransplants/123',
-            author_handle: 'happy_patient',
-            // other source fields
           },
         },
       ] as ClinicDetail['mentions'],
@@ -392,13 +373,14 @@ describe('ClinicProfilePage', () => {
           clinic_id: 'clinic-1',
           location_name: 'Main Office',
           address_line: '123 Medical Street, Sisli',
+          city: 'Sisli',
+          country: 'Turkey',
+          postal_code: '34367',
           latitude: 41.0082,
           longitude: 28.9784,
           is_primary: true,
           opening_hours: null,
           payment_methods: null,
-          created_at: null,
-          updated_at: null,
         },
       ],
     });
@@ -443,10 +425,13 @@ describe('ClinicProfilePage', () => {
           clinic_id: 'clinic-1',
           media_type: 'image',
           url: 'https://example.com/hero.jpg',
+          alt_text: null,
           caption: null,
           is_primary: true,
           display_order: 0,
           created_at: null,
+          source_id: null,
+          uploaded_at: null,
         },
       ],
     });
@@ -465,23 +450,19 @@ describe('ClinicProfilePage', () => {
           name: 'Dr. Jane Doe',
           role: 'surgeon',
           photo_url: null,
-          credentials: null,
+          credentials: '',
           years_experience: 10,
-          bio: null,
-          created_at: null,
-          updated_at: null,
+          doctor_involvement_level: 'high',
         },
         {
           id: 'team-2',
           clinic_id: 'clinic-1',
           name: 'John Admin',
-          role: 'admin',  // Should be filtered out
+          role: 'other',  // Should be filtered out
           photo_url: null,
-          credentials: null,
+          credentials: '',
           years_experience: 5,
-          bio: null,
-          created_at: null,
-          updated_at: null,
+          doctor_involvement_level: 'low',
         },
       ],
     });
@@ -498,21 +479,15 @@ describe('ClinicProfilePage', () => {
           id: 'srv-1',
           clinic_id: 'clinic-1',
           service_name: 'Hair Transplant',
-          service_category: 'Hair',
+          service_category: 'Medical Tourism',
           is_primary_service: true,
-          created_at: null,
-          updated_at: null,
-          raw_text: null,
         },
         {
           id: 'srv-2',
           clinic_id: 'clinic-1',
           service_name: 'Hair Transplant',  // Duplicate
-          service_category: 'Hair',
+          service_category: 'Medical Tourism',
           is_primary_service: true,
-          created_at: null,
-          updated_at: null,
-          raw_text: null,
         },
       ],
     });

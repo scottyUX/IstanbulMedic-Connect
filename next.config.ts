@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
         hostname: "ioofmlovhjvnnqvczeri.supabase.co",
         pathname: "/storage/**",
       },
+      // Google user avatars (OAuth profile pictures)
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
+      },
       // Instagram CDN domains for profile pics and posts
       {
         protocol: "https",

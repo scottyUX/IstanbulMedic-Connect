@@ -31,7 +31,17 @@ vi.mock('@supabase/supabase-js', () => {
 // Pull live references to the mocks after the module has been set up
 import { createClient } from '@supabase/supabase-js'
 
-const _client    = (createClient as any)()
+type MockSupabaseClient = {
+  from: () => {
+    upsert: ReturnType<typeof vi.fn>
+    insert: ReturnType<typeof vi.fn>
+    update: ReturnType<typeof vi.fn>
+    select: ReturnType<typeof vi.fn>
+    eq: ReturnType<typeof vi.fn>
+  }
+  rpc: ReturnType<typeof vi.fn>
+}
+const _client    = (createClient as unknown as () => MockSupabaseClient)()
 const mockUpsert = _client.from().upsert  as ReturnType<typeof vi.fn>
 const mockInsert = _client.from().insert  as ReturnType<typeof vi.fn>
 const mockUpdate = _client.from().update  as ReturnType<typeof vi.fn>
@@ -241,7 +251,7 @@ describe('POST /api/import/instagram', () => {
       mockSupabaseSuccess()
       await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
       const [, factsArg] = mockRpc.mock.calls[0]
-      const facts: any[] = factsArg.facts_data
+      const facts: Array<Record<string, unknown>> = factsArg.facts_data
       expect(facts.some(f => f.fact_key === 'instagram_followers_count' && f.fact_value === 2140)).toBe(true)
     })
 
@@ -249,21 +259,21 @@ describe('POST /api/import/instagram', () => {
       mockSupabaseSuccess()
       await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
       const [, { facts_data }] = mockRpc.mock.calls[0]
-      expect(facts_data.some((f: any) => f.fact_key === 'instagram_verified' && f.fact_value === false)).toBe(true)
+      expect(facts_data.some((f: Record<string, unknown>) => f.fact_key === 'instagram_verified' && f.fact_value === false)).toBe(true)
     })
 
     it('includes address_from_instagram when address present', async () => {
       mockSupabaseSuccess()
       await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
       const [, { facts_data }] = mockRpc.mock.calls[0]
-      expect(facts_data.some((f: any) => f.fact_key === 'address_from_instagram')).toBe(true)
+      expect(facts_data.some((f: Record<string, unknown>) => f.fact_key === 'address_from_instagram')).toBe(true)
     })
 
     it('includes instagram_positioning_claims', async () => {
       mockSupabaseSuccess()
       await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
       const [, { facts_data }] = mockRpc.mock.calls[0]
-      const claim = facts_data.find((f: any) => f.fact_key === 'instagram_positioning_claims')
+      const claim = facts_data.find((f: Record<string, unknown>) => f.fact_key === 'instagram_positioning_claims')
       expect(claim).toBeDefined()
       expect(JSON.parse(claim.fact_value)).toContain('accredited')
     })
@@ -272,7 +282,7 @@ describe('POST /api/import/instagram', () => {
       mockSupabaseSuccess()
       await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
       const [, { facts_data }] = mockRpc.mock.calls[0]
-      const svc = facts_data.find((f: any) => f.fact_key === 'instagram_inferred_services')
+      const svc = facts_data.find((f: Record<string, unknown>) => f.fact_key === 'instagram_inferred_services')
       expect(svc).toBeDefined()
       const parsed = JSON.parse(svc.fact_value)
       expect(parsed).toContain('hair_transplant')
@@ -284,7 +294,7 @@ describe('POST /api/import/instagram', () => {
       const [, { facts_data }] = mockRpc.mock.calls[0]
       const postDerived = ['instagram_avg_likes_per_post', 'instagram_top_hashtags', 'instagram_inferred_services']
       postDerived.forEach(key => {
-        expect(facts_data.some((f: any) => f.fact_key === key)).toBe(false)
+        expect(facts_data.some((f: Record<string, unknown>) => f.fact_key === key)).toBe(false)
       })
     })
 
@@ -407,7 +417,7 @@ describe('POST /api/import/instagram', () => {
       mockSupabaseSuccess()
       await POST(makeRequest({ clinicId: 'clinic-123', instagramData: mixedPosts }))
       const [, { facts_data }] = mockRpc.mock.calls[0]
-      const sampleFact = facts_data.find((f: any) => f.fact_key === 'instagram_top_commented_posts_sample')
+      const sampleFact = facts_data.find((f: Record<string, unknown>) => f.fact_key === 'instagram_top_commented_posts_sample')
       const parsed = JSON.parse(sampleFact.fact_value)
       expect(parsed).toHaveLength(1)
       expect(parsed[0].postUrl).toContain('p1')
@@ -424,7 +434,7 @@ describe('POST /api/import/instagram', () => {
       mockSupabaseSuccess()
       await POST(makeRequest({ clinicId: 'clinic-123', instagramData: noCommentPosts }))
       const [, { facts_data }] = mockRpc.mock.calls[0]
-      const sampleFact = facts_data.find((f: any) => f.fact_key === 'instagram_top_commented_posts_sample')
+      const sampleFact = facts_data.find((f: Record<string, unknown>) => f.fact_key === 'instagram_top_commented_posts_sample')
       expect(sampleFact).toBeUndefined()
     })
   })
@@ -646,7 +656,7 @@ describe('POST /api/import/instagram', () => {
       mockSupabaseSuccess()
       await POST(makeRequest({ clinicId: 'clinic-123', instagramData: multiPost }))
       const [, { facts_data }] = mockRpc.mock.calls[0]
-      const avgFact = facts_data.find((f: any) => f.fact_key === 'instagram_avg_likes_per_post')
+      const avgFact = facts_data.find((f: Record<string, unknown>) => f.fact_key === 'instagram_avg_likes_per_post')
       expect(avgFact.fact_value).toBe(20) // (10+20+30)/3
     })
   })

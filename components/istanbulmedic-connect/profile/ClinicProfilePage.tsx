@@ -11,7 +11,8 @@ import { AIInsightsSection } from "./AIInsightsSection"
 import { ReviewsSection } from "./ReviewsSection"
 import { normalizeReviewSource } from "@/lib/review-sources"
 import { CommunitySignalsSection } from "./CommunitySignalsSection"
-import { InstagramIntelligenceSection } from "./InstagramIntelligenceSection"
+import { InstagramSignalsCard } from "./InstagramSignalsCard"
+import { RedditSignalsCard } from "./RedditSignalsCard"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
 import type { ClinicDetail } from "@/lib/api/clinics"
@@ -238,7 +239,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-base antialiased">
+    <div className="min-h-screen bg-background text-base antialiased" data-testid="clinic-profile">
       {/* Hero Section */}
       <HeroSection
         clinicName={clinic.name}
@@ -327,8 +328,12 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
             />
           )}
 
-          {FEATURE_CONFIG.profileInstagram && (
-            <InstagramIntelligenceSection data={clinic.instagram} />
+          {FEATURE_CONFIG.profileInstagram && clinic.instagramSignals && (
+            <InstagramSignalsCard data={clinic.instagramSignals} />
+          )}
+
+          {FEATURE_CONFIG.profileRedditSignals && clinic.redditSignals && (
+            <RedditSignalsCard data={clinic.redditSignals} />
           )}
         </div>
       </div>

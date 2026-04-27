@@ -12,7 +12,7 @@ vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
 
 // ─── Mock Supabase ────────────────────────────────────────────────────────────
 const mockSingle = vi.fn()
-const mockSelect = vi.fn(() => ({ single: mockSingle }))
+const mockSelect = vi.fn(() => ({ single: mockSingle, eq: vi.fn(), order: vi.fn() }))
 const mockInsert = vi.fn(() => ({ select: mockSelect }))
 const mockUpdate = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
 const mockDelete = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({}) }))
@@ -39,7 +39,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }))
 
 // ─── Helpers (duplicated from route.ts for unit testing) ─────────────────────
-function extractLocationDetails(addressComponents: any[], claimsLocation?: any) {
+function extractLocationDetails(addressComponents: { types: string[]; long_name: string }[], claimsLocation?: { city?: string; state?: string; country?: string; postal_code?: string }) {
   let city = claimsLocation?.city || ''
   let state = claimsLocation?.state || ''
   let country = claimsLocation?.country || ''
@@ -67,7 +67,7 @@ function mapServiceType(serviceType: string) {
   return { category: 'Other', name: 'Other' }
 }
 
-function constructPhotoUrl(photo: any): string {
+function constructPhotoUrl(photo: { photo_reference?: string } | string): string {
   if (typeof photo === 'string') return photo
   if (photo.photo_reference) {
     return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}`
@@ -115,7 +115,7 @@ describe('extractLocationDetails', () => {
   })
 
   it('handles null address components gracefully', () => {
-    expect(extractLocationDetails(null as any)).toEqual({
+    expect(extractLocationDetails(null as unknown as { types: string[]; long_name: string }[])).toEqual({
       city: 'Unknown',
       country: 'Unknown',
       postal_code: '',
@@ -226,12 +226,12 @@ describe('POST /api/import/google-places', () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new ArrayBuffer(8),
-    } as any)
+    } as unknown as Response)
 
     mockUpload.mockResolvedValue({ error: null })
   })
 
-  async function callRoute(body: any) {
+  async function callRoute(body: Record<string, unknown>) {
     const { POST } = await import('../app/api/import/google-places/route')
     const req = new NextRequest('http://localhost/api/import/google-places', {
       method: 'POST',
