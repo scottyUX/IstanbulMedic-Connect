@@ -9,7 +9,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -27,7 +27,7 @@ jobs:
     name: Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -53,7 +53,7 @@ jobs:
       CAL_COM_API_KEY: placeholder
       CAL_COM_EVENT_TYPE_ID: "0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -90,7 +90,7 @@ jobs:
       CAL_COM_API_KEY: ${{ secrets.CAL_COM_API_KEY }}
       CAL_COM_EVENT_TYPE_ID: ${{ secrets.CAL_COM_EVENT_TYPE_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node
         uses: actions/setup-node@v4
