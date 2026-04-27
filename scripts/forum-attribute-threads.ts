@@ -132,20 +132,50 @@ async function main() {
   const clinicNames = await loadClinicNames()
   console.log(`Loaded ${clinicNames.length} clinics (with aliases and doctor names)`)
 
-  // Fetch unattributed threads
-  let query = supabase
-    .from('forum_thread_index')
-    .select('id, title, forum_source, source_id')
-    .is('clinic_id', null)
-    .limit(limit)
-    .order('first_scraped_at', { ascending: true })
+  // Paginate all queries in 1000-row batches (Supabase server-side max)
+  const PAGE_SIZE = 1000
 
-  if (sourceArg) query = query.eq('forum_source', sourceArg)
+  // Load all already-attempted thread IDs (paginated — may exceed 1000 rows)
+  const attemptedIds = new Set<string>()
+  let attemptedOffset = 0
+  while (true) {
+    const { data: page } = await supabase
+      .from('forum_thread_llm_analysis')
+      .select('thread_id')
+      .eq('is_current', true)
+      .range(attemptedOffset, attemptedOffset + PAGE_SIZE - 1)
+    for (const r of page ?? []) attemptedIds.add(r.thread_id)
+    if (!page?.length || page.length < PAGE_SIZE) break
+    attemptedOffset += PAGE_SIZE
+  }
+  console.log(`Already attempted: ${attemptedIds.size} threads (skipping)`)
+  const threads: { id: string; title: string | null; forum_source: string; source_id: string | null }[] = []
+  let offset = 0
 
-  const { data: threads, error } = await query
-  if (error) throw error
+  while (threads.length < limit) {
+    let pageQuery = supabase
+      .from('forum_thread_index')
+      .select('id, title, forum_source, source_id')
+      .is('clinic_id', null)
+      .order('first_scraped_at', { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1)
 
-  if (!threads?.length) {
+    if (sourceArg) pageQuery = pageQuery.eq('forum_source', sourceArg)
+
+    const { data: page, error } = await pageQuery
+    if (error) throw error
+    if (!page?.length) break
+
+    for (const row of page) {
+      if (threads.length >= limit) break
+      if (!attemptedIds.has(row.id)) threads.push(row)
+    }
+
+    if (page.length < PAGE_SIZE) break  // last page
+    offset += PAGE_SIZE
+  }
+
+  if (!threads.length) {
     console.log('No unattributed threads found.')
     return
   }
