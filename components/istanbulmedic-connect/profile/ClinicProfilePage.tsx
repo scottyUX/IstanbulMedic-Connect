@@ -23,12 +23,16 @@ import {
   type OpeningHoursJson,
 } from "@/lib/transformers/clinic"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
+import { RegistrySection } from "./RegistrySection"
+import type { RegistryRecord, ComplianceEvent } from "./RegistrySection"
 
 type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
 type CommunitySentiment = "Positive" | "Neutral" | "Negative"
 
 interface ClinicProfilePageProps {
   clinic: ClinicDetail
+  registryRecords: RegistryRecord[]
+  complianceHistory: ComplianceEvent[]
 }
 
 const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
@@ -44,7 +48,7 @@ const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
 }
 
 
-export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
+export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }: ClinicProfilePageProps) => {
   // Transform database data to component format
 
   // Get languages from clinic_languages
@@ -294,6 +298,13 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
               <TransparencySection
                 transparencyScore={clinic.trustScore}
                 items={transparencyItems}
+              />
+            )}
+
+            {FEATURE_CONFIG.profileRegistry && (
+              <RegistrySection
+                registryRecords={registryRecords}
+                complianceHistory={complianceHistory}
               />
             )}
 
