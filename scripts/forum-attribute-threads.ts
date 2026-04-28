@@ -139,11 +139,12 @@ async function main() {
   const attemptedIds = new Set<string>()
   let attemptedOffset = 0
   while (true) {
-    const { data: page } = await supabase
+    const { data: page, error: attemptedError } = await supabase
       .from('forum_thread_llm_analysis')
       .select('thread_id')
       .eq('is_current', true)
       .range(attemptedOffset, attemptedOffset + PAGE_SIZE - 1)
+    if (attemptedError) throw new Error(`Failed to load attempted thread IDs: ${attemptedError.message}`)
     for (const r of page ?? []) attemptedIds.add(r.thread_id)
     if (!page?.length || page.length < PAGE_SIZE) break
     attemptedOffset += PAGE_SIZE
