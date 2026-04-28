@@ -79,7 +79,7 @@ describe('GET /api/clinics/[id]/registry', () => {
     expect(body.complianceHistory).toEqual(events)
   })
 
-  it('returns 500 when registry query fails', async () => {
+  it('returns 500 with a generic error message when registry query fails', async () => {
     chainFor(mockRegistrySelect, null, { message: 'DB error' })
     chainFor(mockComplianceSelect, [])
 
@@ -87,10 +87,12 @@ describe('GET /api/clinics/[id]/registry', () => {
     expect(res.status).toBe(500)
 
     const body = await res.json()
-    expect(body.error).toBe('DB error')
+    // Raw DB error messages should not leak — clients get a generic message
+    expect(body.error).toBe('Internal server error')
+    expect(body.error).not.toContain('DB error')
   })
 
-  it('returns 500 when compliance query fails', async () => {
+  it('returns 500 with a generic error message when compliance query fails', async () => {
     chainFor(mockRegistrySelect, [])
     chainFor(mockComplianceSelect, null, { message: 'Compliance DB error' })
 
@@ -98,7 +100,8 @@ describe('GET /api/clinics/[id]/registry', () => {
     expect(res.status).toBe(500)
 
     const body = await res.json()
-    expect(body.error).toBe('Compliance DB error')
+    expect(body.error).toBe('Internal server error')
+    expect(body.error).not.toContain('Compliance DB error')
   })
 
   it('returns 500 when Supabase env vars are missing', async () => {

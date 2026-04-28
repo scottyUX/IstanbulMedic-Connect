@@ -57,14 +57,23 @@ function formatEventType(raw: string) {
 }
 
 function formatDate(iso: string) {
+  // Pin to UTC so date-only fields (e.g. licensed_since="2018-03-15") don't shift
+  // by a day for users west of UTC.
   return new Date(iso).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   })
 }
 
 export function RegistrySection({ registryRecords, complianceHistory }: RegistrySectionProps) {
+  // Hide the section entirely when there's no data on either axis — most clinics
+  // won't have registry data yet and an "empty" section adds noise.
+  if (registryRecords.length === 0 && complianceHistory.length === 0) {
+    return null
+  }
+
   return (
     <Card id="registry" variant="profile" className="scroll-mt-32">
       <CardHeader className="pb-3">

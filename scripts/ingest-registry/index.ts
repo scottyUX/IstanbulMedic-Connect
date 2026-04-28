@@ -64,8 +64,21 @@ async function getAllClinicLegalNames(): Promise<{ id: string; legal_name: strin
 async function main() {
   const { source, clinic, file } = parseArgs()
 
+  if (!source) {
+    console.error('--source=<moh|moh-pdf> is required')
+    console.error('  --source=moh-pdf --file=<path>   parse a downloaded MOH PDF')
+    console.error('  --source=moh                     scrape the MOH web portal (NOT YET IMPLEMENTED — selectors are stubs)')
+    process.exit(1)
+  }
+
+  if (source === 'moh') {
+    console.error('--source=moh is not yet implemented — the kuvap.saglik.gov.tr selectors in sources/moh.ts are placeholders.')
+    console.error('Use --source=moh-pdf --file=<path> for now.')
+    process.exit(1)
+  }
+
   console.log('🏥 IstanbulMedic Registry Ingestion Pipeline')
-  console.log(`   Source: ${source ?? 'moh'}`)
+  console.log(`   Source: ${source}`)
   console.log(`   Clinic filter: ${clinic ?? 'all active clinics'}`)
   if (file) console.log(`   File: ${file}`)
   console.log()

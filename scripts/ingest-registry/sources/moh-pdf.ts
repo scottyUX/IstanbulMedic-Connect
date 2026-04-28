@@ -18,7 +18,7 @@
 
 import fs from 'fs'
 import { createRequire } from 'module'
-import { NormalizedClinicData, normalizeSpecialties } from '../normalize'
+import { NormalizedClinicData } from '../normalize'
 
 // pdfjs-dist (pdf-parse dependency) needs DOMMatrix which isn't in Node.js — stub it
 if (typeof globalThis.DOMMatrix === 'undefined') {
@@ -89,7 +89,7 @@ export function parseRows(text: string): MOHPDFRow[] {
     'ELAZIĞ', 'ERZİNCAN', 'ERZURUM', 'ESKİŞEHİR', 'GAZİANTEP', 'GİRESUN',
     'GÜMÜŞHANE', 'HAKKARİ', 'HATAY', 'IĞDIR', 'ISPARTA', 'İSTANBUL', 'İZMİR',
     'KAHRAMANMARAŞ', 'KARABÜK', 'KARAMAN', 'KARS', 'KASTAMONU', 'KAYSERİ',
-    'KİLİS', 'KİRKLARELİ', 'KİRŞEHİR', 'KOCAELİ', 'KONYA', 'KÜTAHYA', 'MALATYA',
+    'KİLİS', 'KIRKLARELİ', 'KIRŞEHİR', 'KOCAELİ', 'KONYA', 'KÜTAHYA', 'MALATYA',
     'MANİSA', 'MARDİN', 'MERSİN', 'MUĞLA', 'MUŞ', 'NEVŞEHİR', 'NİĞDE', 'ORDU',
     'OSMANİYE', 'RİZE', 'SAKARYA', 'SAMSUN', 'SİİRT', 'SİNOP', 'SİVAS',
     'ŞANLIURFA', 'ŞIRNAK', 'TEKİRDAĞ', 'TOKAT', 'TRABZON', 'TUNCELİ', 'UŞAK',
@@ -199,7 +199,7 @@ export async function parseMOHPdf(filePath: string): Promise<NormalizedClinicDat
         licenseStatus: 'active' as const,       // published registry = currently registered
         licensedSince: null,                    // not in this PDF
         expiresAt: null,                        // not in this PDF
-        authorizedSpecialties: normalizeSpecialties(mapFacilityType(row.saglikTesisiTuru)),
+        authorizedSpecialties: mapFacilityType(row.saglikTesisiTuru),
         registeredLegalName: row.saglikTesisiAdi,
         registeredAddress: [row.adres, row.il].filter(Boolean).join(', ') || null,
         registryUrl: null,

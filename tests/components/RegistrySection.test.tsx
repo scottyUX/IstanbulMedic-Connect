@@ -28,13 +28,18 @@ const SAMPLE_COMPLIANCE: ComplianceEvent = {
 }
 
 describe('RegistrySection', () => {
-  it('renders the section heading', () => {
-    render(<RegistrySection registryRecords={[]} complianceHistory={[]} />)
+  it('renders the section heading when there is data', () => {
+    render(<RegistrySection registryRecords={[SAMPLE_RECORD]} complianceHistory={[]} />)
     expect(screen.getByText('Official Registry')).toBeInTheDocument()
   })
 
-  it('shows empty state when no registry records', () => {
-    render(<RegistrySection registryRecords={[]} complianceHistory={[]} />)
+  it('renders nothing when both arrays are empty', () => {
+    const { container } = render(<RegistrySection registryRecords={[]} complianceHistory={[]} />)
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('shows the "no registry records" empty state when only compliance history is present', () => {
+    render(<RegistrySection registryRecords={[]} complianceHistory={[SAMPLE_COMPLIANCE]} />)
     expect(screen.getByText(/No registry records on file yet/)).toBeInTheDocument()
   })
 
@@ -66,8 +71,8 @@ describe('RegistrySection', () => {
     expect(screen.getByText('Turkish Ministry of Health')).toBeInTheDocument()
   })
 
-  it('shows clean compliance message when no compliance history', () => {
-    render(<RegistrySection registryRecords={[]} complianceHistory={[]} />)
+  it('shows clean compliance message when registry exists but no compliance history', () => {
+    render(<RegistrySection registryRecords={[SAMPLE_RECORD]} complianceHistory={[]} />)
     expect(screen.getByText(/No compliance issues on record/)).toBeInTheDocument()
   })
 

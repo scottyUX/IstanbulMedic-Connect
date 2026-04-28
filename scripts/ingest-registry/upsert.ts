@@ -2,10 +2,14 @@
  * Upserts normalized registry data into Supabase.
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { NormalizedClinicData } from './normalize'
 
-function getSupabaseClient() {
+let cachedClient: SupabaseClient | null = null
+
+function getSupabaseClient(): SupabaseClient {
+  if (cachedClient) return cachedClient
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -13,24 +17,36 @@ function getSupabaseClient() {
     throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars')
   }
 
-  return createClient(url, key)
+  cachedClient = createClient(url, key)
+  return cachedClient
 }
 
 /**
  * Looks up a clinic_id by its legal name.
- * Returns null if not found.
+ * Tries exact match first, then a case-insensitive partial match.
+ * Returns null if zero or ambiguous matches.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function findClinicId(supabase: any, legalName: string): Promise<string | null> {
-  const { data, error } = await supabase
+async function findClinicId(supabase: SupabaseClient, legalName: string): Promise<string | null> {
+  const exact = await supabase
     .from('clinics')
     .select('id')
-    .ilike('legal_name', `%${legalName}%`)
-    .limit(1)
-    .single()
+    .eq('legal_name', legalName)
+    .limit(2)
 
-  if (error || !data) return null
-  return data.id
+  if (exact.error) return null
+  if (exact.data && exact.data.length === 1) return exact.data[0].id as string
+
+  // Fallback: case-insensitive substring match. Escape ilike wildcards in the input
+  // so a literal '%' or '_' in a clinic name doesn't widen the search.
+  const escaped = legalName.replace(/[\\%_]/g, (c) => `\\${c}`)
+  const fuzzy = await supabase
+    .from('clinics')
+    .select('id, legal_name')
+    .ilike('legal_name', `%${escaped}%`)
+    .limit(2)
+
+  if (fuzzy.error || !fuzzy.data || fuzzy.data.length !== 1) return null
+  return fuzzy.data[0].id as string
 }
 
 /**
@@ -42,7 +58,7 @@ export async function upsertRegistryData(data: NormalizedClinicData): Promise<vo
 
   const clinicId = await findClinicId(supabase, data.matchKey)
   if (!clinicId) {
-    console.warn(`  ⚠ No clinic found for "${data.matchKey}" — skipping`)
+    console.warn(`  ⚠ No unique clinic found for "${data.matchKey}" — skipping`)
     return
   }
 
