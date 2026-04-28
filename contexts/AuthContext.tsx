@@ -79,6 +79,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(session.user);
           // Fetch user profile after session check
           await fetchUserProfile();
+          // Fallback: if the cookie-based server redirect failed (e.g. cookie
+          // was blocked), check sessionStorage and redirect client-side.
+          const stored = sessionStorage.getItem('auth_redirect_next');
+          if (stored) {
+            try {
+              const { path, ts } = JSON.parse(stored);
+              const isRecent = Date.now() - ts < 2 * 60 * 1000;
+              sessionStorage.removeItem('auth_redirect_next');
+              if (isRecent) router.push(path);
+            } catch {
+              sessionStorage.removeItem('auth_redirect_next');
+            }
+          }
         } else {
           setIsAuthenticated(false);
           setUser(null);
@@ -181,8 +194,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!supabase) {
         throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
       }
+      // Supabase strips query params from redirectTo, so persist the destination
+      // in a cookie — the server-side callback reads it and redirects directly,
+      // eliminating the flash. sessionStorage is kept as a silent fallback.
+      if (next && typeof window !== 'undefined') {
+        document.cookie = `auth_redirect_next=${encodeURIComponent(next)}; path=/; max-age=300; SameSite=Lax`;
+        sessionStorage.setItem('auth_redirect_next', JSON.stringify({ path: next, ts: Date.now() }));
+      }
       const callbackUrl = new URL(`${window.location.origin}/auth/callback`);
-      if (next) callbackUrl.searchParams.set('next', next);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

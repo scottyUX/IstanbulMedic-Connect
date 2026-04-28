@@ -158,17 +158,22 @@ async function persistGoogleExtras(
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const requestedNext = searchParams.get('next');
-  const normalizedNext =
-    requestedNext && requestedNext.startsWith('/') ? requestedNext : null;
+
+  // Cookie set client-side before OAuth redirect — survives the full redirect
+  // chain and lets the server redirect straight to the right page (no flash).
+  const cookieHeader = request.headers.get('cookie') ?? '';
+  const cookieNext = cookieHeader
+    .split(';')
+    .map(c => c.trim())
+    .find(c => c.startsWith('auth_redirect_next='))
+    ?.split('=')[1];
+  const decodedCookieNext = cookieNext ? decodeURIComponent(cookieNext) : null;
+
   const legacyPaths = ['/profile/treatment-profile'];
-  const next = !normalizedNext
-    ? '/profile'
-    : normalizedNext.startsWith('/leila')
-    ? '/langchain'
-    : legacyPaths.includes(normalizedNext)
-    ? '/profile'
-    : normalizedNext;
+  const next =
+    decodedCookieNext && decodedCookieNext.startsWith('/') && !legacyPaths.includes(decodedCookieNext)
+      ? decodedCookieNext
+      : '/profile';
 
   if (code) {
     const { supabase, cookieMutations } = createCallbackClient(request);
@@ -216,9 +221,9 @@ export async function GET(request: NextRequest) {
       }
 
       // Decide where to send the user
-      const isDefaultNext = !requestedNext || next === '/profile';
       let destination = next;
-      if (isDefaultNext) {
+      if (next === '/profile') {
+        // No specific destination — check if new user needs onboarding
         const { data: freshUserRow } = await s
           .from('users')
           .select('id')
@@ -239,6 +244,8 @@ export async function GET(request: NextRequest) {
       cookieMutations.forEach(({ name, value, options }) =>
         redirectResponse.cookies.set(name, value, options)
       );
+      // Clear the redirect cookie set before the OAuth flow
+      redirectResponse.cookies.set('auth_redirect_next', '', { path: '/', maxAge: 0 });
       return redirectResponse;
     }
   }
