@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { NextRequest, NextResponse } from 'next/server';
 
 // ─── Google People API types ───────────────────────────────────────────────────
 
@@ -155,7 +155,7 @@ async function persistGoogleExtras(
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const requestedNext = searchParams.get('next');
@@ -171,7 +171,20 @@ export async function GET(request: Request) {
     : normalizedNext;
 
   if (code) {
-    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cookieMutations: Array<{ name: string; value: string; options: any }> = [];
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return request.cookies.getAll(); },
+          setAll(cookiesToSet) { cookieMutations.push(...cookiesToSet); },
+        },
+      }
+    );
+
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
@@ -235,7 +248,11 @@ export async function GET(request: Request) {
         destination = hasConsented ? '/profile' : '/profile/get-started';
       }
 
-      return NextResponse.redirect(`${origin}${destination}`);
+      const redirectResponse = NextResponse.redirect(`${origin}${destination}`);
+      cookieMutations.forEach(({ name, value, options }) =>
+        redirectResponse.cookies.set(name, value, options)
+      );
+      return redirectResponse;
     }
   }
 
