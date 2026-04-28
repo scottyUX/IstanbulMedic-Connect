@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { createCallbackClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // ─── Google People API types ───────────────────────────────────────────────────
 
@@ -155,7 +155,7 @@ async function persistGoogleExtras(
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
 
@@ -176,7 +176,7 @@ export async function GET(request: Request) {
       : '/profile';
 
   if (code) {
-    const supabase = await createClient();
+    const { supabase, cookieMutations } = createCallbackClient(request);
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
@@ -240,10 +240,13 @@ export async function GET(request: Request) {
         destination = hasConsented ? '/profile' : '/profile/get-started';
       }
 
-      const response = NextResponse.redirect(`${origin}${destination}`);
-      // Clear the redirect cookie
-      response.cookies.set('auth_redirect_next', '', { path: '/', maxAge: 0 });
-      return response;
+      const redirectResponse = NextResponse.redirect(`${origin}${destination}`);
+      cookieMutations.forEach(({ name, value, options }) =>
+        redirectResponse.cookies.set(name, value, options)
+      );
+      // Clear the redirect cookie set before the OAuth flow
+      redirectResponse.cookies.set('auth_redirect_next', '', { path: '/', maxAge: 0 });
+      return redirectResponse;
     }
   }
 
