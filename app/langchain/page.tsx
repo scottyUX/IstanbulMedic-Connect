@@ -25,7 +25,7 @@ export default function LangchainPage() {
 
   const handleLogin = async () => {
     setLoginPending(true);
-    await loginWithGoogle();
+    await loginWithGoogle('/langchain');
     setLoginPending(false);
   };
 

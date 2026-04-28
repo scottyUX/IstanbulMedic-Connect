@@ -26,7 +26,7 @@ const LeilaHero = ({ onGetStarted, pending = false }: LeilaHeroProps) => {
     if (pending) return;
     setIsLoading(true);
     try {
-      await loginWithGoogle();
+      await loginWithGoogle('/leila');
       // Redirect will happen automatically via OAuth flow
     } catch (error) {
       console.error("Login failed:", error);
