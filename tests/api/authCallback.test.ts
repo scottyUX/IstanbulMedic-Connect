@@ -109,7 +109,9 @@ function makeSupabase({
 }
 
 function mockClient(supabase: ReturnType<typeof makeSupabase>) {
-  mockCreateCallbackClient.mockReturnValue({ supabase: supabase as any, cookieMutations: [] })
+  mockCreateCallbackClient.mockReturnValue(
+    { supabase, cookieMutations: [] } as unknown as ReturnType<typeof createCallbackClient>
+  )
 }
 
 function extractLocation(response: Response) {
