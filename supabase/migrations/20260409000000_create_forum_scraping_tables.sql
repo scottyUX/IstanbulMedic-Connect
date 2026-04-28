@@ -1,5 +1,5 @@
 -- Forum scraping schema: hub + extensions pattern
--- Covers HRN and Reddit (and future forum sources) with unified downstream tables.
+-- Creates HRN and Reddit tables with unified downstream tables for signals and profiles.
 --
 -- Tables created:
 --   forum_source_enum            new enum
@@ -9,9 +9,6 @@
 --   forum_thread_signals         deterministic signals (regex/keyword), EAV
 --   forum_thread_llm_analysis    LLM-derived signals, versioned per prompt run
 --   clinic_forum_profiles        aggregated clinic profile per forum source
---
--- Note: clinic_reddit_posts and clinic_reddit_profiles were never applied to the
--- local or remote DB, so no data migration is needed.
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -175,6 +172,7 @@ CREATE TABLE public.forum_thread_llm_analysis (
   is_repair_case          boolean,
 
   -- Secondary clinic/doctor mentions found in this thread
+  -- Stored for future use — allows backfilling a junction table later without re-running LLM
   -- Format: [{ clinic_name, doctor_name, role, sentiment, evidence }]
   -- role: 'mentioned' | 'compared' | 'repair_source'
   secondary_clinic_mentions jsonb DEFAULT '[]',
@@ -196,7 +194,7 @@ CREATE INDEX idx_forum_llm_attributed     ON forum_thread_llm_analysis(attribute
 
 COMMENT ON TABLE  forum_thread_llm_analysis IS 'LLM-derived signals per thread. Separate from forum_thread_signals because all fields come from one prompt call and need versioning together. is_current = true marks the active run.';
 COMMENT ON COLUMN forum_thread_llm_analysis.is_current IS 'Set to false on older runs when a new prompt version is run. Query with WHERE is_current = true.';
-COMMENT ON COLUMN forum_thread_llm_analysis.secondary_clinic_mentions IS 'Other clinics/doctors mentioned in the thread but not the primary subject. Format: [{ clinic_name, doctor_name, role, sentiment, evidence }].';
+COMMENT ON COLUMN forum_thread_llm_analysis.secondary_clinic_mentions IS 'Other clinics/doctors mentioned in the thread but not the primary subject. Stored as jsonb so a junction table can be backfilled later without re-running the LLM. Format: [{ clinic_name, doctor_name, role, sentiment, evidence }].';
 COMMENT ON COLUMN forum_thread_llm_analysis.evidence_snippets IS 'Map of signal name → the text excerpt that informed that signal. Required for UI auditability.';
 
 
