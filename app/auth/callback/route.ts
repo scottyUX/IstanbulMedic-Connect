@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
+import { createCallbackClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 // ─── Google People API types ───────────────────────────────────────────────────
@@ -171,20 +171,7 @@ export async function GET(request: NextRequest) {
     : normalizedNext;
 
   if (code) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cookieMutations: Array<{ name: string; value: string; options: any }> = [];
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return request.cookies.getAll(); },
-          setAll(cookiesToSet) { cookieMutations.push(...cookiesToSet); },
-        },
-      }
-    );
-
+    const { supabase, cookieMutations } = createCallbackClient(request);
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
