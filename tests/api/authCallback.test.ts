@@ -20,8 +20,13 @@ import { GET } from '@/app/auth/callback/route'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeRequest(url: string) {
-  return { url } as unknown as NextRequest
+function makeRequest(url: string, cookie?: string) {
+  return {
+    url,
+    headers: {
+      get: (name: string) => (name.toLowerCase() === 'cookie' ? (cookie ?? null) : null),
+    },
+  } as unknown as NextRequest
 }
 
 type StubUser = { id: string; email: string; user_metadata: Record<string, string> }
@@ -169,26 +174,25 @@ describe('GET /auth/callback', () => {
 
   // ─── Custom next param ───────────────────────────────────────────────────────
 
-  it('respects a custom ?next param', async () => {
+  it('respects a custom destination via cookie', async () => {
     mockClient(makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }))
-    const res = await GET(makeRequest('http://localhost/auth/callback?code=abc&next=/langchain'))
+    const cookie = `auth_redirect_next=${encodeURIComponent('/langchain')}`
+    const res = await GET(makeRequest('http://localhost/auth/callback?code=abc', cookie))
     expect(extractLocation(res)).toContain('/langchain')
   })
 
-  it('redirects legacy /profile/treatment-profile next to /profile', async () => {
+  it('redirects legacy /profile/treatment-profile cookie destination to /profile', async () => {
     mockClient(makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }))
-    const res = await GET(makeRequest(
-      'http://localhost/auth/callback?code=abc&next=/profile/treatment-profile'
-    ))
+    const cookie = `auth_redirect_next=${encodeURIComponent('/profile/treatment-profile')}`
+    const res = await GET(makeRequest('http://localhost/auth/callback?code=abc', cookie))
     expect(extractLocation(res)).toContain('/profile')
     expect(extractLocation(res)).not.toContain('treatment-profile')
   })
 
-  it('ignores a ?next param that does not start with /', async () => {
+  it('ignores a cookie destination that does not start with /', async () => {
     mockClient(makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }))
-    const res = await GET(makeRequest(
-      'http://localhost/auth/callback?code=abc&next=https://evil.com'
-    ))
+    const cookie = `auth_redirect_next=${encodeURIComponent('https://evil.com')}`
+    const res = await GET(makeRequest('http://localhost/auth/callback?code=abc', cookie))
     // Falls back to /profile (has terms) rather than open redirect
     expect(extractLocation(res)).toContain('/profile')
     expect(extractLocation(res)).not.toContain('evil.com')
