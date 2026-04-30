@@ -1,5 +1,9 @@
 -- Seed data for IstanbulMedic-Connect
 -- Run automatically when you execute: supabase db reset
+--
+-- Local clinic data is seeded from production via:
+--   npx tsx scripts/seedLocalDb.ts
+
 
 -- ============================================
 -- CLINICS

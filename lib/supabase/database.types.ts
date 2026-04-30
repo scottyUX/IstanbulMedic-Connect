@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       analyses: {
@@ -78,6 +103,13 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clinic_credentials_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinic_facts: {
@@ -125,70 +157,80 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clinic_facts_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinic_forum_profiles: {
         Row: {
-          id: string
+          captured_at: string
           clinic_id: string
+          common_concerns: string[] | null
+          confidence_score: number | null
           forum_source: Database["public"]["Enums"]["forum_source_enum"]
+          id: string
+          is_stale: boolean
+          last_thread_at: string | null
+          longterm_thread_count: number
+          mention_count: number
+          notable_threads: Json | null
+          photo_thread_count: number
+          pros: string[] | null
+          repair_mention_count: number
+          sentiment_distribution: Json | null
+          sentiment_score: number | null
           summary: string | null
           thread_count: number
-          photo_thread_count: number
-          longterm_thread_count: number
-          repair_mention_count: number
           unique_authors_count: number | null
-          last_thread_at: string | null
-          confidence_score: number | null
-          sentiment_score: number | null
-          sentiment_distribution: Json
-          pros: string[]
-          common_concerns: string[]
-          notable_threads: Json
-          is_stale: boolean
-          captured_at: string | null
           updated_at: string
         }
         Insert: {
-          id?: string
+          captured_at?: string
           clinic_id: string
+          common_concerns?: string[] | null
+          confidence_score?: number | null
           forum_source: Database["public"]["Enums"]["forum_source_enum"]
+          id?: string
+          is_stale?: boolean
+          last_thread_at?: string | null
+          longterm_thread_count?: number
+          mention_count?: number
+          notable_threads?: Json | null
+          photo_thread_count?: number
+          pros?: string[] | null
+          repair_mention_count?: number
+          sentiment_distribution?: Json | null
+          sentiment_score?: number | null
           summary?: string | null
           thread_count?: number
-          photo_thread_count?: number
-          longterm_thread_count?: number
-          repair_mention_count?: number
           unique_authors_count?: number | null
-          last_thread_at?: string | null
-          confidence_score?: number | null
-          sentiment_score?: number | null
-          sentiment_distribution?: Json
-          pros?: string[]
-          common_concerns?: string[]
-          notable_threads?: Json
-          is_stale?: boolean
-          captured_at?: string | null
           updated_at?: string
         }
         Update: {
-          id?: string
+          captured_at?: string
           clinic_id?: string
+          common_concerns?: string[] | null
+          confidence_score?: number | null
           forum_source?: Database["public"]["Enums"]["forum_source_enum"]
+          id?: string
+          is_stale?: boolean
+          last_thread_at?: string | null
+          longterm_thread_count?: number
+          mention_count?: number
+          notable_threads?: Json | null
+          photo_thread_count?: number
+          pros?: string[] | null
+          repair_mention_count?: number
+          sentiment_distribution?: Json | null
+          sentiment_score?: number | null
           summary?: string | null
           thread_count?: number
-          photo_thread_count?: number
-          longterm_thread_count?: number
-          repair_mention_count?: number
           unique_authors_count?: number | null
-          last_thread_at?: string | null
-          confidence_score?: number | null
-          sentiment_score?: number | null
-          sentiment_distribution?: Json
-          pros?: string[]
-          common_concerns?: string[]
-          notable_threads?: Json
-          is_stale?: boolean
-          captured_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -197,6 +239,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_forum_profiles_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
             referencedColumns: ["id"]
           },
         ]
@@ -238,6 +287,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_google_places_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
             referencedColumns: ["id"]
           },
         ]
@@ -306,6 +362,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clinic_instagram_posts_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clinic_instagram_posts_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: false
@@ -339,6 +402,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_languages_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
             referencedColumns: ["id"]
           },
         ]
@@ -394,6 +464,13 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clinic_locations_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinic_media: {
@@ -445,6 +522,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clinic_media_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clinic_media_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: false
@@ -487,6 +571,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_mentions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
             referencedColumns: ["id"]
           },
           {
@@ -546,6 +637,13 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clinic_packages_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinic_pricing: {
@@ -597,6 +695,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clinic_pricing_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clinic_pricing_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: false
@@ -639,6 +744,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_reviews_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
             referencedColumns: ["id"]
           },
           {
@@ -686,6 +798,13 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clinic_score_components_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinic_scores: {
@@ -718,6 +837,13 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clinic_scores_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinic_services: {
@@ -748,6 +874,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_services_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
             referencedColumns: ["id"]
           },
         ]
@@ -818,6 +951,13 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clinic_social_media_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinic_team: {
@@ -857,6 +997,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_team_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
             referencedColumns: ["id"]
           },
         ]
@@ -956,6 +1103,305 @@ export type Database = {
             columns: ["source_document_id"]
             isOneToOne: false
             referencedRelation: "source_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_thread_index: {
+        Row: {
+          author_username: string | null
+          clinic_attribution_method: string | null
+          clinic_id: string | null
+          first_scraped_at: string
+          forum_source: Database["public"]["Enums"]["forum_source_enum"]
+          id: string
+          last_scraped_at: string
+          post_date: string | null
+          reply_count: number | null
+          source_id: string | null
+          thread_url: string
+          title: string | null
+        }
+        Insert: {
+          author_username?: string | null
+          clinic_attribution_method?: string | null
+          clinic_id?: string | null
+          first_scraped_at?: string
+          forum_source: Database["public"]["Enums"]["forum_source_enum"]
+          id?: string
+          last_scraped_at?: string
+          post_date?: string | null
+          reply_count?: number | null
+          source_id?: string | null
+          thread_url: string
+          title?: string | null
+        }
+        Update: {
+          author_username?: string | null
+          clinic_attribution_method?: string | null
+          clinic_id?: string | null
+          first_scraped_at?: string
+          forum_source?: Database["public"]["Enums"]["forum_source_enum"]
+          id?: string
+          last_scraped_at?: string
+          post_date?: string | null
+          reply_count?: number | null
+          source_id?: string | null
+          thread_url?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_thread_index_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_thread_index_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_thread_index_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_thread_llm_analysis: {
+        Row: {
+          attributed_clinic_id: string | null
+          attributed_clinic_name: string | null
+          attributed_doctor_name: string | null
+          evidence_snippets: Json | null
+          id: string
+          is_current: boolean
+          is_repair_case: boolean | null
+          issue_keywords: string[] | null
+          main_topics: string[] | null
+          model_name: string
+          prompt_version: string
+          run_timestamp: string
+          satisfaction_label: string | null
+          secondary_clinic_mentions: Json | null
+          sentiment_label: string | null
+          sentiment_score: number | null
+          summary_short: string | null
+          thread_id: string
+        }
+        Insert: {
+          attributed_clinic_id?: string | null
+          attributed_clinic_name?: string | null
+          attributed_doctor_name?: string | null
+          evidence_snippets?: Json | null
+          id?: string
+          is_current?: boolean
+          is_repair_case?: boolean | null
+          issue_keywords?: string[] | null
+          main_topics?: string[] | null
+          model_name: string
+          prompt_version: string
+          run_timestamp?: string
+          satisfaction_label?: string | null
+          secondary_clinic_mentions?: Json | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          summary_short?: string | null
+          thread_id: string
+        }
+        Update: {
+          attributed_clinic_id?: string | null
+          attributed_clinic_name?: string | null
+          attributed_doctor_name?: string | null
+          evidence_snippets?: Json | null
+          id?: string
+          is_current?: boolean
+          is_repair_case?: boolean | null
+          issue_keywords?: string[] | null
+          main_topics?: string[] | null
+          model_name?: string
+          prompt_version?: string
+          run_timestamp?: string
+          satisfaction_label?: string | null
+          secondary_clinic_mentions?: Json | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          summary_short?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_thread_llm_analysis_attributed_clinic_id_fkey"
+            columns: ["attributed_clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_thread_llm_analysis_attributed_clinic_id_fkey"
+            columns: ["attributed_clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_thread_llm_analysis_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_index"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_thread_signals: {
+        Row: {
+          created_at: string
+          evidence_snippet: string | null
+          extraction_method: string
+          extraction_version: string | null
+          id: string
+          signal_name: string
+          signal_value: Json
+          thread_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_snippet?: string | null
+          extraction_method: string
+          extraction_version?: string | null
+          id?: string
+          signal_name: string
+          signal_value: Json
+          thread_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence_snippet?: string | null
+          extraction_method?: string
+          extraction_version?: string | null
+          id?: string
+          signal_name?: string
+          signal_value?: Json
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_thread_signals_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_index"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hrn_thread_content: {
+        Row: {
+          forum_section_id: string | null
+          forum_section_name: string | null
+          has_photos: boolean | null
+          image_urls: string[] | null
+          last_author_post_date: string | null
+          last_author_post_page: number | null
+          last_author_post_text: string | null
+          op_html: string | null
+          op_text: string | null
+          scrape_strategy: string | null
+          sitemap_lastmod: string | null
+          thread_id: string
+          total_pages: number | null
+          view_count: number | null
+        }
+        Insert: {
+          forum_section_id?: string | null
+          forum_section_name?: string | null
+          has_photos?: boolean | null
+          image_urls?: string[] | null
+          last_author_post_date?: string | null
+          last_author_post_page?: number | null
+          last_author_post_text?: string | null
+          op_html?: string | null
+          op_text?: string | null
+          scrape_strategy?: string | null
+          sitemap_lastmod?: string | null
+          thread_id: string
+          total_pages?: number | null
+          view_count?: number | null
+        }
+        Update: {
+          forum_section_id?: string | null
+          forum_section_name?: string | null
+          has_photos?: boolean | null
+          image_urls?: string[] | null
+          last_author_post_date?: string | null
+          last_author_post_page?: number | null
+          last_author_post_text?: string | null
+          op_html?: string | null
+          op_text?: string | null
+          scrape_strategy?: string | null
+          sitemap_lastmod?: string | null
+          thread_id?: string
+          total_pages?: number | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hrn_thread_content_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: true
+            referencedRelation: "forum_thread_index"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reddit_thread_content: {
+        Row: {
+          body: string | null
+          comment_count: number | null
+          had_clinical_procedures: boolean | null
+          is_firsthand: boolean | null
+          post_type: string
+          reddit_post_id: string
+          score: number | null
+          seeking_medical_help: boolean | null
+          subreddit: string | null
+          thread_id: string
+        }
+        Insert: {
+          body?: string | null
+          comment_count?: number | null
+          had_clinical_procedures?: boolean | null
+          is_firsthand?: boolean | null
+          post_type: string
+          reddit_post_id: string
+          score?: number | null
+          seeking_medical_help?: boolean | null
+          subreddit?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string | null
+          comment_count?: number | null
+          had_clinical_procedures?: boolean | null
+          is_firsthand?: boolean | null
+          post_type?: string
+          reddit_post_id?: string
+          score?: number | null
+          seeking_medical_help?: boolean | null
+          subreddit?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_thread_content_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: true
+            referencedRelation: "forum_thread_index"
             referencedColumns: ["id"]
           },
         ]
@@ -1144,10 +1590,10 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           deleted: boolean | null
-          first_name: string
+          first_name: string | null
           gender: string | null
           id: string
-          last_name: string
+          last_name: string | null
           nationality: string | null
           preferred_language: string | null
           profile_picture_url: string | null
@@ -1159,10 +1605,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name: string
+          first_name?: string | null
           gender?: string | null
           id?: string
-          last_name: string
+          last_name?: string | null
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -1174,10 +1620,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name?: string
+          first_name?: string | null
           gender?: string | null
           id?: string
-          last_name?: string
+          last_name?: string | null
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -1199,7 +1645,6 @@ export type Database = {
         Row: {
           age_tier: Database["public"]["Enums"]["age_tier"] | null
           budget_tier: Database["public"]["Enums"]["budget_tier"] | null
-          consent_given: boolean
           country: string | null
           created_at: string | null
           deleted: boolean | null
@@ -1217,7 +1662,6 @@ export type Database = {
         Insert: {
           age_tier?: Database["public"]["Enums"]["age_tier"] | null
           budget_tier?: Database["public"]["Enums"]["budget_tier"] | null
-          consent_given?: boolean
           country?: string | null
           created_at?: string | null
           deleted?: boolean | null
@@ -1235,7 +1679,6 @@ export type Database = {
         Update: {
           age_tier?: Database["public"]["Enums"]["age_tier"] | null
           budget_tier?: Database["public"]["Enums"]["budget_tier"] | null
-          consent_given?: boolean
           country?: string | null
           created_at?: string | null
           deleted?: boolean | null
@@ -1370,7 +1813,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      clinics_with_scores: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_name: string | null
+          email_contact: string | null
+          google_place_id: string | null
+          google_rating: number | null
+          google_review_count: number | null
+          id: string | null
+          legal_name: string | null
+          overall_score: number | null
+          phone_contact: string | null
+          primary_city: string | null
+          primary_country: string | null
+          procedures_performed: number | null
+          score_band: Database["public"]["Enums"]["score_band_enum"] | null
+          score_computed_at: string | null
+          short_description: string | null
+          status: Database["public"]["Enums"]["clinic_status"] | null
+          thumbnail_url: string | null
+          updated_at: string | null
+          website_url: string | null
+          whatsapp_contact: string | null
+          years_in_operation: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       upsert_clinic_facts: {
@@ -1447,10 +1917,10 @@ export type Database = {
       computed_by_enum: "extractor" | "human" | "inquiry" | "model"
       desired_density: "maximum" | "high" | "medium" | "low"
       doc_type_enum: "html" | "pdf" | "post" | "comment" | "review"
-      forum_source_enum: "hrn" | "reddit" | "realself"
       doctor_involvement_levels: "high" | "medium" | "low"
       donor_area_availability: "good" | "adequate" | "limited"
       donor_area_quality: "excellent" | "good" | "adequate" | "poor"
+      forum_source_enum: "hrn" | "reddit" | "realself"
       hair_loss_pattern: "early" | "moderate" | "advanced" | "extensive"
       instagram_post_type: "Image" | "Video" | "Sidecar"
       mention_topic_enum:
@@ -1616,6 +2086,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       age_tier: ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"],
@@ -1674,10 +2147,10 @@ export const Constants = {
       computed_by_enum: ["extractor", "human", "inquiry", "model"],
       desired_density: ["maximum", "high", "medium", "low"],
       doc_type_enum: ["html", "pdf", "post", "comment", "review"],
-      forum_source_enum: ["hrn", "reddit", "realself"],
       doctor_involvement_levels: ["high", "medium", "low"],
       donor_area_availability: ["good", "adequate", "limited"],
       donor_area_quality: ["excellent", "good", "adequate", "poor"],
+      forum_source_enum: ["hrn", "reddit", "realself"],
       hair_loss_pattern: ["early", "moderate", "advanced", "extensive"],
       instagram_post_type: ["Image", "Video", "Sidecar"],
       mention_topic_enum: [
