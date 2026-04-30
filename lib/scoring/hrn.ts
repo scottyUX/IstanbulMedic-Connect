@@ -54,6 +54,7 @@ export interface ScorerThread {
   postDate: string;
   sentimentScore: number | null;  // -1.0 to 1.0
   isRepairCase: boolean;
+  isRepairProvider: boolean;  // true = this clinic performed the repair; false = they caused the damage
   hasLongTermFollowup: boolean;
   issueKeywords: string[];
 }
@@ -116,7 +117,7 @@ export function computeHRNScore(
     const score = t.sentimentScore ?? 0;
     weightedSentimentSum += score * w;
 
-    if (t.isRepairCase) repairWeightSum += w;
+    if (t.isRepairCase && !t.isRepairProvider) repairWeightSum += w;
     if (t.hasLongTermFollowup) followupWeightSum += w;
   }
 

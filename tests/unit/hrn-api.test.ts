@@ -37,6 +37,7 @@ type AnalysisRow = {
   summary_short: string | null;
   main_topics: string[] | null;
   is_repair_case: boolean | null;
+  secondary_clinic_mentions?: Array<{ clinic_name: string; role: string }> | null;
 };
 type ContentRow = {
   thread_id: string;
@@ -89,6 +90,7 @@ const analysis = (threadId: string, overrides: Partial<AnalysisRow> = {}): Analy
   summary_short: 'Good result.',
   main_topics: ['density'],
   is_repair_case: false,
+  secondary_clinic_mentions: [],
   ...overrides,
 });
 
@@ -219,6 +221,28 @@ describe('getHRNSignals', () => {
     expect(result?.repairCases).toBe(1);
     expect(result?.allThreads.find(t => t.threadUrl.includes('t1'))?.isRepairCase).toBe(true);
     expect(result?.allThreads.find(t => t.threadUrl.includes('t2'))?.isRepairCase).toBe(false);
+  });
+
+  it('repair provider thread does not contribute to hrnScore repair penalty', async () => {
+    // t1: repair case where this clinic is the provider (secondary has repair_source)
+    // t2-t10: normal positive threads to clear effectiveN threshold
+    (createClient as Mock).mockResolvedValue(
+      createMockSupabase({
+        threads: [thread('t1'), ...Array.from({ length: 9 }, (_, i) => thread(`t${i + 2}`))],
+        analyses: [
+          analysis('t1', {
+            is_repair_case: true,
+            secondary_clinic_mentions: [{ clinic_name: 'Clinic A', role: 'repair_source' }],
+          }),
+          ...Array.from({ length: 9 }, (_, i) => analysis(`t${i + 2}`)),
+        ],
+        clinic: { display_name: 'Test Clinic' },
+      })
+    );
+
+    const result = await getHRNSignals('clinic-1');
+
+    expect(result?.hrnScoreBreakdown?.repairPenalty).toBe(0);
   });
 
   // ── Topic aggregation ───────────────────────────────────────────────────────

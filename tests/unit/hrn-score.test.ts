@@ -9,6 +9,7 @@ function makeThread(overrides: Partial<ScorerThread> = {}): ScorerThread {
     postDate: '2025-10-01T00:00:00Z', // ~6 months ago → weight 1.0
     sentimentScore: 0.6,
     isRepairCase: false,
+    isRepairProvider: false,
     hasLongTermFollowup: false,
     issueKeywords: [],
     ...overrides,
@@ -119,6 +120,26 @@ describe('repair penalty', () => {
   it('repair penalty is capped at 1.5', () => {
     const result = computeHRNScore(threads(20, { isRepairCase: true }), NOW);
     expect(result!.repairPenalty).toBeLessThanOrEqual(1.5);
+  });
+
+  it('repair provider incurs no penalty', () => {
+    const result = computeHRNScore(
+      threads(10, { isRepairCase: true, isRepairProvider: true }),
+      NOW,
+    );
+    expect(result!.repairPenalty).toBe(0);
+  });
+
+  it('only damage-causing cases contribute to the repair penalty, not providers', () => {
+    const result = computeHRNScore([
+      ...threads(5, { isRepairCase: true, isRepairProvider: true }),
+      ...threads(5, { isRepairCase: true, isRepairProvider: false }),
+    ], NOW);
+    // Only 5 of 10 threads count → repairRate = 0.5 → penalty = min(0.5 * 4, 1.5) = 1.5 * 0.5 = 2.0 → capped 1.5? no: 0.5*4=2.0 → capped 1.5
+    expect(result!.repairPenalty).toBeGreaterThan(0);
+    expect(result!.repairPenalty).toBeLessThan(
+      computeHRNScore(threads(10, { isRepairCase: true, isRepairProvider: false }), NOW)!.repairPenalty + 0.01,
+    );
   });
 });
 

@@ -44,7 +44,7 @@ export async function getHRNSignals(clinicId: string, clinicName = ''): Promise<
     ] = await Promise.all([
       supabase
         .from('forum_thread_llm_analysis')
-        .select('thread_id, sentiment_label, sentiment_score, summary_short, main_topics, issue_keywords, is_repair_case')
+        .select('thread_id, sentiment_label, sentiment_score, summary_short, main_topics, issue_keywords, is_repair_case, secondary_clinic_mentions')
         .in('thread_id', threadIds)
         .eq('is_current', true),
 
@@ -147,10 +147,13 @@ export async function getHRNSignals(clinicId: string, clinicName = ''): Promise<
     const scoreBreakdown = computeHRNScore(
       threads.map(t => {
         const analysis = analysisMap.get(t.id);
+        const secondaryMentions = (analysis?.secondary_clinic_mentions as Array<{ role: string }> | null) ?? [];
+        const isRepairProvider = secondaryMentions.some(m => m.role === 'repair_source');
         return {
           postDate: t.post_date ?? new Date().toISOString(),
           sentimentScore: analysis?.sentiment_score ?? null,
           isRepairCase: analysis?.is_repair_case ?? false,
+          isRepairProvider,
           hasLongTermFollowup: followupSet.has(t.id),
           issueKeywords: analysis?.issue_keywords ?? [],
         };
