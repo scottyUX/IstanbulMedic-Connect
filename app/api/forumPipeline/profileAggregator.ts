@@ -177,7 +177,7 @@ export async function recomputeProfile(
 
   const photoThreadCount = threads.filter(t => signalsMap[t.id]?.['has_photos'] === true).length
   const longtermThreadCount = threads.filter(t => signalsMap[t.id]?.['has_longterm_update'] === true).length
-  const repairMentionCount = threads.filter(t => signalsMap[t.id]?.['is_repair_case'] === true).length
+  const repairMentionCount = threads.filter(t => analysisMap[t.id]?.is_repair_case === true).length
 
   const uniqueAuthors = new Set(threads.map(t => t.author_username).filter(Boolean))
   const sortedByDate = [...threads].sort((a, b) =>
