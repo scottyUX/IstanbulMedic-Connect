@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { loadKnownClinicKeywords, buildEntityRegex } from "./hrnStoragePipeline";
+import { loadKnownClinicKeywords, buildEntityRegex } from "../app/api/hrnPipeline/hrnStoragePipeline";
 import dotenv from "dotenv";
 import path from "path";
 

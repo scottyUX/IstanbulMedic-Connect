@@ -3,7 +3,7 @@
  * Run with: npx tsx app/api/hrnPipeline/runTest.ts [optional-thread-url]
  */
 
-import { testScrapeThread } from './hrnScraperTest';
+import { testScrapeThread } from '../app/api/hrnPipeline/hrnScraperTest';
 
 const testUrl = process.argv[2];
 testScrapeThread(testUrl)

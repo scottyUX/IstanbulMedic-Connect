@@ -8,12 +8,12 @@
  */
 
 import OpenAI from "openai";
-import { scrapeHRNThread } from "./hrnScraperTest";
+import { scrapeHRNThread } from "../app/api/hrnPipeline/hrnScraperTest";
 import {
   extractThreadSignals,
   EXTRACTION_MODEL,
   EXTRACTION_PROMPT_VERSION,
-} from "./extractionPrompt";
+} from "../app/api/hrnPipeline/extractionPrompt";
 
 async function testExtraction(threadUrl?: string) {
   // Default test URL

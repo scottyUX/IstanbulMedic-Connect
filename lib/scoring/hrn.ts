@@ -108,8 +108,11 @@ export function computeHRNScore(
     const w = ageDecayWeight(t.postDate, now);
     effectiveN += w;
 
-    // Fall back to 0 (neutral) if sentiment_score is null (e.g. older rows
-    // processed before the sentiment_score column was added).
+    // Fall back to 0 (neutral) if sentiment_score is null (older rows processed
+    // before the sentiment_score column was added, or threads where the LLM run
+    // failed). This silently pulls the score toward neutral rather than excluding
+    // the thread. TODO: replace with a label-derived fallback once sentimentLabel
+    // is threaded through ScorerThread (architectural fix).
     const score = t.sentimentScore ?? 0;
     weightedSentimentSum += score * w;
 
