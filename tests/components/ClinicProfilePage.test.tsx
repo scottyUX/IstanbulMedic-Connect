@@ -91,6 +91,7 @@ describe('ClinicProfilePage', () => {
     totalReviewCount: 0,
     instagramSignals: null,
     redditSignals: null,
+    techniques: null,
     ...overrides,
   });
 

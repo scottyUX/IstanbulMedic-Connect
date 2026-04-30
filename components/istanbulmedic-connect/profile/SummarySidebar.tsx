@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Bookmark, Share2, X } from "lucide-react"
+import { Plus, Bookmark, Share2, X, Globe} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -25,6 +25,7 @@ interface SummarySidebarProps {
   topSpecialties: string[]
   rating: number | null
   reviewCount: number
+  websiteUrl?: string | null
   priceEstimate?: string
   consultationFee?: string
   serviceCharge?: string
@@ -42,6 +43,7 @@ export const SummarySidebar = ({
   topSpecialties,
   rating,
   reviewCount,
+  websiteUrl,
   priceEstimate = "$1,200",
   consultationFee = "$0",
   serviceCharge = "$0",
@@ -134,6 +136,14 @@ export const SummarySidebar = ({
         {FEATURE_CONFIG.share && (
           <IconActionLink icon={<Share2 className="h-4 w-4" />} onClick={onShare}>
             Share
+          </IconActionLink>
+        )}
+        {websiteUrl && (
+          <IconActionLink
+            icon={<Globe className="h-4 w-4" />}
+            onClick={() => window.open(websiteUrl, '_blank')}
+          >
+            Visit Website
           </IconActionLink>
         )}
       </div>

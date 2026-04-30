@@ -97,6 +97,7 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   instagramSignals: InstagramSignalsData | null;
   /** Reddit community signals (null if no Reddit data exists) */
   redditSignals: ClinicForumProfile | null;
+  techniques: string[] | null;
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -130,7 +131,7 @@ type ClinicListQueryRow = {
   clinic_media?: ClinicMediaPartial[] | null;
   clinic_facts?: ClinicFactPartial[] | null;
   clinic_google_places?: ClinicGooglePlacesPartial[] | ClinicGooglePlacesPartial | null;
-  clinic_scraped_data?: any;
+  clinic_scraped_data?: unknown;
 };
 
 const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
@@ -708,6 +709,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
     instagramSignals,
     redditSignals,
+    techniques: scrapedData?.techniques ?? null,
   };
 }
 

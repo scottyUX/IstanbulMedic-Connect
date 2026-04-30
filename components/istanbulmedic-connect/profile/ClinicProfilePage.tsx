@@ -321,6 +321,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
               topSpecialties={specialties.slice(0, 3)}
               rating={clinic.rating ?? null}
               reviewCount={clinic.totalReviewCount}
+              websiteUrl={clinic.websiteUrl}
             />
           </div>
         </div>

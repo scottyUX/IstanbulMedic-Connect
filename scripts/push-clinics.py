@@ -4,7 +4,7 @@ push-clinics.py
 STEP 2 OF 2 in the clinic data pipeline.
 
 What this does:
-  Reads a clinics JSON file (output from clinic-website-scraper2.py) and upserts
+  Reads a clinics JSON file (output from clinic-website-scraper.py) and upserts
   each entry into the clinic_scraped_data table in Supabase, resolving the
   clinic_id FK by matching on website_url from the clinics table.
 
@@ -150,5 +150,5 @@ def push_clinics(json_path: str):
 
 
 if __name__ == "__main__":
-    json_path = sys.argv[1] if len(sys.argv) > 1 else "clinics_clean.json"
+    json_path = sys.argv[1] if len(sys.argv) > 1 else "output/clinics.json"
     push_clinics(json_path)

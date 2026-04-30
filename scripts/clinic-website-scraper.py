@@ -402,57 +402,6 @@ def regex_extract_prices(pages_text: list[str]) -> dict:
 
     log.info(f"  [regex-price] found: {result}")
     return result
-
-
-
-
-# ── LLM Extraction ────────────────────────────────────────────────────────────
-    combined = "\n\n---PAGE BREAK---\n\n".join(pages_text)
-    content = combined[:MAX_TOTAL_CHARS]
-    merged = {}
-
-    for batch_name, schema_prompt in BATCH_PROMPTS:
-        prompt = f"""{schema_prompt}
-
-Return ONLY the JSON object, nothing else. No explanation. No markdown.
-
-Website: {url}
-
-Content:
-{content}
-
-JSON output:"""
-
-        try:
-            response = ollama.chat(
-                model=OLLAMA_MODEL,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user",   "content": prompt},
-                ],
-                options={"temperature": 0, "num_predict": 800, "num_ctx": 8192},
-            )
-            raw = response["message"]["content"].strip()
-            log.info(f"  [{batch_name}] preview: {raw[:100]}")
-
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw.strip())
-
-            match = re.search(r"\{[^{}]*\}", raw, re.DOTALL)
-            if match:
-                parsed = json.loads(match.group(0))
-                merged.update({k: v for k, v in parsed.items()
-                                if v not in [None, "", [], {}]})
-            else:
-                log.warning(f"  [{batch_name}] No JSON object found")
-
-        except json.JSONDecodeError as e:
-            log.warning(f"  [{batch_name}] Invalid JSON: {e}")
-        except Exception as e:
-            log.warning(f"  [{batch_name}] LLM call failed: {e}")
-
-    return merged
-
 # ── Core Scraper ──────────────────────────────────────────────────────────────
 
 def extract_name_from_html(soup: BeautifulSoup) -> str:
