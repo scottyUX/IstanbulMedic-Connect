@@ -1,6 +1,6 @@
 /**
  * Simple test runner for the HRN scraper
- * Run with: npx tsx app/api/hrnPipeline/runTest.ts [optional-thread-url]
+ * Run with: npx tsx scripts/runTest.ts [optional-thread-url]
  */
 
 import { testScrapeThread } from '../app/api/hrnPipeline/hrnScraperTest';

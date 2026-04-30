@@ -36,4 +36,4 @@ async function main() {
   console.log(`Test 3 - Bloxham title: "${bloxhamTitle}" -> ${test3 ? "PASS ✓" : "FAIL ✗ (Bloxham not in DB)"}`);
 }
 
-main().catch(console.error);;
+main().catch(console.error);
