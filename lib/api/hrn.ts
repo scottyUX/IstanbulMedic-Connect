@@ -3,7 +3,7 @@ import type { HRNSignalsData, HRNThread } from '@/components/istanbulmedic-conne
 import { getMockHRNSignals } from './hrn.mock';
 import { computeHRNScore } from '@/lib/scoring/hrn';
 
-const USE_MOCK_HRN = process.env.NEXT_PUBLIC_USE_MOCK_HRN === 'true';
+const USE_MOCK_HRN = process.env.USE_MOCK_HRN === 'true';
 
 /**
  * Fetches HRN forum signals for a clinic by querying raw tables.
