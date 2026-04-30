@@ -81,10 +81,12 @@ export const FEATURE_CONFIG = {
   profileAIInsights: false,
   profileCommunitySignals: false,
   profileInstagram: true,
+  profileHRN: true,
   profileRedditSignals: true,
   profileLanguages: false,
   profilePaymentMethods: false,
   profileServices: false,
+  profileRegistry: true,
 } as const;
 
 export type FeatureConfigKey = keyof typeof FEATURE_CONFIG;

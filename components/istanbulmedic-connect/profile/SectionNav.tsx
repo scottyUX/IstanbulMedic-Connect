@@ -17,6 +17,7 @@ const ALL_SECTIONS: Section[] = [
   { id: "packages", label: "Packages", configKey: "profilePackages" },
   { id: "doctors", label: "Doctors", configKey: "profileDoctors" },
   { id: "transparency", label: "Safety", configKey: "profileTransparency" },
+  { id: "registry", label: "Registry", configKey: "profileRegistry" },
   { id: "ai-insights", label: "AI Insights", configKey: "profileAIInsights" },
   { id: "reviews", label: "Reviews", configKey: "reviews" },
   { id: "community", label: "Community", configKey: "profileCommunitySignals" },

@@ -1,9 +1,19 @@
 import { notFound } from "next/navigation"
 import { getClinicById } from "@/lib/api/clinics"
+import { getClinicRegistryData } from "@/lib/api/registry"
 import ClinicProfilePageClient from "./ClinicProfilePageClient"
 
 interface ClinicProfilePageProps {
   params: Promise<{ clinicId: string }>
+}
+
+async function fetchRegistrySafe(clinicId: string) {
+  try {
+    return await getClinicRegistryData(clinicId)
+  } catch (err) {
+    console.error("[clinic-profile] failed to load registry data:", err)
+    return { registryRecords: [], complianceHistory: [] }
+  }
 }
 
 export default async function ClinicProfilePage({ params }: ClinicProfilePageProps) {
@@ -15,11 +25,20 @@ export default async function ClinicProfilePage({ params }: ClinicProfilePagePro
     }
   }
 
-  const clinic = await getClinicById(clinicId)
+  const [clinic, registryData] = await Promise.all([
+    getClinicById(clinicId),
+    fetchRegistrySafe(clinicId),
+  ])
 
   if (!clinic) {
     notFound()
   }
 
-  return <ClinicProfilePageClient clinic={clinic} />
+  return (
+    <ClinicProfilePageClient
+      clinic={clinic}
+      registryRecords={registryData.registryRecords}
+      complianceHistory={registryData.complianceHistory}
+    />
+  )
 }

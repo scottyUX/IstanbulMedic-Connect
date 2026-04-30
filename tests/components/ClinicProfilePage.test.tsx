@@ -90,19 +90,20 @@ describe('ClinicProfilePage', () => {
     proceduresPerformed: null,
     totalReviewCount: 0,
     instagramSignals: null,
+    hrnSignals: null,
     redditSignals: null,
     ...overrides,
   });
 
   it('renders clinic name in hero section', () => {
     const clinic = createMinimalClinic({ name: 'Istanbul Hair Center' });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText('Istanbul Hair Center')).toBeInTheDocument();
   });
 
   it('renders clinic location', () => {
     const clinic = createMinimalClinic({ location: 'Ankara, Turkey' });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     // Location appears in multiple places, just check that at least one exists
     const elements = screen.getAllByText(/Ankara, Turkey/);
     expect(elements.length).toBeGreaterThan(0);
@@ -111,7 +112,7 @@ describe('ClinicProfilePage', () => {
   // TODO: Unskip when FEATURE_CONFIG.profileTransparency is enabled
   it.skip('renders trust score', () => {
     const clinic = createMinimalClinic({ trustScore: 92 });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     // Trust score appears in multiple places (hero, sidebar, etc.)
     const elements = screen.getAllByText(/92/);
     expect(elements.length).toBeGreaterThan(0);
@@ -119,7 +120,7 @@ describe('ClinicProfilePage', () => {
 
   it('renders rating when provided', () => {
     const clinic = createMinimalClinic({ rating: 4.8 });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     // Rating appears in multiple places
     const elements = screen.getAllByText(/4\.8/);
     expect(elements.length).toBeGreaterThan(0);
@@ -145,7 +146,7 @@ describe('ClinicProfilePage', () => {
         ],
       },
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
 
     expect(screen.getByText('Social Media Presence')).toBeInTheDocument();
     expect(screen.getByText('@istanbulclinic')).toBeInTheDocument();
@@ -153,7 +154,7 @@ describe('ClinicProfilePage', () => {
 
   it('does not render instagram card when instagramSignals is null', () => {
     const clinic = createMinimalClinic({ instagramSignals: null });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
 
     // The signals card should not be present when there's no data
     expect(screen.queryByText('Social Media Presence')).not.toBeInTheDocument();
@@ -172,7 +173,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/Hair Transplant/)).toBeInTheDocument();
   });
 
@@ -184,7 +185,7 @@ describe('ClinicProfilePage', () => {
         { id: 'lang-2', clinic_id: 'clinic-1', language: 'German', support_type: 'staff' },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/English/)).toBeInTheDocument();
     expect(screen.getByText(/German/)).toBeInTheDocument();
   });
@@ -205,14 +206,14 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/Dr\. John Smith/)).toBeInTheDocument();
     expect(screen.getByText(/15\+ yrs/)).toBeInTheDocument();
   });
 
   it('does not render doctors section when no team members', () => {
     const clinic = createMinimalClinic({ team: [] });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     // The doctors section should not be present
     expect(screen.queryByText(/Our Medical Team/)).not.toBeInTheDocument();
   });
@@ -233,7 +234,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/JCI Accredited/)).toBeInTheDocument();
     expect(screen.getByText(/Joint Commission International/)).toBeInTheDocument();
   });
@@ -252,7 +253,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/Excellent experience, highly recommend!/)).toBeInTheDocument();
   });
 
@@ -275,7 +276,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/FUE Hair Transplant/)).toBeInTheDocument();
   });
 
@@ -298,7 +299,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/Premium Hair Transplant Package/)).toBeInTheDocument();
   });
 
@@ -317,7 +318,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/excellent transparency practices/)).toBeInTheDocument();
   });
 
@@ -340,27 +341,27 @@ describe('ClinicProfilePage', () => {
         },
       ] as ClinicDetail['mentions'],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/great experience at this clinic/)).toBeInTheDocument();
   });
 
   // TODO: Unskip when FEATURE_CONFIG.profileOverview is enabled
   it.skip('renders years in operation when provided', () => {
     const clinic = createMinimalClinic({ yearsInOperation: 15 });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/15/)).toBeInTheDocument();
   });
 
   // TODO: Unskip when FEATURE_CONFIG.profileOverview is enabled
   it.skip('renders procedures performed when provided', () => {
     const clinic = createMinimalClinic({ proceduresPerformed: 5000 });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/5,000/)).toBeInTheDocument();
   });
 
   it('handles missing years in operation gracefully', () => {
     const clinic = createMinimalClinic({ yearsInOperation: null });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     // Should render without crashing
     expect(screen.getByText('Test Clinic')).toBeInTheDocument();
   });
@@ -384,7 +385,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/123 Medical Street, Sisli/)).toBeInTheDocument();
   });
 
@@ -393,7 +394,7 @@ describe('ClinicProfilePage', () => {
       locations: [],
       location: 'Izmir, Turkey',
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     // Location appears in multiple places
     const elements = screen.getAllByText(/Izmir, Turkey/);
     expect(elements.length).toBeGreaterThan(0);
@@ -402,7 +403,7 @@ describe('ClinicProfilePage', () => {
   // TODO: Unskip when FEATURE_CONFIG.profileInstagram is enabled
   it.skip('renders Instagram intelligence section', () => {
     const clinic = createMinimalClinic();
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     // Mock Instagram data is always rendered - check for follower count or related text
     const elements = screen.getAllByText(/Followers|followers|Instagram|47,800/i);
     expect(elements.length).toBeGreaterThan(0);
@@ -411,7 +412,7 @@ describe('ClinicProfilePage', () => {
   // TODO: Unskip when FEATURE_CONFIG.profileOverview is enabled (tests for Overview tab)
   it.skip('renders section navigation', () => {
     const clinic = createMinimalClinic();
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     // Overview appears in multiple places (nav and section title)
     const elements = screen.getAllByText(/Overview/);
     expect(elements.length).toBeGreaterThan(0);
@@ -435,7 +436,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     const images = screen.getAllByRole('img');
     expect(images.length).toBeGreaterThan(0);
   });
@@ -466,7 +467,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText(/Dr\. Jane Doe/)).toBeInTheDocument();
     expect(screen.queryByText(/John Admin/)).not.toBeInTheDocument();
   });
@@ -491,7 +492,7 @@ describe('ClinicProfilePage', () => {
         },
       ],
     });
-    render(<ClinicProfilePage clinic={clinic} />);
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     // Should only show once, not duplicate
     const hairTransplantElements = screen.getAllByText(/Hair Transplant/i);
     // Multiple components might show the specialty, but it should be derived correctly
