@@ -78,7 +78,7 @@
     "jsdom": "25.0.1",
     "pdf-parse": "^2.4.5",
     "react-is": "^18.3.1",
-    "supabase": "^2.75.5",
+    "supabase": "^2.98.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",

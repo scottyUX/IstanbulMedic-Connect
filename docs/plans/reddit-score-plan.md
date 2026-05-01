@@ -21,13 +21,14 @@ Reasons:
 
 ## Inputs
 
-All data is already loaded in `profileAggregator.ts` — **no new fields need to be added to any select**.
+All data is already loaded in `profileAggregator.ts` except one field added by the HRN implementation:
 
-`forum_thread_llm_analysis` does not have a numeric `sentiment_score` column. Per-thread sentiment is `sentiment_label` (varchar: `'positive' | 'mixed' | 'negative'`), mapped to integer weights via the existing `SENTIMENT_WEIGHTS` constant. The numeric `sentiment_score` in the schema lives on `clinic_forum_profiles` — it is the already-aggregated mean, not a per-thread value.
+`forum_thread_llm_analysis.sentiment_score` was added in migration `20260415000000_add_sentiment_score_to_llm_analysis.sql` — a numeric -1.0 to 1.0 value the LLM returns alongside the label. It needs to be added to the analyses select.
 
 | Field | Table | Status |
 |---|---|---|
-| `sentiment_label` | `forum_thread_llm_analysis` | Already fetched — maps via SENTIMENT_WEIGHTS |
+| `sentiment_score` | `forum_thread_llm_analysis` | **Not yet fetched — add to select** |
+| `sentiment_label` | `forum_thread_llm_analysis` | Already fetched — fallback if `sentiment_score` is null |
 | `issue_keywords` | `forum_thread_llm_analysis` | Already fetched |
 | `is_repair_case` | `forum_thread_llm_analysis` | Already fetched |
 | `post_date` | `forum_thread_index` | Already fetched (recency decay) |
@@ -42,7 +43,7 @@ Identical structure to the HRN formula. Parameters differ because Reddit N is ty
 
 ### Step 1 — Recency-weighted sentiment mean
 
-Map `sentiment_label` to a weight via `SENTIMENT_WEIGHTS` (`positive=1, mixed=0, negative=−1`). Apply decay by post age:
+Use `sentiment_score` (−1.0 to 1.0) for full numeric granularity. Fall back to label-based weight (`positive=1, mixed=0, negative=−1`) for rows where `sentiment_score` is null (pre-migration data). Apply decay by post age:
 
 ```
 weight(thread):
@@ -51,11 +52,11 @@ weight(thread):
   2–3 years ago        → 0.5
   3+ years ago         → 0.3
 
-sentimentWeight = SENTIMENT_WEIGHTS[sentiment_label]   // −1, 0, or 1
+sentimentValue = sentiment_score ?? SENTIMENT_WEIGHTS[sentiment_label]   // −1 to 1
 
-rawSentiment = Σ(sentimentWeight × ageDecay) / Σ(ageDecay)   // −1 to 1
-normalizedBase = (rawSentiment + 1) / 2 × 10                 // 0 to 10
-effectiveN = Σ(ageDecay)                                      // effective sample size
+rawSentiment = Σ(sentimentValue × ageDecay) / Σ(ageDecay)   // −1 to 1
+normalizedBase = (rawSentiment + 1) / 2 × 10                // 0 to 10
+effectiveN = Σ(ageDecay)                                     // effective sample size
 ```
 
 **Reddit-specific:** Only include post-type threads in the score (`postTypeThreadIds`). Comment rows add context to `mention_count` but are not primary patient reviews.
@@ -74,7 +75,10 @@ At `effectiveN = 6` the score is 50% prior / 50% data. At `effectiveN = 20` it's
 ### Step 3 — Repair case penalty
 
 ```
-repairRate = repairCases / totalPostThreads
+totalPostThreads = threads.length          // after filtering to post-type only
+repairCases      = threads.filter(t => t.isRepairCase).length
+
+repairRate    = repairCases / totalPostThreads
 repairPenalty = min(repairRate × 4, 1.5)
 // 25% repair rate → 1.0 penalty, hard cap at 1.5
 ```
@@ -84,18 +88,27 @@ repairPenalty = min(repairRate × 4, 1.5)
 Signal: `has_longterm_update` from `forum_thread_signals` (equivalent to HRN's `has_12_month_followup`).
 
 ```
-followupRate = longtermPostThreadCount / totalPostThreads
+longtermPostThreadCount = threads.filter(t => t.hasLongtermUpdate).length
+
+followupRate  = longtermPostThreadCount / totalPostThreads
 followupBonus = min(followupRate × 1.5, 0.75)
 // 50% follow-up rate → 0.75 bonus, hard cap at 0.75
 ```
 
 ### Step 5 — Issue severity penalty
 
+Each thread contributes the penalty of its **worst-tier keyword** — one penalty per thread regardless of how many matching keywords it contains. Multiple keywords in a single thread represent one patient's experience and should not stack.
+
 ```
 HIGH = ['overharvesting', 'infection', 'revision_needed']                          // −0.3 per thread
 MED  = ['poor_density', 'poor_growth', 'visible_scarring', 'unnatural_hairline']   // −0.1 per thread
 
-severityPenalty = min(Σ(per-thread severity points), 2.0)   // hard cap
+threadPenalty(t):
+  if any issueKeyword in HIGH → −0.3
+  else if any issueKeyword in MED → −0.1
+  else → 0
+
+severityPenalty = min(Σ threadPenalty across all post-type threads, 2.0)   // hard cap
 ```
 
 Severity keywords sourced from `issue_keywords` in `forum_thread_llm_analysis` — already in the aggregator select.
@@ -156,7 +169,8 @@ Single shared scorer used by both Reddit (in `profileAggregator`) and eventually
 export interface ForumScorerThread {
   id: string
   postDate: string | null
-  sentimentLabel: string | null   // 'positive' | 'mixed' | 'negative' — maps to SENTIMENT_WEIGHTS
+  sentimentScore: number | null   // LLM numeric −1 to 1; null for pre-migration rows
+  sentimentLabel: string | null   // fallback when sentimentScore is null
   isRepairCase: boolean
   issueKeywords: string[]
   hasLongtermUpdate: boolean
@@ -183,9 +197,17 @@ Implementation covers:
 
 ### 2. `app/api/forumPipeline/profileAggregator.ts`
 
-No select changes needed — all required fields are already fetched.
+**A — Add `sentiment_score` to the analyses select:**
 
-**A — Build `ForumScorerThread[]` from existing lookups:**
+```ts
+// Before
+.select('thread_id, sentiment_label, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short')
+
+// After
+.select('thread_id, sentiment_label, sentiment_score, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short')
+```
+
+**B — Build `ForumScorerThread[]` from existing lookups:**
 
 After the existing lookup tables are built (`analysisMap`, `signalsMap`), assemble the scorer input using only post-type thread IDs:
 
@@ -200,6 +222,7 @@ const scorerThreads: ForumScorerThread[] = threads
     return {
       id: t.id,
       postDate: t.post_date ?? null,
+      sentimentScore: a?.sentiment_score != null ? Number(a.sentiment_score) : null,
       sentimentLabel: a?.sentiment_label ?? null,
       isRepairCase: a?.is_repair_case === true,
       issueKeywords: a?.issue_keywords ?? [],
@@ -315,8 +338,9 @@ Cover:
 - Low-N clinic (N=4) → Bayesian shrinkage pulls toward 5.0
 - High repair rate (40%) → penalty applied
 - Long-term follow-ups present → bonus applied
-- HIGH severity keywords → penalty applied
-- MED severity keywords → smaller penalty
+- Thread with HIGH keyword → −0.3 penalty applied
+- Thread with MED keyword → −0.1 penalty applied
+- Thread with both HIGH and MED keywords → −0.3 only (worst tier, no stacking)
 - Recency decay: old threads (3+ years) weighted at 0.3 vs recent at 1.0
 - Thread with null `sentiment_label` → treated as `mixed` (weight 0), doesn't crash
 - Only post-type threads included (comment threads excluded from input)
@@ -344,6 +368,4 @@ npx tsx scripts/forum-recompute-profiles.ts --source reddit --all
 
 3. **Score calibration** — Run `computeForumScore` against the current 22-clinic batch in a script before committing to constants. Adjust `k` and decay weights based on the actual score distribution.
 
-4. **HRN `sentiment_score` note** — The HRN scoring plan references `forum_thread_llm_analysis.sentiment_score` as "not yet fetched". That column does not exist in the schema — only `sentiment_label` does. The HRN plan should use the same label-weight mapping used here.
-
-5. **HRN convergence** — The HRN plan creates `lib/scoring/hrn.ts` independently. If both are implemented, consolidate into `lib/scoring/forum.ts` (this file) with `k: 8` for HRN and `k: 6` for Reddit to avoid duplicated formula code.
+4. **HRN convergence** — The HRN plan creates `lib/scoring/hrn.ts` independently. If both are implemented, consolidate into `lib/scoring/forum.ts` (this file) with `k: 8` for HRN and `k: 6` for Reddit to avoid duplicated formula code.

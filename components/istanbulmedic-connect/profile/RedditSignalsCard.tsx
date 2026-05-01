@@ -195,6 +195,24 @@ function sentimentLabel(score: number): string {
   return "Mostly negative"
 }
 
+function scoreConfidenceTier(threadCount: number): string {
+  if (threadCount >= 15) return "High confidence"
+  if (threadCount >= 6)  return "Moderate"
+  return "Low confidence"
+}
+
+const SCORE_TOOLTIP = [
+  "Reddit Score is based on:",
+  "• Patient sentiment across attributed posts (recent posts weighted more heavily)",
+  "• Long-term follow-up rate (posts with 6-month+ updates)",
+  "• Repair and revision case rate",
+  "• Severity of reported issues (e.g. overharvesting, infection)",
+  "",
+  "Clinics with fewer than 3 posts show no score. Scores reflect self-reported",
+  "experiences on Reddit, not clinical outcomes. Highly satisfied and dissatisfied",
+  "patients are both more likely to post.",
+].join("\n")
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function RedditSignalsCard({ data }: { data: ClinicForumProfile }) {
@@ -202,8 +220,6 @@ export function RedditSignalsCard({ data }: { data: ClinicForumProfile }) {
   const [showAllMentions, setShowAllMentions] = useState(false)
 
   const signals = buildSignals(data)
-  const positiveCount = signals.filter(s => s.status === "positive").length
-  const concernCount = signals.filter(s => s.status === "concern").length
 
   const handleToggle = (id: string) => {
     setExpandedSignals(prev => {
@@ -234,18 +250,27 @@ export function RedditSignalsCard({ data }: { data: ClinicForumProfile }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
-            {positiveCount > 0 && (
-              <span className="flex items-center gap-1 text-emerald-600">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {positiveCount}
-              </span>
-            )}
-            {concernCount > 0 && (
-              <span className="flex items-center gap-1 text-amber-600">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {concernCount}
-              </span>
+          <div className="flex flex-col items-end gap-0.5">
+            {data.score != null ? (
+              <>
+                <div className="flex items-center gap-1">
+                  <span className={cn(
+                    "text-2xl font-bold tabular-nums leading-none",
+                    data.score >= 7.5 ? "text-emerald-600"
+                      : data.score >= 5.0 ? "text-amber-600"
+                      : "text-red-600"
+                  )}>
+                    {data.score.toFixed(1)}
+                  </span>
+                  <span className="text-sm text-muted-foreground leading-none">/&nbsp;10</span>
+                  <button title={SCORE_TOOLTIP} className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors">
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">{scoreConfidenceTier(data.threadCount)}</p>
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground">Insufficient data</span>
             )}
           </div>
         </div>

@@ -11,10 +11,12 @@
  *  - common_concerns (top issue keywords)
  *  - notable_threads (top 5 by score/reply_count)
  *  - summary (LLM — single call on digest of notable threads)
+ *  - score (0–10 composite via computeForumScore)
  */
 
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
+import { computeForumScore, type ForumScorerThread } from '@/lib/scoring/forum'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -90,6 +92,7 @@ export interface AggregatedProfile {
     has_photos: boolean
   }[]
   summary: string | null
+  score: number | null
 }
 
 /**
@@ -134,7 +137,7 @@ export async function recomputeProfile(
   // Load LLM analysis (current only)
   const { data: analyses, error: analysesError } = await supabase
     .from('forum_thread_llm_analysis')
-    .select('thread_id, sentiment_label, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short')
+    .select('thread_id, sentiment_label, sentiment_score, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short')
     .in('thread_id', threadIds)
     .eq('is_current', true)
 
@@ -251,6 +254,25 @@ export async function recomputeProfile(
     has_photos: signalsMap[t.id]?.['has_photos'] === true,
   }))
 
+  // ── Composite score ────────────────────────────────────────────────────────
+
+  const scorerThreads: ForumScorerThread[] = threads
+    .filter(t => postTypeThreadIds.has(t.id))
+    .map(t => {
+      const a = analysisMap[t.id]
+      const s = signalsMap[t.id]
+      return {
+        postDate: t.post_date ?? null,
+        sentimentScore: a?.sentiment_score != null ? Number(a.sentiment_score) : null,
+        sentimentLabel: a?.sentiment_label ?? null,
+        isRepairCase: a?.is_repair_case === true,
+        issueKeywords: a?.issue_keywords ?? [],
+        hasLongtermUpdate: s?.['has_longterm_update'] === true,
+      }
+    })
+
+  const forumScore = computeForumScore(scorerThreads)
+
   // ── LLM summary (single call) ──────────────────────────────────────────────
 
   const { data: clinicRow, error: clinicError } = await supabase
@@ -287,6 +309,7 @@ export async function recomputeProfile(
         common_concerns: commonConcerns,
         notable_threads: notableThreads,
         summary,
+        score: forumScore?.score ?? null,
         is_stale: false,
         updated_at: new Date().toISOString(),
         captured_at: new Date().toISOString(),
