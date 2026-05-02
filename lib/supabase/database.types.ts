@@ -216,6 +216,7 @@ export type Database = {
           photo_thread_count: number
           pros: string[] | null
           repair_mention_count: number
+          score: number | null
           sentiment_distribution: Json | null
           sentiment_score: number | null
           summary: string | null
@@ -238,6 +239,7 @@ export type Database = {
           photo_thread_count?: number
           pros?: string[] | null
           repair_mention_count?: number
+          score?: number | null
           sentiment_distribution?: Json | null
           sentiment_score?: number | null
           summary?: string | null
@@ -260,6 +262,7 @@ export type Database = {
           photo_thread_count?: number
           pros?: string[] | null
           repair_mention_count?: number
+          score?: number | null
           sentiment_distribution?: Json | null
           sentiment_score?: number | null
           summary?: string | null
