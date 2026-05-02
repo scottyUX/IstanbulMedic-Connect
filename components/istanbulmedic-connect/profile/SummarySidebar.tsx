@@ -141,7 +141,7 @@ export const SummarySidebar = ({
         {websiteUrl && (
           <IconActionLink
             icon={<Globe className="h-4 w-4" />}
-            onClick={() => window.open(websiteUrl, '_blank')}
+            onClick={() => window.open(websiteUrl, '_blank', 'noopener,noreferrer')}
           >
             Visit Website
           </IconActionLink>

@@ -131,7 +131,7 @@ type ClinicListQueryRow = {
   clinic_media?: ClinicMediaPartial[] | null;
   clinic_facts?: ClinicFactPartial[] | null;
   clinic_google_places?: ClinicGooglePlacesPartial[] | ClinicGooglePlacesPartial | null;
-  clinic_scraped_data?: unknown;
+  clinic_scraped_data?:  ClinicScrapedDataPartial | ClinicScrapedDataPartial[] | null;
 };
 
 const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {

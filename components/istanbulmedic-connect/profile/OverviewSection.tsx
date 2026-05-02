@@ -7,8 +7,11 @@ import { StatBlock } from "@/components/ui/stat-block"
 
 interface OverviewSectionProps {
   specialties: string[]
+  /** Reserved for future use — not currently rendered */
   yearsInOperation: number | null
+  /** Reserved for future use — not currently rendered */
   proceduresPerformed: number | null
+  /** Reserved for future use — not currently rendered */
   languages: string[]
   description: string | null
   techniques: string[]
