@@ -16,7 +16,7 @@
 // ── Constants (tunable after pilot batch) ─────────────────────────────────────
 
 /** Prior weight — how much a low-N clinic is pulled toward neutral (5.0). */
-const PRIOR_WEIGHT = 6;
+const PRIOR_WEIGHT = 4;
 
 /** Minimum effective sample size required to show a score. */
 const MIN_EFFECTIVE_N = 3;

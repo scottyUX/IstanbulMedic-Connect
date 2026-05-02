@@ -272,6 +272,7 @@ export async function recomputeProfile(
     })
 
   const forumScore = computeForumScore(scorerThreads)
+  console.log(`[score] clinic=${clinicId} postThreads=${scorerThreads.length} effectiveN=${forumScore?.effectiveN?.toFixed(2) ?? 'n/a'} score=${forumScore?.score ?? 'insufficient'}`)
 
   // ── LLM summary (single call) ──────────────────────────────────────────────
 
