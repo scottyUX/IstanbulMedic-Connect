@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
 import { Merriweather } from 'next/font/google'
 
 const merriweather = Merriweather({ subsets: ['latin'], weight: ['400', '700'], display: 'swap' })
@@ -152,47 +151,71 @@ export default function ProfileHairLossStatus() {
         <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
           <CardHeader title="Hair loss classification" saveState={saveState} saveError={saveError} />
           <Row icon={icons.norwood} label="Norwood scale">
-            <div className="flex flex-col gap-3" role="radiogroup" aria-label="Norwood scale">
-              {NORWOOD_OPTIONS.map((o) => {
-                const selected = form.norwoodScale === String(o.value)
-                return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    onClick={() => set('norwoodScale', String(o.value))}
-                    className={`flex items-center gap-5 w-full text-left rounded-xl border-2 px-5 py-4 transition-all ${
-                      selected
-                        ? 'border-[#17375B] bg-[#17375B]/5'
-                        : 'border-border bg-background hover:border-[#17375B]/40'
-                    }`}
-                  >
-                    <div className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                      selected ? 'border-[#17375B] bg-[#17375B]' : 'border-muted-foreground/30 bg-background'
-                    }`}>
-                      {selected && (
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <Image
-                      src={`/assets/norwood/stage-${o.value}.png`}
-                      alt={`Stage ${o.value}`}
-                      width={112}
-                      height={112}
-                      loading="lazy"
-                      className="w-28 h-28 object-contain shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-base font-semibold ${selected ? 'text-[#17375B]' : 'text-muted-foreground'}`}>
+            <div role="radiogroup" aria-label="Norwood scale">
+              {/* Row 1: stages 1–4 */}
+              <div className="grid grid-cols-4 gap-3 mb-3">
+                {NORWOOD_OPTIONS.slice(0, 4).map((o) => {
+                  const selected = form.norwoodScale === String(o.value)
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => set('norwoodScale', String(o.value))}
+                      className={`flex flex-col items-center gap-2 rounded-xl border-2 px-2 py-4 transition-all bg-background ${
+                        selected
+                          ? 'border-[#17375B] shadow-[0_0_0_3px_rgba(23,55,91,0.15)]'
+                          : 'border-border hover:border-[#17375B]/40'
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/assets/norwood/stage-${o.value}.png`}
+                        alt={`Stage ${o.value}`}
+                        width={112}
+                        height={112}
+                        loading="lazy"
+                      />
+                      <p className={`text-xs font-semibold text-center leading-tight ${selected ? 'text-[#17375B]' : 'text-muted-foreground'}`}>
                         {o.label}
                       </p>
-                    </div>
-                  </button>
-                )
-              })}
+                    </button>
+                  )
+                })}
+              </div>
+              {/* Row 2: stages 5–7 — flex-centred, each card matches grid column width */}
+              <div className="flex justify-center gap-3">
+                {NORWOOD_OPTIONS.slice(4).map((o) => {
+                  const selected = form.norwoodScale === String(o.value)
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => set('norwoodScale', String(o.value))}
+                      className={`flex flex-col items-center gap-2 rounded-xl border-2 px-2 py-4 transition-all bg-background w-[calc(25%-9px)] ${
+                        selected
+                          ? 'border-[#17375B] shadow-[0_0_0_3px_rgba(23,55,91,0.15)]'
+                          : 'border-border hover:border-[#17375B]/40'
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/assets/norwood/stage-${o.value}.png`}
+                        alt={`Stage ${o.value}`}
+                        width={112}
+                        height={112}
+                        loading="lazy"
+                      />
+                      <p className={`text-xs font-semibold text-center leading-tight ${selected ? 'text-[#17375B]' : 'text-muted-foreground'}`}>
+                        {o.label}
+                      </p>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </Row>
           <Row icon={icons.duration} label="Hair loss duration">

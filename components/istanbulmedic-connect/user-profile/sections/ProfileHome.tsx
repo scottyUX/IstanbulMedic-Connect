@@ -151,7 +151,7 @@ export default function ProfileHome({ onNavigate }: Props) {
 
       setPhotos((prev) => [
         ...prev.filter((p) => p.view !== view),
-        { view, previewUrl: urlData.publicUrl, storagePath: path },
+        { view, previewUrl: `${urlData.publicUrl}?t=${Date.now()}`, storagePath: path },
       ])
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed. Please try again.')
@@ -229,7 +229,7 @@ export default function ProfileHome({ onNavigate }: Props) {
                 Welcome back, {displayName}
               </h1>
               <p className="text-sm text-slate-500 mt-1">
-                Manage your hair transplant treatment profile
+                Your treatment passport. One profile, ready for any clinic
               </p>
             </div>
           </div>

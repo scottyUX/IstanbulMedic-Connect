@@ -231,13 +231,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // continue regardless
     } finally {
-      setIsAuthenticated(false);
-      setUser(null);
-      setProfile(null);
       if (typeof window !== 'undefined') {
         localStorage.clear();
+        window.location.href = '/';
       }
-      router.push('/');
     }
   };
 

@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
@@ -534,10 +533,10 @@ export function GetStarted() {
                         setData(n)
                         scheduleAutosave(n, country)
                       }}
-                      className={`flex items-center gap-4 w-full text-left rounded-2xl border-2 px-4 py-3 transition-all duration-150 ${
+                      className={`flex items-center gap-4 w-full text-left rounded-2xl border-2 px-4 py-3 transition-all duration-150 bg-white ${
                         selected
-                          ? "border-[#17375B] bg-[#17375B]/5"
-                          : "border-slate-200 bg-white hover:border-[#17375B]/40 hover:bg-slate-50"
+                          ? "border-[#17375B] shadow-[0_0_0_3px_rgba(23,55,91,0.15)]"
+                          : "border-slate-200 hover:border-[#17375B]/40 hover:bg-slate-50"
                       }`}
                     >
                       <div className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
@@ -549,12 +548,14 @@ export function GetStarted() {
                           </svg>
                         )}
                       </div>
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={`/assets/norwood/stage-${opt.value}.png`}
                         alt={`Stage ${opt.value}`}
-                        width={64}
-                        height={64}
-                        className="w-16 h-16 object-contain shrink-0"
+                        width={112}
+                        height={112}
+                        loading="lazy"
+                        className="shrink-0"
                       />
                       <p className={`text-base font-semibold ${selected ? "text-[#0D1E32]" : "text-foreground"}`}>
                         {opt.label}
