@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import type { ClinicForumProfile } from "@/lib/api/forumSignals"
 
@@ -195,6 +196,38 @@ function sentimentLabel(score: number): string {
   return "Mostly negative"
 }
 
+function scoreConfidenceTier(threadCount: number): string {
+  if (threadCount >= 15) return "High confidence"
+  if (threadCount >= 6)  return "Moderate"
+  return "Low confidence"
+}
+
+function ScoreInfoPopover() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors" aria-label="How is this score calculated?">
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 text-sm" align="end">
+        <p className="font-medium mb-2">Reddit Score is based on:</p>
+        <ul className="space-y-1 text-muted-foreground list-disc list-inside">
+          <li>Patient sentiment across attributed posts (recent posts weighted more heavily)</li>
+          <li>Long-term follow-up rate (posts with 6-month+ updates)</li>
+          <li>Repair and revision case rate</li>
+          <li>Severity of reported issues (e.g. overharvesting, infection)</li>
+        </ul>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Clinics with fewer than 3 posts show no score. Scores reflect self-reported
+          experiences on Reddit, not clinical outcomes. Highly satisfied and dissatisfied
+          patients are both more likely to post.
+        </p>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function RedditSignalsCard({ data }: { data: ClinicForumProfile }) {
@@ -202,8 +235,6 @@ export function RedditSignalsCard({ data }: { data: ClinicForumProfile }) {
   const [showAllMentions, setShowAllMentions] = useState(false)
 
   const signals = buildSignals(data)
-  const positiveCount = signals.filter(s => s.status === "positive").length
-  const concernCount = signals.filter(s => s.status === "concern").length
 
   const handleToggle = (id: string) => {
     setExpandedSignals(prev => {
@@ -234,18 +265,25 @@ export function RedditSignalsCard({ data }: { data: ClinicForumProfile }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
-            {positiveCount > 0 && (
-              <span className="flex items-center gap-1 text-emerald-600">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {positiveCount}
-              </span>
-            )}
-            {concernCount > 0 && (
-              <span className="flex items-center gap-1 text-amber-600">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {concernCount}
-              </span>
+          <div className="flex flex-col items-end gap-0.5">
+            {data.score != null ? (
+              <>
+                <div className="flex items-center gap-1">
+                  <span className={cn(
+                    "text-2xl font-bold tabular-nums leading-none",
+                    data.score >= 7.5 ? "text-emerald-600"
+                      : data.score >= 5.0 ? "text-amber-600"
+                      : "text-red-600"
+                  )}>
+                    {data.score.toFixed(1)}
+                  </span>
+                  <span className="text-sm text-muted-foreground leading-none">/&nbsp;10</span>
+                  <ScoreInfoPopover />
+                </div>
+                <p className="text-xs text-muted-foreground">{scoreConfidenceTier(data.threadCount)}</p>
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground">Insufficient data</span>
             )}
           </div>
         </div>
