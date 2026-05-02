@@ -91,8 +91,8 @@ Signal: `has_longterm_update` from `forum_thread_signals` (equivalent to HRN's `
 longtermPostThreadCount = threads.filter(t => t.hasLongtermUpdate).length
 
 followupRate  = longtermPostThreadCount / totalPostThreads
-followupBonus = min(followupRate × 1.5, 0.75)
-// 50% follow-up rate → 0.75 bonus, hard cap at 0.75
+followupBonus = min(followupRate × 1.5, 0.8)
+// 50% follow-up rate → 0.75 bonus, hard cap at 0.8
 ```
 
 ### Step 5 — Issue severity penalty
@@ -133,7 +133,7 @@ Do not compute a score for `effectiveN < 3`. Return `undefined` — renders as "
 | `k` | 6 | How much low-N clinics are pulled toward neutral |
 | Decay weights | 1.0 / 0.7 / 0.5 / 0.3 | How fast old threads lose influence |
 | `repairPenalty` cap | 1.5 | Maximum score loss from repair rate |
-| `followupBonus` cap | 0.75 | Maximum score gain from follow-up rate |
+| `followupBonus` cap | 0.8 | Maximum score gain from follow-up rate |
 | `severityPenalty` cap | 2.0 | Maximum score loss from issue keywords |
 | Min `effectiveN` | 3 | Below this, show no score |
 
@@ -167,7 +167,6 @@ Single shared scorer used by both Reddit (in `profileAggregator`) and eventually
 
 ```ts
 export interface ForumScorerThread {
-  id: string
   postDate: string | null
   sentimentScore: number | null   // LLM numeric −1 to 1; null for pre-migration rows
   sentimentLabel: string | null   // fallback when sentimentScore is null

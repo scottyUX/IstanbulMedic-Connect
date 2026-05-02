@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import type { ClinicForumProfile } from "@/lib/api/forumSignals"
 
@@ -201,17 +202,31 @@ function scoreConfidenceTier(threadCount: number): string {
   return "Low confidence"
 }
 
-const SCORE_TOOLTIP = [
-  "Reddit Score is based on:",
-  "• Patient sentiment across attributed posts (recent posts weighted more heavily)",
-  "• Long-term follow-up rate (posts with 6-month+ updates)",
-  "• Repair and revision case rate",
-  "• Severity of reported issues (e.g. overharvesting, infection)",
-  "",
-  "Clinics with fewer than 3 posts show no score. Scores reflect self-reported",
-  "experiences on Reddit, not clinical outcomes. Highly satisfied and dissatisfied",
-  "patients are both more likely to post.",
-].join("\n")
+function ScoreInfoPopover() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors" aria-label="How is this score calculated?">
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 text-sm" align="end">
+        <p className="font-medium mb-2">Reddit Score is based on:</p>
+        <ul className="space-y-1 text-muted-foreground list-disc list-inside">
+          <li>Patient sentiment across attributed posts (recent posts weighted more heavily)</li>
+          <li>Long-term follow-up rate (posts with 6-month+ updates)</li>
+          <li>Repair and revision case rate</li>
+          <li>Severity of reported issues (e.g. overharvesting, infection)</li>
+        </ul>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Clinics with fewer than 3 posts show no score. Scores reflect self-reported
+          experiences on Reddit, not clinical outcomes. Highly satisfied and dissatisfied
+          patients are both more likely to post.
+        </p>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -263,9 +278,7 @@ export function RedditSignalsCard({ data }: { data: ClinicForumProfile }) {
                     {data.score.toFixed(1)}
                   </span>
                   <span className="text-sm text-muted-foreground leading-none">/&nbsp;10</span>
-                  <button title={SCORE_TOOLTIP} className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors">
-                    <Info className="h-3.5 w-3.5" />
-                  </button>
+                  <ScoreInfoPopover />
                 </div>
                 <p className="text-xs text-muted-foreground">{scoreConfidenceTier(data.threadCount)}</p>
               </>
