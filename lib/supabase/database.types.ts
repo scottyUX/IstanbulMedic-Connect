@@ -11,6 +11,30 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -2000,10 +2024,10 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           deleted: boolean | null
-          first_name: string
+          first_name: string | null
           gender: string | null
           id: string
-          last_name: string
+          last_name: string | null
           nationality: string | null
           preferred_language: string | null
           profile_picture_url: string | null
@@ -2015,10 +2039,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name: string
+          first_name?: string | null
           gender?: string | null
           id?: string
-          last_name: string
+          last_name?: string | null
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -2030,10 +2054,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name?: string
+          first_name?: string | null
           gender?: string | null
           id?: string
-          last_name?: string
+          last_name?: string | null
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -2513,6 +2537,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       age_tier: ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"],

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import type { Tables } from '@/lib/supabase/database.types';
 import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/profile/InstagramSignalsCard';
 import { getInstagramSignals } from './instagram';
+import type { HRNSignalsData } from '@/components/istanbulmedic-connect/profile/HRNSignalsCard';
+import { getHRNSignals } from './hrn';
 import { getForumSignals, type ClinicForumProfile } from './forumSignals';
 
 // Database row types
@@ -95,6 +97,8 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   totalReviewCount: number;
   /** Instagram signals data for trust indicators (null if no Instagram data exists) */
   instagramSignals: InstagramSignalsData | null;
+  /** HRN forum signals (null if no threads attributed to this clinic) */
+  hrnSignals: HRNSignalsData | null;
   /** Reddit community signals (null if no Reddit data exists) */
   redditSignals: ClinicForumProfile | null;
   techniques: string[] | null;
@@ -662,8 +666,11 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     });
   const imageUrl = imageMedia[0]?.url ?? null;
 
-  // Fetch Instagram signals data (returns null if no Instagram profile exists)
-  const instagramSignals = await getInstagramSignals(clinic.id);
+  // Fetch Instagram and HRN signals in parallel (both return null if no data)
+  const [instagramSignals, hrnSignals] = await Promise.all([
+    getInstagramSignals(clinic.id),
+    getHRNSignals(clinic.id, clinic.display_name),
+  ]);
 
   // Fetch Reddit signals data (returns null if no Reddit profile exists)
   const redditSignals = await getForumSignals(clinic.id, 'reddit');
@@ -708,6 +715,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     proceduresPerformed: clinic.procedures_performed,
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
     instagramSignals,
+    hrnSignals,
     redditSignals,
     techniques: scrapedData?.techniques ?? null,
   };
