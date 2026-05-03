@@ -1,0 +1,26 @@
+[
+  {
+    "_comment": "AEK Hair Clinic — Dr. Ali Emre Karadeniz. ISHRS profile shows 'Emre Karadeniz'.",
+    "clinic_id": "1034aed1-9c8a-46c7-815d-26372f40b1d8",
+    "expected_name": "Emre Karadeniz",
+    "ishrs_url": "https://ishrs.org/doctor/50809/"
+  },
+  {
+    "_comment": "ASMED Medical Center — Dr. Koray Erdogan.",
+    "clinic_id": "d231c7ee-e48f-4720-93f1-60dee8337be7",
+    "expected_name": "Koray Erdogan",
+    "iahrs_url": "https://www.iahrs.org/hair-transplant/koray-erdogan"
+  },
+  {
+    "_comment": "Dr. Resul Yaman Hair Clinic.",
+    "clinic_id": "3ea410a8-4fe5-48d7-b191-1761b5b7c089",
+    "expected_name": "Resul Yaman",
+    "iahrs_url": "https://www.iahrs.org/hair-transplant/resul-yaman"
+  },
+  {
+    "_comment": "AHD Clinic — Dr. Hakan Doğanay.",
+    "clinic_id": "5931b391-2b39-4e7d-a087-40e58eb23a6e",
+    "expected_name": "Hakan Doğanay",
+    "iahrs_url": "https://www.iahrs.org/hair-transplant/hakan-doganay"
+  }
+]
