@@ -210,7 +210,7 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
 export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResult> {
   const supabase = await createClient();
 
-  const pageSize = Math.max(1, Math.min(query.pageSize ?? 12, 50));
+  const pageSize = Math.max(1, Math.min(query.pageSize ?? 12, 500));
   const page = Math.max(1, query.page ?? 1);
   const sort = query.sort ?? 'Best Match';
   // These sorts require the view for proper ORDER BY

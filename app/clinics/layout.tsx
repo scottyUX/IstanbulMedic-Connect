@@ -30,7 +30,7 @@ export default function ConnectLayout({ children }: { children: ReactNode }) {
     <div
       className={`${connectHeadingFont.variable} ${connectBodyFont.variable} ${connectScriptFont.variable} imConnectTheme`}
     >
-      <main style={{ marginTop: "var(--im-header-height, 80px)" }}>{children}</main>
+      <main>{children}</main>
     </div>
   )
 }
