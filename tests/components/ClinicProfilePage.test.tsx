@@ -201,6 +201,10 @@ describe('ClinicProfilePage', () => {
           bio: null,
           created_at: null,
           updated_at: null,
+          doctor_involvement_level: 'high',
+          last_verified_at: null,
+          external_ids: {},
+          qualifications: [],
         },
       ],
     });
@@ -470,6 +474,10 @@ describe('ClinicProfilePage', () => {
           bio: null,
           created_at: null,
           updated_at: null,
+          doctor_involvement_level: 'high',
+          last_verified_at: null,
+          external_ids: {},
+          qualifications: [],
         },
         {
           id: 'team-2',
@@ -482,6 +490,10 @@ describe('ClinicProfilePage', () => {
           bio: null,
           created_at: null,
           updated_at: null,
+          doctor_involvement_level: 'low',
+          last_verified_at: null,
+          external_ids: {},
+          qualifications: [],
         },
       ],
     });

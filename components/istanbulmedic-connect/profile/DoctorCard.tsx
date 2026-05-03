@@ -1,10 +1,16 @@
 "use client"
 
 import Image from "next/image"
-import { GraduationCap } from "lucide-react"
+import { GraduationCap, ShieldCheck } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+
+export interface DoctorQualification {
+  qualification: string
+  source: "ishrs" | "iahrs" | string
+  verifiedAt: string | null
+}
 
 export interface Doctor {
   name: string | null
@@ -13,11 +19,27 @@ export interface Doctor {
   credentials: string[]
   yearsOfExperience: number | null
   education: string | null
+  /** Externally-verified qualifications scraped from public directories. */
+  verifiedQualifications?: DoctorQualification[]
+  /** Most-recent verification timestamp across all sources. */
+  lastVerifiedAt?: string | null
 }
 
 interface DoctorCardProps {
   doctor: Doctor
   className?: string
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  ishrs: "ISHRS",
+  iahrs: "IAHRS",
+}
+
+function formatVerifiedDate(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString(undefined, { month: "short", year: "numeric" })
 }
 
 export const DoctorCard = ({ doctor, className }: DoctorCardProps) => {
@@ -28,6 +50,9 @@ export const DoctorCard = ({ doctor, className }: DoctorCardProps) => {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase() ?? "")
       .join("") || "DR"
+
+  const verified = doctor.verifiedQualifications ?? []
+  const lastVerifiedLabel = formatVerifiedDate(doctor.lastVerifiedAt)
 
   return (
     <div
@@ -72,6 +97,31 @@ export const DoctorCard = ({ doctor, className }: DoctorCardProps) => {
             <Badge variant="credential">{doctor.yearsOfExperience}+ yrs</Badge>
           )}
         </div>
+
+        {verified.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground/80">
+              <ShieldCheck className="h-4 w-4 stroke-[2]" />
+              <span>Verified qualifications</span>
+            </div>
+            <ul className="flex flex-wrap gap-2">
+              {verified.map((q) => (
+                <li
+                  key={`${q.source}-${q.qualification}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-2.5 py-1 text-xs"
+                >
+                  <span className="font-medium text-foreground">{q.qualification}</span>
+                  <span className="text-muted-foreground">
+                    via {SOURCE_LABELS[q.source] ?? q.source.toUpperCase()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {lastVerifiedLabel && (
+              <p className="text-xs text-muted-foreground">Last verified {lastVerifiedLabel}</p>
+            )}
+          </div>
+        )}
 
         {doctor.education && (
           <div className="flex items-center gap-2 text-muted-foreground">

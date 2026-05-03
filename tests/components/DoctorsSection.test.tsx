@@ -108,4 +108,61 @@ describe('DoctorsSection', () => {
     const img = screen.getByRole('img', { name: /Dr\. Mehmet Yilmaz/i });
     expect(img).toHaveAttribute('src', '/doctor.jpg');
   });
+
+  describe('three render states', () => {
+    const verifiedDoctor: Doctor = {
+      name: 'Dr. Ali Emre Karadeniz',
+      specialty: 'Surgeon',
+      photo: null,
+      credentials: ['Plastic Surgery'],
+      yearsOfExperience: 14,
+      education: null,
+      verifiedQualifications: [
+        { qualification: 'FISHRS', source: 'ishrs', verifiedAt: '2026-04-15T00:00:00Z' },
+        { qualification: 'ABHRS Diplomate', source: 'ishrs', verifiedAt: '2026-04-15T00:00:00Z' },
+      ],
+      lastVerifiedAt: '2026-04-15T00:00:00Z',
+    };
+
+    it('State A (verified): shows qualifications and source badges', () => {
+      render(<DoctorsSection doctors={[verifiedDoctor]} />);
+
+      expect(screen.getByText('FISHRS')).toBeInTheDocument();
+      expect(screen.getByText('ABHRS Diplomate')).toBeInTheDocument();
+      expect(screen.getAllByText(/via ISHRS/i)).toHaveLength(2);
+
+      expect(screen.queryByTestId('doctors-listed-unverified')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('doctors-not-disclosed')).not.toBeInTheDocument();
+    });
+
+    it('State A: surfaces last-verified date in human-readable form', () => {
+      render(<DoctorsSection doctors={[verifiedDoctor]} />);
+      expect(screen.getByText(/Last verified Apr 2026/)).toBeInTheDocument();
+    });
+
+    it('State B (listed but unverified): shows section-level note when no qualifications exist', () => {
+      const doctors = [createDoctor({ name: 'Dr. Unverified' })];
+      render(<DoctorsSection doctors={doctors} />);
+
+      expect(screen.getByTestId('doctors-listed-unverified')).toBeInTheDocument();
+      expect(screen.getByText('Dr. Unverified')).toBeInTheDocument();
+      expect(screen.queryByText(/via ISHRS/i)).not.toBeInTheDocument();
+    });
+
+    it('State C (not disclosed): shows the booking-warning message for empty teams', () => {
+      render(<DoctorsSection doctors={[]} />);
+
+      expect(screen.getByTestId('doctors-not-disclosed')).toBeInTheDocument();
+      expect(screen.getByText(/has not publicly disclosed/i)).toBeInTheDocument();
+    });
+
+    it('mixed team renders State A when at least one member is verified', () => {
+      const unverified = createDoctor({ name: 'Dr. Other' });
+      render(<DoctorsSection doctors={[verifiedDoctor, unverified]} />);
+
+      expect(screen.queryByTestId('doctors-listed-unverified')).not.toBeInTheDocument();
+      expect(screen.getByText('FISHRS')).toBeInTheDocument();
+      expect(screen.getByText('Dr. Other')).toBeInTheDocument();
+    });
+  });
 });

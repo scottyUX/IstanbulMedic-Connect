@@ -75,7 +75,7 @@ export const FEATURE_CONFIG = {
   profileOverview: false,
   profilePricing: false,
   profilePackages: false,
-  profileDoctors: false,
+  profileDoctors: true,
   profileTransparency: false,
   profileAIInsights: false,
   profileCommunitySignals: false,

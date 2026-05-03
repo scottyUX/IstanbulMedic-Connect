@@ -65,6 +65,12 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
       credentials: t.credentials ? [t.credentials] : [],
       yearsOfExperience: t.years_experience,
       education: null, // No fake "Medical School" - show only if we have real data
+      verifiedQualifications: t.qualifications.map((q) => ({
+        qualification: q.qualification,
+        source: q.source,
+        verifiedAt: q.verified_at,
+      })),
+      lastVerifiedAt: t.last_verified_at,
     }))
 
   // Transform credentials to transparency items (no fake defaults)
@@ -285,7 +291,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
               <PackagesSection packages={clinic.packages} />
             )}
 
-            {FEATURE_CONFIG.profileDoctors && doctors.length > 0 && (
+            {FEATURE_CONFIG.profileDoctors && (
               <DoctorsSection doctors={doctors} />
             )}
 
