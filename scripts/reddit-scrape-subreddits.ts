@@ -14,6 +14,12 @@
  *   npx tsx scripts/reddit-scrape-subreddits.ts --sorts top:year
  *
  * timePeriod values: hour, day, week, month, year, all
+ *
+ * Comments (inherited comments affect score at 0.5 weight; run forum-attribute-threads --include-inherited-comments after):
+ *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments
+ *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments --comment-post-threshold 50
+ *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments --comments-per-post 75
+ *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments --comment-post-threshold 0  (all posts, backfill only)
  */
 
 import dotenv from 'dotenv'
@@ -43,6 +49,9 @@ const subredditsArg = getArg('--subreddits')
 const maxPostsArg = getArg('--max-posts')
 const lookbackArg = getArg('--lookback-days')
 const sortsArg = getArg('--sorts')
+const includeComments = args.includes('--include-comments')
+const commentThresholdArg = getArg('--comment-post-threshold')
+const commentsPerPostArg = getArg('--comments-per-post')
 
 // Parse "--sorts new,top:all,controversial:all" into SortSlice[]
 const sortSlices: SortSlice[] | undefined = sortsArg
@@ -64,6 +73,9 @@ async function main() {
     maxPostsPerSubreddit: maxPostsArg ? parseInt(maxPostsArg) : undefined,
     lookbackDays: lookbackArg ? parseInt(lookbackArg) : undefined,
     sortSlices,
+    includeComments,
+    commentPostThreshold: commentThresholdArg ? parseInt(commentThresholdArg) : undefined,
+    commentsPerPost: commentsPerPostArg ? parseInt(commentsPerPostArg) : undefined,
     dryRun,
   })
 

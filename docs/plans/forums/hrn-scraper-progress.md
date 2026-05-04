@@ -406,15 +406,15 @@ Example 3 - Repair context:
 
 ### Cost Analysis
 
-Using Claude Haiku for LLM extraction:
+Using `gpt-4o-mini` for LLM extraction:
 
 | Metric | Estimate |
 |--------|----------|
 | Avg thread text size | ~3,000 characters (~1K tokens) |
 | LLM output | ~200 tokens |
-| Cost per thread | ~$0.0003 |
-| Cost for 1,000 threads | ~$0.30 |
-| Cost for 28,650 threads | ~$8.60 |
+| Cost per thread | ~$0.0004 |
+| Cost for 1,000 threads | ~$0.40 |
+| Cost for 28,650 threads | ~$11.50 |
 
 **Conclusion:** LLM extraction is cheap enough to use broadly. Even at ~28K threads, total cost is under $10. The accuracy gain justifies the minimal cost.
 

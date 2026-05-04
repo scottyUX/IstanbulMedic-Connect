@@ -167,7 +167,7 @@ Every extracted signal stores an `evidence_snippet` — the exact text it came f
 
 Only after Phase 3 is working.
 
-Feed the OP (and last author update if captured) into Claude. Constrain the output heavily:
+Feed the OP (and last author update if captured) into `gpt-4o-mini`. Constrain the output heavily:
 
 ```
 Given this forum post, respond only in JSON with these fields:

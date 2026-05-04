@@ -1038,6 +1038,7 @@ INSERT INTO clinic_forum_profiles (
   last_thread_at,
   confidence_score, sentiment_score,
   sentiment_distribution, pros, common_concerns, notable_threads,
+  score,
   is_stale, captured_at, updated_at
 )
 VALUES
@@ -1081,6 +1082,7 @@ VALUES
         "has_photos": false
       }
     ]'::jsonb,
+    6.3,  -- 4 positive / 1 mixed / 1 negative, Bayesian-shrunk toward 5.0 (k=6)
     false,
     '2026-04-01 02:00:00+00',
     '2026-04-01 02:00:00+00'
@@ -1118,6 +1120,7 @@ VALUES
         "has_photos": false
       }
     ]'::jsonb,
+    5.0,  -- 1 positive / 1 mixed / 1 negative, balanced → Bayesian prior pulls to 5.0
     false,
     '2026-04-01 02:00:00+00',
     '2026-04-01 02:00:00+00'
@@ -1323,3 +1326,95 @@ VALUES
   ('870e8400-e29b-41d4-a716-446655440005', 't3_test005', 'HairTransplants', 'post',
    'One year update after getting a repair/revision done at Istanbul Hair Masters. Background: I had a botched hair transplant in 2022 at a budget clinic in Antalya — hairline was unnatural and donor area was overharvested. Istanbul Hair Masters took on my case as a corrective procedure. Dr. Mehmet Yilmaz redesigned my hairline and added grafts to address the poor density. Result at 1 year is significantly better. Not perfect but a massive improvement. Happy I chose IHM for the repair.',
    421, 41, true);
+
+-- ============================================
+-- REDDIT INHERITED COMMENTS
+-- Tests: scripts/reddit-scrape-subreddits.ts --include-comments
+--        scripts/forum-attribute-threads.ts --include-inherited-comments
+--
+-- 3 comment rows: 2 on IHM parent posts, 1 on AEK.
+-- clinic_attribution_method = 'inherited' means clinic_id came from the parent post.
+-- LLM analysis rows below simulate the sentiment-only pass.
+--
+-- Note: clinic_forum_profiles above were inserted without these comments.
+-- After seeding, run the following to pick them up:
+--   npx tsx scripts/forum-recompute-profiles.ts --source reddit
+-- ============================================
+
+-- hub rows (comment type — no title, inherited clinic_id)
+INSERT INTO forum_thread_index (id, clinic_id, source_id, forum_source, thread_url, title, author_username, post_date, reply_count, clinic_attribution_method, first_scraped_at, last_scraped_at)
+VALUES
+  -- Comment on IHM thread abc001 (12-month review) — commenter at 3 months, optimistic
+  ('861e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://www.reddit.com/r/HairTransplants/comments/abc001/comment/c001',
+   NULL, 'u/FollowUpCommenter1', '2025-10-15 09:12:00+00', 0, 'inherited',
+   '2026-04-02 00:00:00+00', '2026-04-02 00:00:00+00'),
+
+  -- Comment on IHM thread abc005 (8-month UK patient) — donor area scarring concern
+  ('861e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440001', '750e8400-e29b-41d4-a716-446655440001', 'reddit',
+   'https://www.reddit.com/r/HairTransplants/comments/abc005/comment/c002',
+   NULL, 'u/FollowUpCommenter2', '2025-09-23 11:30:00+00', 0, 'inherited',
+   '2026-04-02 00:00:00+00', '2026-04-02 00:00:00+00'),
+
+  -- Comment on AEK thread aek001 (8-month positive) — prospective patient asking about aftercare
+  ('861e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440005', '750e8400-e29b-41d4-a716-446655440002', 'reddit',
+   'https://www.reddit.com/r/TurkeyHairTransplant/comments/aek001/comment/c003',
+   NULL, 'u/AEKFollowUpCommenter', '2025-12-11 14:20:00+00', 0, 'inherited',
+   '2026-04-02 00:00:00+00', '2026-04-02 00:00:00+00');
+
+-- Reddit content rows (post_type = 'comment', parent_thread_id links to parent post hub row)
+INSERT INTO reddit_thread_content (thread_id, reddit_post_id, subreddit, post_type, body, score, comment_count, is_firsthand, parent_thread_id)
+VALUES
+  ('861e8400-e29b-41d4-a716-446655440001', 't1_c001', 'HairTransplants', 'comment',
+   'Thanks for this detailed update! I am 3 months post-op with Istanbul Hair Masters and your timeline gives me hope. Did you use minoxidil post-procedure or let it grow naturally?',
+   18, 0, false, '860e8400-e29b-41d4-a716-446655440001'),
+
+  ('861e8400-e29b-41d4-a716-446655440002', 't1_c002', 'HairTransplants', 'comment',
+   'This is really reassuring. I had my IHM procedure last month and the aftercare guidance was thorough. How did you handle the donor area scarring? Mine is still red at 1 month.',
+   12, 0, false, '860e8400-e29b-41d4-a716-446655440005'),
+
+  ('861e8400-e29b-41d4-a716-446655440003', 't1_c003', 'TurkeyHairTransplant', 'comment',
+   'Great to hear a positive AEK review. I had my consultation with Dr. Ali last week and he seems very hands-on. Did the clinic provide a detailed aftercare kit or was it basic?',
+   9, 0, false, '860e8400-e29b-41d4-a716-446655440011');
+
+-- LLM analysis rows for the inherited comments
+-- These simulate the output of: forum-attribute-threads.ts --include-inherited-comments
+-- clinic_id is known from inheritance, so no attribution resolution is needed.
+INSERT INTO forum_thread_llm_analysis (
+  id, thread_id,
+  attributed_clinic_name, attributed_doctor_name, attributed_clinic_id,
+  sentiment_label, satisfaction_label, summary_short,
+  main_topics, issue_keywords, is_repair_case,
+  secondary_clinic_mentions, evidence_snippets,
+  model_name, prompt_version, run_timestamp, is_current
+)
+VALUES
+  -- Comment 1: optimistic IHM commenter at 3 months (positive)
+  ('882e8400-e29b-41d4-a716-446655440001', '861e8400-e29b-41d4-a716-446655440001',
+   'Istanbul Hair Masters', NULL, '550e8400-e29b-41d4-a716-446655440001',
+   'positive', 'satisfied',
+   'Commenter is 3 months post-op with IHM and finds the 12-month update encouraging. Asks about minoxidil use post-procedure.',
+   ARRAY['healing', 'aftercare'], ARRAY[]::text[], false,
+   '[]'::jsonb,
+   '{"sentiment": "your timeline gives me hope"}'::jsonb,
+   'gpt-4o-mini', 'v1.0', '2026-04-02 02:00:00+00', true),
+
+  -- Comment 2: IHM commenter with donor area concern (mixed — positive experience, one issue)
+  ('882e8400-e29b-41d4-a716-446655440002', '861e8400-e29b-41d4-a716-446655440002',
+   'Istanbul Hair Masters', NULL, '550e8400-e29b-41d4-a716-446655440001',
+   'mixed', 'mixed',
+   'Commenter reports thorough aftercare guidance from IHM but is concerned about visible donor area redness at 1 month post-op.',
+   ARRAY['aftercare', 'donor_area'], ARRAY['visible_scarring'], false,
+   '[]'::jsonb,
+   '{"issue_keywords": "donor area still red at 1 month", "sentiment": "aftercare guidance was thorough"}'::jsonb,
+   'gpt-4o-mini', 'v1.0', '2026-04-02 02:00:00+00', true),
+
+  -- Comment 3: prospective AEK patient post-consultation (positive)
+  ('882e8400-e29b-41d4-a716-446655440003', '861e8400-e29b-41d4-a716-446655440003',
+   'AEK Hair Clinic', 'Dr. Ali Emre Karadeniz', '550e8400-e29b-41d4-a716-446655440005',
+   'positive', 'satisfied',
+   'Prospective patient who had a consultation with Dr. Ali is impressed by his hands-on approach and asks about the aftercare kit.',
+   ARRAY['aftercare', 'doctor_involvement'], ARRAY[]::text[], false,
+   '[]'::jsonb,
+   '{"sentiment": "he seems very hands-on"}'::jsonb,
+   'gpt-4o-mini', 'v1.0', '2026-04-02 02:00:00+00', true);

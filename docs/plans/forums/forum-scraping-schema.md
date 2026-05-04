@@ -199,7 +199,7 @@ References the hub so it works for both HRN and Reddit threads.
 | `is_repair_case` | boolean | Whether this describes a repair/revision procedure |
 | `secondary_clinic_mentions` | jsonb | Other clinics/doctors found in the thread that aren't the primary subject. Default `[]`. Stored as jsonb so a junction table can be backfilled later without re-running the LLM. Format: `[{ clinic_name, doctor_name, role, sentiment, evidence }]`. Role values: `'mentioned'` \| `'compared'` \| `'repair_source'` |
 | `evidence_snippets` | jsonb | Per-signal citations: `{ "is_repair_case": "...text...", "sentiment": "...text..." }` |
-| `model_name` | varchar | e.g. `'claude-haiku-4-5-20251001'` |
+| `model_name` | varchar | e.g. `'gpt-4o-mini'` |
 | `prompt_version` | varchar | e.g. `'v1.0'` |
 | `run_timestamp` | timestamptz | When this LLM run executed |
 | `is_current` | boolean | `true` for the latest run — `false` for historical runs |
