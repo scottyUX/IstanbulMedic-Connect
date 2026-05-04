@@ -2,19 +2,13 @@
 
 import { useState } from "react"
 import {
-  Calendar,
-  Heart,
   Share2,
   Plus,
   Bookmark,
   Search,
   Star,
-  ShieldCheck,
-  X,
-  ChevronRight,
   Menu,
 } from "lucide-react"
-import { Dancing_Script, Merriweather, Poppins } from "next/font/google"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -30,7 +24,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

@@ -12,7 +12,6 @@ const GeminiInput = forwardRef<GeminiInputHandle, InputProps>(({
   inProgress,
   onSend,
   chatReady,
-  onStop,
   onUpload,
   hideStopButton,
 }, ref) => {
