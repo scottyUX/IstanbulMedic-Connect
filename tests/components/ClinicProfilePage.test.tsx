@@ -92,6 +92,7 @@ describe('ClinicProfilePage', () => {
     instagramSignals: null,
     hrnSignals: null,
     redditSignals: null,
+    techniques: null,
     ...overrides,
   });
 
