@@ -241,6 +241,7 @@ export type Database = {
           photo_thread_count: number
           pros: string[] | null
           repair_mention_count: number
+          score: number | null
           sentiment_distribution: Json | null
           sentiment_score: number | null
           summary: string | null
@@ -263,6 +264,7 @@ export type Database = {
           photo_thread_count?: number
           pros?: string[] | null
           repair_mention_count?: number
+          score?: number | null
           sentiment_distribution?: Json | null
           sentiment_score?: number | null
           summary?: string | null
@@ -285,6 +287,7 @@ export type Database = {
           photo_thread_count?: number
           pros?: string[] | null
           repair_mention_count?: number
+          score?: number | null
           sentiment_distribution?: Json | null
           sentiment_score?: number | null
           summary?: string | null
@@ -2025,10 +2028,10 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           deleted: boolean | null
-          first_name: string | null
+          first_name: string
           gender: string | null
           id: string
-          last_name: string | null
+          last_name: string
           nationality: string | null
           preferred_language: string | null
           profile_picture_url: string | null
@@ -2040,10 +2043,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name?: string | null
+          first_name: string
           gender?: string | null
           id?: string
-          last_name?: string | null
+          last_name: string
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -2055,10 +2058,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name?: string | null
+          first_name?: string
           gender?: string | null
           id?: string
-          last_name?: string | null
+          last_name?: string
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -2538,9 +2541,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       age_tier: ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"],

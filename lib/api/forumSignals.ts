@@ -31,6 +31,7 @@ export interface ClinicForumProfile {
   commonConcerns: string[]
   notableThreads: NotableThread[]
   summary: string | null
+  score: number | null
   updatedAt: string
 }
 
@@ -70,6 +71,7 @@ export async function getForumSignals(
     commonConcerns: data.common_concerns ?? [],
     notableThreads: (data.notable_threads as unknown as NotableThread[]) ?? [],
     summary: data.summary ?? null,
+    score: data.score != null ? Number(data.score) : null,
     updatedAt: data.updated_at,
   }
 }
