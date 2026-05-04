@@ -62,7 +62,7 @@ export interface ForumScorerThread {
   isRepairCase: boolean;
   issueKeywords: string[];
   hasLongtermUpdate: boolean;
-  isComment: boolean;  // true for inherited comment rows (weighted at 0.5 by default)
+  isComment?: boolean;  // true for inherited comment rows (weighted at 0.5 by default); omitting treated as false
 }
 
 export interface ForumScoreBreakdown {
