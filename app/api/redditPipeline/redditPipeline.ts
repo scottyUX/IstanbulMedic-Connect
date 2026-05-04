@@ -230,15 +230,12 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
         const comments = await fetchPostComments(subreddit, post.id, commentsPerPost)
 
         // Read parent's clinic_id once for the whole batch — not per comment
-        let parentClinicId: string | null = null
-        if (threadId) {
-          const { data: parentHub } = await supabase
-            .from('forum_thread_index')
-            .select('clinic_id')
-            .eq('id', threadId)
-            .single()
-          parentClinicId = parentHub?.clinic_id ?? null
-        }
+        const { data: parentHub } = await supabase
+          .from('forum_thread_index')
+          .select('clinic_id')
+          .eq('id', threadId)
+          .single()
+        const parentClinicId: string | null = parentHub?.clinic_id ?? null
 
         for (const comment of comments) {
           const commentPost: RawRedditPost = {
