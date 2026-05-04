@@ -201,7 +201,7 @@ AI-assisted section (labeled "AI-assisted"):
 | `lib/api/clinics.ts` | Add `redditSignals: ClinicForumProfile \| null` to `ClinicDetail`; call `getForumSignals(id, 'reddit')` in `getClinicById()` |
 | `components/istanbulmedic-connect/profile/ClinicProfilePage.tsx` | Add `<RedditSignalsCard>` below `InstagramSignalsCard` in full-width sections |
 | `lib/filterConfig.ts` | Add `profileRedditSignals: false` to `FEATURE_CONFIG` (enable after data populated) |
-| `.env.local` | Add Reddit config vars + `FORUM_LLM_MODEL=claude-haiku-4-5-20251001` |
+| `.env.local` | Add Reddit config vars + `FORUM_LLM_MODEL=gpt-4o-mini` |
 
 ---
 

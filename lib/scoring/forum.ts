@@ -62,6 +62,7 @@ export interface ForumScorerThread {
   isRepairCase: boolean;
   issueKeywords: string[];
   hasLongtermUpdate: boolean;
+  isComment: boolean;  // true for inherited comment rows (weighted at 0.5 by default)
 }
 
 export interface ForumScoreBreakdown {
@@ -93,14 +94,18 @@ function toConfidenceTier(effectiveN: number): ForumScoreBreakdown['confidenceTi
 }
 
 /** Worst-tier per thread — keywords do not stack within a single thread. */
-function threadSeverityPoints(keywords: string[]): number {
+function threadSeverityPoints(thread: ForumScorerThread, commentWeight: number): number {
+  const keywords = thread.issueKeywords;
+  let base = 0;
   for (const kw of keywords) {
-    if (HIGH_SEVERITY_ISSUES.has(kw)) return HIGH_SEVERITY_POINTS;
+    if (HIGH_SEVERITY_ISSUES.has(kw)) { base = HIGH_SEVERITY_POINTS; break; }
   }
-  for (const kw of keywords) {
-    if (MED_SEVERITY_ISSUES.has(kw)) return MED_SEVERITY_POINTS;
+  if (base === 0) {
+    for (const kw of keywords) {
+      if (MED_SEVERITY_ISSUES.has(kw)) { base = MED_SEVERITY_POINTS; break; }
+    }
   }
-  return 0;
+  return base * (thread.isComment ? commentWeight : 1.0);
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -115,16 +120,22 @@ function threadSeverityPoints(keywords: string[]): number {
 export function computeForumScore(
   threads: ForumScorerThread[],
   now: Date = new Date(),
+  options?: { commentWeight?: number },
 ): ForumScoreBreakdown | undefined {
   if (threads.length === 0) return undefined;
 
+  const commentWeight = options?.commentWeight ?? 0.5;
+
   // ── Step 1: Recency-weighted sentiment mean ───────────────────────────────
+  // Inherited comments contribute at commentWeight (default 0.5) — post-type threads at 1.0.
 
   let weightedSentimentSum = 0;
   let effectiveN = 0;
 
   for (const t of threads) {
-    const w = ageDecayWeight(t.postDate, now);
+    const ageDecay = ageDecayWeight(t.postDate, now);
+    const typeWeight = t.isComment ? commentWeight : 1.0;
+    const w = ageDecay * typeWeight;
     effectiveN += w;
     const sentimentValue =
       t.sentimentScore ?? (SENTIMENT_WEIGHTS[t.sentimentLabel ?? ''] ?? 0);
@@ -142,24 +153,22 @@ export function computeForumScore(
     (PRIOR_WEIGHT * 5.0 + effectiveN * normalizedBase) /
     (PRIOR_WEIGHT + effectiveN);
 
-  // ── Step 3: Repair penalty ────────────────────────────────────────────────
+  // ── Steps 3 & 4: Post-type threads only (repair rate, follow-up bonus) ───
 
-  const totalThreads  = threads.length;
-  const repairCases   = threads.filter(t => t.isRepairCase).length;
-  const repairRate    = repairCases / totalThreads;
+  const postThreads = threads.filter(t => !t.isComment);
+  const totalPostThreads = postThreads.length;
+
+  const repairRate    = totalPostThreads > 0 ? postThreads.filter(t => t.isRepairCase).length / totalPostThreads : 0;
   const repairPenalty = Math.min(repairRate * 4, MAX_REPAIR_PENALTY);
 
-  // ── Step 4: Follow-up bonus ───────────────────────────────────────────────
-
-  const longtermCount = threads.filter(t => t.hasLongtermUpdate).length;
-  const followupRate  = longtermCount / totalThreads;
+  const followupRate  = totalPostThreads > 0 ? postThreads.filter(t => t.hasLongtermUpdate).length / totalPostThreads : 0;
   const followupBonus = Math.min(followupRate * 1.5, MAX_FOLLOWUP_BONUS);
 
-  // ── Step 5: Issue severity penalty ───────────────────────────────────────
+  // ── Step 5: Issue severity penalty (comments at half penalty) ────────────
 
   let rawSeverity = 0;
   for (const t of threads) {
-    rawSeverity += threadSeverityPoints(t.issueKeywords);
+    rawSeverity += threadSeverityPoints(t, commentWeight);
   }
   const severityPenalty = Math.min(rawSeverity, MAX_SEVERITY_PENALTY);
 

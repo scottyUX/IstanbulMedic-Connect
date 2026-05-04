@@ -355,7 +355,8 @@ describe('runRedditPipeline', () => {
       await runRedditPipeline({
         subreddits: ['HairTransplants'],
         includeComments: true,
-        commentScoreThreshold: 10,
+        commentPostThreshold: 10,
+        commentsPerPost: 50,
         dryRun: false,
       })
 
@@ -372,7 +373,7 @@ describe('runRedditPipeline', () => {
       await runRedditPipeline({
         subreddits: ['HairTransplants'],
         includeComments: true,
-        commentScoreThreshold: 10,
+        commentPostThreshold: 10,
         dryRun: false,
       })
 

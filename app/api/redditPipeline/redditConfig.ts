@@ -13,6 +13,9 @@ export const REDDIT_CONFIG = {
     .filter(Boolean),
   postsPerSubreddit: parseInt(process.env.REDDIT_POSTS_PER_SUBREDDIT ?? '100'),
   lookbackDays: parseInt(process.env.REDDIT_LOOKBACK_DAYS ?? '365'),
+  includeComments: (process.env.REDDIT_INCLUDE_COMMENTS ?? 'false') === 'true',
+  commentPostThreshold: parseInt(process.env.REDDIT_COMMENT_POST_THRESHOLD ?? '25'),
+  commentsPerPost: parseInt(process.env.REDDIT_COMMENTS_PER_POST ?? '100'),
 } as const
 
 export type RedditConfig = typeof REDDIT_CONFIG

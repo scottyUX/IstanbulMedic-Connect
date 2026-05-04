@@ -7,9 +7,9 @@ on:
 
 jobs:
   reddit-pipeline:
-    name: Scrape → Attribute → Recompute
+    name: Scrape → Attribute → Comments → Sentiment → Recompute
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -27,22 +27,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ── Step 1: Scrape ─────────────────────────────────────────────────────
-      - name: Scrape subreddits (new posts, last 7 days)
+      # ── Step 1: Scrape posts ───────────────────────────────────────────────
+      - name: Scrape subreddits (new + hot posts, last 7 days)
         run: |
           npx tsx scripts/reddit-scrape-subreddits.ts \
-            --sorts new \
+            --sorts new,hot \
             --max-posts 1000 \
             --lookback-days 7
 
-      # ── Step 2: Attribute ──────────────────────────────────────────────────
-      - name: Run LLM attribution on new threads
+      # ── Step 2: Attribute posts ────────────────────────────────────────────
+      - name: Run LLM attribution on new post threads
         run: |
           npx tsx scripts/forum-attribute-threads.ts \
             --source reddit \
             --limit 2000
 
-      # ── Step 3: Recompute profiles ─────────────────────────────────────────
+      # ── Step 3: Scrape comments ────────────────────────────────────────────
+      - name: Scrape comments for high-engagement posts
+        run: |
+          npx tsx scripts/reddit-scrape-subreddits.ts \
+            --sorts new,hot \
+            --max-posts 1000 \
+            --lookback-days 7 \
+            --include-comments \
+            --comment-post-threshold 25 \
+            --comments-per-post 100
+
+      # ── Step 4: Sentiment analysis for inherited comments ──────────────────
+      - name: Run sentiment analysis on inherited comment threads
+        run: |
+          npx tsx scripts/forum-attribute-threads.ts \
+            --source reddit \
+            --include-inherited-comments \
+            --limit 2000
+
+      # ── Step 5: Recompute profiles ─────────────────────────────────────────
       - name: Recompute stale clinic forum profiles
         run: |
           npx tsx scripts/forum-recompute-profiles.ts \
