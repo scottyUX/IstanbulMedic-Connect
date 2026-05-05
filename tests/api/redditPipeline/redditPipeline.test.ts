@@ -344,10 +344,11 @@ describe('runRedditPipeline', () => {
   // ── Comments (includeComments: true) ────────────────────────────────────────
 
   describe('comment ingestion (includeComments: true)', () => {
-    it('fetches comments for posts above the score threshold', async () => {
-      const highScorePost = makePost('p1', { score: 20 })
-      mockFetchSubredditPosts.mockResolvedValueOnce([highScorePost])
-      mockFetchPostComments.mockResolvedValueOnce([])
+    it('fetches comments for all posts when includeComments is true', async () => {
+      const lowScorePost = makePost('p1', { score: 2 })
+      const highScorePost = makePost('p2', { score: 50 })
+      mockFetchSubredditPosts.mockResolvedValueOnce([lowScorePost, highScorePost])
+      mockFetchPostComments.mockResolvedValue([])
 
       const chain = makeChain({ data: { id: 'hub-uuid' }, error: null })
       mockFrom.mockReturnValue(chain)
@@ -355,29 +356,12 @@ describe('runRedditPipeline', () => {
       await runRedditPipeline({
         subreddits: ['HairTransplants'],
         includeComments: true,
-        commentPostThreshold: 10,
         commentsPerPost: 50,
         dryRun: false,
       })
 
       expect(mockFetchPostComments).toHaveBeenCalledWith('HairTransplants', 'p1', 50)
-    })
-
-    it('does NOT fetch comments for posts below the score threshold', async () => {
-      const lowScorePost = makePost('p1', { score: 5 })
-      mockFetchSubredditPosts.mockResolvedValueOnce([lowScorePost])
-
-      const chain = makeChain({ data: { id: 'hub-uuid' }, error: null })
-      mockFrom.mockReturnValue(chain)
-
-      await runRedditPipeline({
-        subreddits: ['HairTransplants'],
-        includeComments: true,
-        commentPostThreshold: 10,
-        dryRun: false,
-      })
-
-      expect(mockFetchPostComments).not.toHaveBeenCalled()
+      expect(mockFetchPostComments).toHaveBeenCalledWith('HairTransplants', 'p2', 50)
     })
 
     it('does NOT fetch comments when includeComments is false (default)', async () => {

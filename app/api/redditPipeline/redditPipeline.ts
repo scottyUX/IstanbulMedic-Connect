@@ -30,7 +30,6 @@ export interface PipelineOptions {
   lookbackDays?: number
   sortSlices?: SortSlice[]  // defaults to [{ sortOrder: 'new' }]
   includeComments?: boolean
-  commentPostThreshold?: number  // Only fetch comments for parent posts above this upvote score
   commentsPerPost?: number       // Max comments to fetch per post
   dryRun?: boolean
 }
@@ -105,7 +104,6 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
   const lookbackDays = options.lookbackDays ?? REDDIT_CONFIG.lookbackDays
   const sortSlices = options.sortSlices ?? [{ sortOrder: 'new' as const }]
   const includeComments = options.includeComments ?? REDDIT_CONFIG.includeComments
-  const commentPostThreshold = options.commentPostThreshold ?? REDDIT_CONFIG.commentPostThreshold
   const commentsPerPost = options.commentsPerPost ?? REDDIT_CONFIG.commentsPerPost
   const dryRun = options.dryRun ?? false
 
@@ -199,11 +197,9 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
     result.subredditsProcessed.push(subreddit)
 
     if (dryRun) {
-      const eligibleForComments = posts.filter(p => p.score >= commentPostThreshold).length
       console.info(`[redditPipeline] [DRY RUN] r/${subreddit}: ${posts.length} unique posts across ${sortSlices.length} sort(s) (not written)`)
       if (includeComments) {
-        console.info(`  Would fetch comments for ${eligibleForComments}/${posts.length} posts (upvote score >= ${commentPostThreshold})`)
-        console.info(`  Estimated max comment API calls: ${eligibleForComments} (up to ${commentsPerPost} each)`)
+        console.info(`  Would fetch comments for all ${posts.length} posts (up to ${commentsPerPost} each)`)
         console.info(`  Note: inherited comment rows affect mention_count and score (at 0.5 weight)`)
       }
       for (const p of posts.slice(0, 3)) {
@@ -226,7 +222,7 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
       }
 
       // Fetch and store comments for posts above the upvote threshold
-      if (includeComments && post.score >= commentPostThreshold) {
+      if (includeComments) {
         const comments = await fetchPostComments(subreddit, post.id, commentsPerPost)
 
         // Read parent's clinic_id once for the whole batch — not per comment

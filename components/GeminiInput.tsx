@@ -12,8 +12,6 @@ const GeminiInput = forwardRef<GeminiInputHandle, InputProps>(({
   inProgress,
   onSend,
   chatReady,
-  onUpload,
-  hideStopButton,
 }, ref) => {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);

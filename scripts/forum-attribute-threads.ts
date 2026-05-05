@@ -58,6 +58,7 @@ const sourceArg = getArg('--source') as 'reddit' | 'hrn' | undefined
 const limitArg = getArg('--limit')
 const limit = limitArg ? parseInt(limitArg) : 200
 const pruneDays = parseInt(getArg('--prune-days') ?? '90')
+const minCommentUpvotes = parseInt(getArg('--min-comment-upvotes') ?? '10')
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
@@ -277,10 +278,12 @@ async function main() {
   let inheritedOffset = 0
   const inheritedLimit = limit
 
+  console.log(`Filtering inherited comments to upvotes >= ${minCommentUpvotes} (--min-comment-upvotes to change)`)
+
   while (inheritedThreads.length < inheritedLimit) {
     const { data: page, error: pageError } = await supabase
       .from('forum_thread_index')
-      .select('id, clinic_id, title, forum_source')
+      .select('id, clinic_id, title, forum_source, reddit_thread_content(score)')
       .eq('clinic_attribution_method', 'inherited')
       .eq('forum_source', inheritedSource)
       .order('first_scraped_at', { ascending: true })
@@ -290,7 +293,10 @@ async function main() {
 
     for (const row of page) {
       if (inheritedThreads.length >= inheritedLimit) break
-      if (!attemptedIds.has(row.id) && row.clinic_id) inheritedThreads.push(row as typeof inheritedThreads[number])
+      const contentRows = row.reddit_thread_content as { score: number }[] | null
+      const score = contentRows?.[0]?.score ?? 0
+      if (!attemptedIds.has(row.id) && row.clinic_id && score >= minCommentUpvotes)
+        inheritedThreads.push({ id: row.id, clinic_id: row.clinic_id, title: row.title, forum_source: row.forum_source })
     }
 
     if (page.length < PAGE_SIZE) break

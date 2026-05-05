@@ -5,12 +5,12 @@
 **1. Add `parent_thread_id` to `reddit_thread_content`? YES.**
 Without it, comments are orphaned rows with no way to query "all comments for post X", inherit `clinic_id` from the parent post, or make comments queryable by the profile aggregator. The migration is a nullable `uuid` FK — fully backwards compatible, existing post rows stay NULL.
 
-**2. Parent post upvote threshold for comment fetching: 25 (up from 10).**
-This threshold is on the **Reddit upvote score of the parent post** (not the 0–10 forum score). For a Turkish hair transplant niche (~5% clinic mention rate), low-upvote posts are mostly noise. 25 captures meaningful community engagement while reducing API calls significantly. Expose as `REDDIT_COMMENT_POST_THRESHOLD=25` and `--comment-post-threshold`.
+**2. Scrape all comments; filter LLM analysis by comment upvotes.**
+All comments are scraped regardless of parent post upvote score — for a niche topic like Turkish hair transplants the volume is small enough that this is not a concern, and it avoids needing to re-scrape when the analysis threshold is adjusted later.
 
-> **Naming note:** The env var was previously drafted as `REDDIT_COMMENT_SCORE_THRESHOLD`. Rename to `REDDIT_COMMENT_POST_THRESHOLD` to avoid confusion with `clinic_forum_profiles.score` (the 0–10 composite). The CLI flag `--comment-score-threshold` → `--comment-post-threshold`.
+LLM sentiment analysis (the `--include-inherited-comments` pass) is filtered separately by **comment upvote score** stored in `reddit_thread_content.score`. Only comments with score ≥ `--min-comment-upvotes` (default 10) are analyzed. This separates the scraping cost (Reddit API, one-time per comment) from the analysis cost (LLM, re-runnable) and keeps data complete.
 
-> **Fetching comments for every post:** Pass `--comment-post-threshold 0` to scrape comments regardless of upvotes (every post has score ≥ 0). No code changes needed. Use only for one-off backfills — at threshold 0, a subreddit with 500 posts × 100 comments = up to 50,000 comment API calls per run, which is too heavy for regular weekly pipeline runs.
+> **Previous threshold:** An earlier draft used `commentPostThreshold` (filter on parent post score at scrape time). This was removed — filtering at scrape time discards data permanently and conflates two different decisions (what to store vs. what to analyze).
 
 **3. Comment attribution: conditional inheritance using `substringMatch`.**
 Blindly inheriting the parent's `clinic_id` is wrong — a comment may mention a *different* clinic than the parent thread (e.g. "I considered that clinic but went with AEK instead"). Run `substringMatch` (free, no LLM) on the comment body first and only inherit based on the result:
@@ -109,16 +109,16 @@ COMMENT ON COLUMN reddit_thread_content.parent_thread_id IS
 Add to `REDDIT_CONFIG`:
 
 ```typescript
-includeComments:        (process.env.REDDIT_INCLUDE_COMMENTS ?? 'false') === 'true',
-commentPostThreshold:   parseInt(process.env.REDDIT_COMMENT_POST_THRESHOLD ?? '25'),
-commentsPerPost:        parseInt(process.env.REDDIT_COMMENTS_PER_POST ?? '100'),
+includeComments:                  (process.env.REDDIT_INCLUDE_COMMENTS ?? 'false') === 'true',
+commentsPerPost:                  parseInt(process.env.REDDIT_COMMENTS_PER_POST ?? '100'),
+commentMinUpvotesForAnalysis:     parseInt(process.env.REDDIT_COMMENT_MIN_UPVOTES_FOR_ANALYSIS ?? '10'),
 ```
 
 Add to `.env.local`:
 ```
 REDDIT_INCLUDE_COMMENTS=false
-REDDIT_COMMENT_POST_THRESHOLD=25
 REDDIT_COMMENTS_PER_POST=100
+REDDIT_COMMENT_MIN_UPVOTES_FOR_ANALYSIS=10
 ```
 
 ---
@@ -129,17 +129,17 @@ REDDIT_COMMENTS_PER_POST=100
 ```typescript
 commentsPerPost?: number
 ```
+(`commentPostThreshold` is not in `PipelineOptions` — scraping is unconditional when `includeComments` is true.)
 
 **B — Read in `runRedditPipeline`:**
 ```typescript
 const commentsPerPost = options.commentsPerPost ?? REDDIT_CONFIG.commentsPerPost
-const commentPostThreshold = options.commentPostThreshold ?? REDDIT_CONFIG.commentPostThreshold
 ```
 
 **C — Replace comment-fetching block** with inheritance + `parent_thread_id` logic:
 
 ```typescript
-if (includeComments && post.score >= commentPostThreshold) {
+if (includeComments) {
   const comments = await fetchPostComments(subreddit, post.id, commentsPerPost)
 
   // Read parent's clinic_id once for the whole batch — not per comment
@@ -207,14 +207,12 @@ if (includeComments && post.score >= commentPostThreshold) {
 }
 ```
 
-**D — Update dry-run log to show comment estimate:**
+**D — Update dry-run log:**
 ```typescript
 if (dryRun) {
-  const eligibleForComments = posts.filter(p => p.score >= commentPostThreshold).length
   console.info(`[redditPipeline] [DRY RUN] r/${subreddit}: ${posts.length} unique posts across ${sortSlices.length} sort(s)`)
   if (includeComments) {
-    console.info(`  Would fetch comments for ${eligibleForComments}/${posts.length} posts (upvote score >= ${commentPostThreshold})`)
-    console.info(`  Estimated max comment API calls: ${eligibleForComments} (up to ${commentsPerPost} each)`)
+    console.info(`  Would fetch comments for all ${posts.length} posts (up to ${commentsPerPost} each)`)
     console.info(`  Note: inherited comment rows affect mention_count and score (at 0.5 weight)`)
   }
   for (const p of posts.slice(0, 3)) console.info(`  - ${p.title.slice(0, 80)} [upvotes: ${p.score}]`)
@@ -230,14 +228,12 @@ Add flags after existing arg parsing:
 
 ```typescript
 const includeComments = args.includes('--include-comments')
-const commentThresholdArg = getArg('--comment-post-threshold')
 const commentsPerPostArg = getArg('--comments-per-post')
 ```
 
 Pass to `runRedditPipeline`:
 ```typescript
 includeComments,
-commentPostThreshold: commentThresholdArg ? parseInt(commentThresholdArg) : undefined,
 commentsPerPost: commentsPerPostArg ? parseInt(commentsPerPostArg) : undefined,
 ```
 
@@ -245,7 +241,6 @@ Update usage comment:
 ```
  * Comments (inherited comments affect score at 0.5 weight; run forum-attribute-threads --include-inherited-comments after):
  *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments
- *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments --comment-post-threshold 50
  *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments --comments-per-post 75
 ```
 
@@ -267,7 +262,8 @@ if (moreCount > 0) {
 
 - `parent_thread_id` is nullable — all existing rows stay valid with NULL
 - `includeComments` defaults to `false` — no change to existing runs
-- `commentPostThreshold` default 25 only applies when `includeComments` is enabled
+- All comments are scraped when `includeComments` is enabled — no per-post score filter at scrape time
+- LLM analysis is gated by `--min-comment-upvotes` (default 10) at analysis time, not scrape time — re-running with a lower value analyzes more without re-scraping
 - Inherited comments need a separate LLM sentiment pass (`--include-inherited-comments` flag on `forum-attribute-threads.ts`) — without it they enter the scorer at neutral (0) sentiment, helping only via `effectiveN` and severity keywords
 
 ---
@@ -376,7 +372,6 @@ jobs:
           npx tsx scripts/reddit-scrape-subreddits.ts \
             --include-comments \
             --sorts top:all,hot,controversial:month \
-            --comment-post-threshold 25 \
             --comments-per-post 100
 
       # ── Step 4: Sentiment analysis for inherited comments ───────────────
@@ -507,6 +502,8 @@ No change to the `computeForumScore` call — `commentWeight` defaults to 0.5 au
 
 **Add `--include-inherited-comments` flag** to run LLM sentiment analysis on inherited comment rows that haven't been analyzed yet. This is sentiment-only — attribution is skipped since `clinic_id` is already set.
 
+**Add `--min-comment-upvotes N` flag** (default 10) to skip low-engagement comments. The query joins `reddit_thread_content(score)` and only passes rows where `score >= minCommentUpvotes` to `analyzeSentimentOnly`. Re-run with a lower value to analyze more comments without re-scraping.
+
 ```ts
 const includeInheritedComments = args.includes('--include-inherited-comments')
 ```
@@ -585,7 +582,7 @@ if (thread.clinic_attribution_method !== 'inherited') {
 
 1. Apply migration: `supabase db push` — confirm `parent_thread_id` column exists on `reddit_thread_content`
 2. Dry run: `npx tsx scripts/reddit-scrape-subreddits.ts --include-comments --dry-run` — should print estimated comment call count and the "mention_count only" note
-3. Live test: `--subreddits HairTransplants --include-comments --comment-post-threshold 100 --comments-per-post 50`
+3. Live test: `--subreddits HairTransplants --include-comments --comments-per-post 50`
 4. Confirm storage: `SELECT count(*) FROM reddit_thread_content WHERE post_type='comment'` → non-zero; `WHERE post_type='comment' AND parent_thread_id IS NOT NULL` → same count
 5. Confirm inheritance: attributed parent posts should have comment rows with matching `clinic_id`
 6. Confirm idempotency: re-run scrape, row count should not increase
