@@ -12,6 +12,10 @@
  *   npx tsx scripts/forum-attribute-threads.ts --limit 50
  *   npx tsx scripts/forum-attribute-threads.ts --dry-run
  *
+ * Inherited comments (sentiment-only pass — does NOT change clinic_id):
+ *   npx tsx scripts/forum-attribute-threads.ts --include-inherited-comments
+ *   npx tsx scripts/forum-attribute-threads.ts --include-inherited-comments --limit 500
+ *
  * Pruning (removes threads still unmatched after N days — validate attribution quality first):
  *   npx tsx scripts/forum-attribute-threads.ts --prune
  *   npx tsx scripts/forum-attribute-threads.ts --prune --prune-days 60
@@ -29,7 +33,7 @@ if (missingEnv.length > 0) {
 }
 
 import { createClient } from '@supabase/supabase-js'
-import { attributeThread, loadClinicNames } from '../app/api/forumPipeline/llmAttributor'
+import { attributeThread, analyzeSentimentOnly, loadClinicNames } from '../app/api/forumPipeline/llmAttributor'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -43,6 +47,7 @@ function getSupabaseAdmin() {
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry-run')
 const pruneMode = args.includes('--prune')
+const includeInheritedComments = args.includes('--include-inherited-comments')
 
 function getArg(flag: string): string | undefined {
   const i = args.indexOf(flag)
@@ -53,6 +58,7 @@ const sourceArg = getArg('--source') as 'reddit' | 'hrn' | undefined
 const limitArg = getArg('--limit')
 const limit = limitArg ? parseInt(limitArg) : 200
 const pruneDays = parseInt(getArg('--prune-days') ?? '90')
+const minCommentUpvotes = parseInt(getArg('--min-comment-upvotes') ?? '10')
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
@@ -242,7 +248,7 @@ async function main() {
     await new Promise(r => setTimeout(r, 200))
   }
 
-  console.log('\n── Results ──────────────────────────────────────────────────')
+  console.log('\n── Attribution results ───────────────────────────────────────')
   console.log(`Threads processed:  ${threads.length}`)
   console.log(`Attributed:         ${attributed}`)
   console.log(`No match:           ${skipped}`)
@@ -254,6 +260,104 @@ async function main() {
     console.log('\nNext step: recompute profiles for newly attributed clinics:')
     console.log(`  npx tsx scripts/forum-recompute-profiles.ts${sourceArg ? ` --source ${sourceArg}` : ''}`)
   }
+
+  // ── Inherited comments sentiment pass ────────────────────────────────────────
+
+  if (!includeInheritedComments) return
+
+  console.log('\n── Inherited comments sentiment pass ─────────────────────────')
+
+  // Only Reddit rows can be inherited comments
+  const inheritedSource = sourceArg ?? 'reddit'
+  if (sourceArg && sourceArg !== 'reddit') {
+    console.log(`Source filter is '${sourceArg}' — inherited comments only exist on Reddit. Skipping.`)
+    return
+  }
+
+  const inheritedThreads: { id: string; clinic_id: string; title: string | null; forum_source: string }[] = []
+  let inheritedOffset = 0
+  const inheritedLimit = limit
+
+  console.log(`Filtering inherited comments to upvotes >= ${minCommentUpvotes} (--min-comment-upvotes to change)`)
+
+  while (inheritedThreads.length < inheritedLimit) {
+    const { data: page, error: pageError } = await supabase
+      .from('forum_thread_index')
+      .select('id, clinic_id, title, forum_source, reddit_thread_content(score)')
+      .eq('clinic_attribution_method', 'inherited')
+      .eq('forum_source', inheritedSource)
+      .order('first_scraped_at', { ascending: true })
+      .range(inheritedOffset, inheritedOffset + PAGE_SIZE - 1)
+    if (pageError) throw new Error(`Failed to load inherited comment threads: ${pageError.message}`)
+    if (!page?.length) break
+
+    for (const row of page) {
+      if (inheritedThreads.length >= inheritedLimit) break
+      const contentRows = row.reddit_thread_content as { score: number }[] | null
+      const score = contentRows?.[0]?.score ?? 0
+      if (!attemptedIds.has(row.id) && row.clinic_id && score >= minCommentUpvotes)
+        inheritedThreads.push({ id: row.id, clinic_id: row.clinic_id, title: row.title, forum_source: row.forum_source })
+    }
+
+    if (page.length < PAGE_SIZE) break
+    inheritedOffset += PAGE_SIZE
+  }
+
+  if (!inheritedThreads.length) {
+    console.log('No inherited comment threads need sentiment analysis.')
+    return
+  }
+
+  console.log(`Found ${inheritedThreads.length} inherited comment thread(s) without LLM analysis. Running sentiment pass...\n`)
+
+  let sentimentDone = 0
+  let sentimentFailed = 0
+
+  for (const thread of inheritedThreads) {
+    const { data: content } = await supabase
+      .from('reddit_thread_content')
+      .select('body')
+      .eq('thread_id', thread.id)
+      .single()
+    const body = content?.body ?? ''
+
+    if (!body) {
+      console.log(`  ⏭  Skipping ${thread.id} (no comment body)`)
+      continue
+    }
+
+    process.stdout.write(`  Analyzing sentiment ${thread.id} (clinic ${thread.clinic_id})... `)
+
+    if (dryRun) {
+      console.log('[DRY RUN — skipped write]')
+      continue
+    }
+
+    const result = await analyzeSentimentOnly(
+      thread.id,
+      thread.clinic_id,
+      thread.title ?? '',
+      body,
+      thread.forum_source,
+      clinicNames
+    )
+
+    if (result.error) {
+      console.log(`✗ Error: ${result.error}`)
+      sentimentFailed++
+    } else {
+      console.log(`✓ sentiment: ${result.llmOutput?.sentiment ?? 'unknown'}`)
+      sentimentDone++
+    }
+
+    await new Promise(r => setTimeout(r, 200))
+  }
+
+  console.log('\n── Sentiment pass results ────────────────────────────────────')
+  console.log(`Comments analyzed:  ${sentimentDone}`)
+  console.log(`Failed:             ${sentimentFailed}`)
+
+  if (sentimentFailed > 0) process.exit(1)
 }
 
 main().catch(err => {

@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js'
 import { REDDIT_CONFIG, type RawRedditPost, type SortSlice } from './redditConfig'
 import { fetchSubredditPosts, fetchPostComments } from './redditService'
 import { extractAndStoreSignals } from '../forumPipeline/deterministicExtractor'
+import { substringMatch, loadClinicNames, type ClinicNameEntry } from '../forumPipeline/llmAttributor'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -29,7 +30,7 @@ export interface PipelineOptions {
   lookbackDays?: number
   sortSlices?: SortSlice[]  // defaults to [{ sortOrder: 'new' }]
   includeComments?: boolean
-  commentScoreThreshold?: number // Only fetch comments for posts above this score
+  commentsPerPost?: number       // Max comments to fetch per post
   dryRun?: boolean
 }
 
@@ -102,8 +103,8 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
   const maxPosts = options.maxPostsPerSubreddit ?? REDDIT_CONFIG.postsPerSubreddit
   const lookbackDays = options.lookbackDays ?? REDDIT_CONFIG.lookbackDays
   const sortSlices = options.sortSlices ?? [{ sortOrder: 'new' as const }]
-  const includeComments = options.includeComments ?? false
-  const commentScoreThreshold = options.commentScoreThreshold ?? 10
+  const includeComments = options.includeComments ?? REDDIT_CONFIG.includeComments
+  const commentsPerPost = options.commentsPerPost ?? REDDIT_CONFIG.commentsPerPost
   const dryRun = options.dryRun ?? false
 
   // Defer DB client creation — env vars may not be set during dry-run
@@ -111,6 +112,13 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
   // `if (dryRun) { continue }` guards in the loop below.
   let supabase!: ReturnType<typeof getSupabaseAdmin>
   if (!dryRun) supabase = getSupabaseAdmin()
+
+  // Load clinic names once for substringMatch — only needed when scraping comments
+  let clinicNames: ClinicNameEntry[] = []
+  if (includeComments && !dryRun) {
+    clinicNames = await loadClinicNames()
+    console.info(`[redditPipeline] Loaded ${clinicNames.length} clinic names for comment inheritance check`)
+  }
 
   const result: PipelineResult = {
     subredditsProcessed: [],
@@ -190,8 +198,12 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
 
     if (dryRun) {
       console.info(`[redditPipeline] [DRY RUN] r/${subreddit}: ${posts.length} unique posts across ${sortSlices.length} sort(s) (not written)`)
+      if (includeComments) {
+        console.info(`  Would fetch comments for all ${posts.length} posts (up to ${commentsPerPost} each)`)
+        console.info(`  Note: inherited comment rows affect mention_count and score (at 0.5 weight)`)
+      }
       for (const p of posts.slice(0, 3)) {
-        console.info(`  - ${p.title.slice(0, 80)} [score: ${p.score}]`)
+        console.info(`  - ${p.title.slice(0, 80)} [upvotes: ${p.score}]`)
       }
       continue
     }
@@ -209,9 +221,18 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
         result.signalRowsInserted += inserted
       }
 
-      // Optionally fetch and store comments for high-score posts
-      if (includeComments && post.score >= commentScoreThreshold) {
-        const comments = await fetchPostComments(subreddit, post.id, 50)
+      // Fetch and store comments for posts above the upvote threshold
+      if (includeComments) {
+        const comments = await fetchPostComments(subreddit, post.id, commentsPerPost)
+
+        // Read parent's clinic_id once for the whole batch — not per comment
+        const { data: parentHub } = await supabase
+          .from('forum_thread_index')
+          .select('clinic_id')
+          .eq('id', threadId)
+          .single()
+        const parentClinicId: string | null = parentHub?.clinic_id ?? null
+
         for (const comment of comments) {
           const commentPost: RawRedditPost = {
             id: comment.id,
@@ -225,10 +246,39 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
             permalink: comment.permalink.replace('https://www.reddit.com', ''),
             url: comment.permalink,
           }
+
           const { threadId: cThreadId, isNew: cIsNew } = await upsertThread(
             supabase, commentPost, sourceId, 'comment'
           )
-          if (cThreadId && cIsNew) {
+          if (!cThreadId) continue
+
+          // Back-fill parent_thread_id — idempotent via IS NULL guard
+          await supabase
+            .from('reddit_thread_content')
+            .update({ parent_thread_id: threadId })
+            .eq('thread_id', cThreadId)
+            .is('parent_thread_id', null)
+
+          // Conditionally inherit clinic_id from parent using substringMatch.
+          // 0 matches or 1 match same as parent → safe to inherit
+          // 1 match different from parent or 2+ matches → skip, let LLM attribute
+          if (parentClinicId) {
+            const hits = substringMatch(comment.body, clinicNames)
+            const safeToInherit = hits.length === 0 || (hits.length === 1 && hits[0] === parentClinicId)
+            if (safeToInherit) {
+              await supabase
+                .from('forum_thread_index')
+                .update({
+                  clinic_id: parentClinicId,
+                  clinic_attribution_method: 'inherited',
+                  last_scraped_at: new Date().toISOString(),
+                })
+                .eq('id', cThreadId)
+                .is('clinic_id', null)
+            }
+          }
+
+          if (cIsNew) {
             result.newThreadsInserted++
             const { inserted } = await extractAndStoreSignals(cThreadId, comment.body)
             result.signalRowsInserted += inserted

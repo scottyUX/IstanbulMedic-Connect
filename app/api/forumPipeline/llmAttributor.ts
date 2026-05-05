@@ -290,6 +290,87 @@ export async function attributeThread(
   return { threadId, attributed: !!resolvedClinicId, clinicId: resolvedClinicId, llmOutput }
 }
 
+// ── Sentiment-only pass (inherited comments) ──────────────────────────────────
+
+export interface SentimentOnlyResult {
+  threadId: string
+  clinicId: string
+  llmOutput: LlmOutput | null
+  error?: string
+}
+
+/**
+ * Runs LLM sentiment/topic analysis on an already-attributed thread WITHOUT
+ * changing clinic_id or clinic_attribution_method.
+ *
+ * Use this for inherited-comment rows: they already have clinic_id set via the
+ * 'inherited' method. Calling attributeThread() would overwrite that method
+ * (to 'llm'/'url') and remove the row from the inherited-comment scorer filter.
+ *
+ * Writes to forum_thread_llm_analysis and marks clinic_forum_profiles stale.
+ */
+export async function analyzeSentimentOnly(
+  threadId: string,
+  clinicId: string,
+  title: string,
+  body: string,
+  forumSource: string,
+  clinics: ClinicNameEntry[]
+): Promise<SentimentOnlyResult> {
+  const supabase = getSupabaseAdmin()
+
+  const clinicNames = clinics.map(c => c.displayName)
+  const prompt = buildPrompt(title, body, clinicNames)
+  const llmOutput = await callLlm(prompt)
+
+  if (!llmOutput) {
+    return { threadId, clinicId, llmOutput: null, error: 'LLM call failed' }
+  }
+
+  // Invalidate previous is_current rows for this thread
+  await supabase
+    .from('forum_thread_llm_analysis')
+    .update({ is_current: false })
+    .eq('thread_id', threadId)
+    .eq('is_current', true)
+
+  // Insert new analysis row — clinic_id is already known, no need to resolve
+  const { error: insertError } = await supabase
+    .from('forum_thread_llm_analysis')
+    .insert({
+      thread_id: threadId,
+      attributed_clinic_name: llmOutput.attributed_clinic_name,
+      attributed_doctor_name: llmOutput.attributed_doctor_name,
+      attributed_clinic_id: clinicId,
+      sentiment_label: llmOutput.sentiment,
+      satisfaction_label: llmOutput.satisfaction,
+      summary_short: llmOutput.summary,
+      main_topics: llmOutput.main_topics.filter(t => (VALID_TOPICS as readonly string[]).includes(t)),
+      issue_keywords: llmOutput.issue_keywords,
+      is_repair_case: llmOutput.is_repair_case,
+      secondary_clinic_mentions: llmOutput.secondary_clinic_mentions ?? [],
+      evidence_snippets: llmOutput.evidence_snippets ?? {},
+      model_name: MODEL_NAME,
+      prompt_version: PROMPT_VERSION,
+      is_current: true,
+    })
+
+  if (insertError) {
+    console.error('[llmAttributor] analyzeSentimentOnly: failed to insert analysis:', insertError)
+    return { threadId, clinicId, llmOutput, error: insertError.message }
+  }
+
+  // Mark clinic_forum_profiles stale so recompute picks up the new sentiment
+  await supabase
+    .from('clinic_forum_profiles')
+    .upsert(
+      { clinic_id: clinicId, forum_source: forumSource, is_stale: true },
+      { onConflict: 'clinic_id,forum_source' }
+    )
+
+  return { threadId, clinicId, llmOutput }
+}
+
 // ── Batch runner ──────────────────────────────────────────────────────────────
 
 /**

@@ -108,7 +108,7 @@ export async function recomputeProfile(
   // Load all threads for this clinic + source
   const { data: threads, error: threadsError } = await supabase
     .from('forum_thread_index')
-    .select('id, title, thread_url, author_username, post_date, reply_count')
+    .select('id, title, thread_url, author_username, post_date, reply_count, clinic_attribution_method')
     .eq('clinic_id', clinicId)
     .eq('forum_source', forumSource)
 
@@ -143,9 +143,11 @@ export async function recomputeProfile(
 
   if (analysesError) throw new Error(`[profileAggregator] Failed to load LLM analyses: ${analysesError.message}`)
 
-  // For Reddit: distinguish post-type rows from comment-type rows for mention_count vs thread_count
-  // For HRN: all rows are posts — mention_count === thread_count
+  // For Reddit: distinguish post-type rows from comment-type rows for mention_count vs thread_count.
+  // Inherited comments (clinic_attribution_method = 'inherited') enter the scorer at 0.5 weight.
+  // For HRN: all rows are posts — mention_count === thread_count, no inherited comments.
   let postTypeThreadIds: Set<string> = new Set(threadIds)
+  let inheritedCommentThreadIds: Set<string> = new Set()
   if (forumSource === 'reddit') {
     const { data: redditContent, error: redditError } = await supabase
       .from('reddit_thread_content')
@@ -154,6 +156,11 @@ export async function recomputeProfile(
     if (redditError) throw new Error(`[profileAggregator] Failed to load reddit_thread_content: ${redditError.message}`)
     postTypeThreadIds = new Set(
       (redditContent ?? []).filter(r => r.post_type === 'post').map(r => r.thread_id)
+    )
+    inheritedCommentThreadIds = new Set(
+      threads
+        .filter(t => t.clinic_attribution_method === 'inherited' && !postTypeThreadIds.has(t.id))
+        .map(t => t.id)
     )
   }
 
@@ -257,7 +264,7 @@ export async function recomputeProfile(
   // ── Composite score ────────────────────────────────────────────────────────
 
   const scorerThreads: ForumScorerThread[] = threads
-    .filter(t => postTypeThreadIds.has(t.id))
+    .filter(t => postTypeThreadIds.has(t.id) || inheritedCommentThreadIds.has(t.id))
     .map(t => {
       const a = analysisMap[t.id]
       const s = signalsMap[t.id]
@@ -268,6 +275,7 @@ export async function recomputeProfile(
         isRepairCase: a?.is_repair_case === true,
         issueKeywords: a?.issue_keywords ?? [],
         hasLongtermUpdate: s?.['has_longterm_update'] === true,
+        isComment: inheritedCommentThreadIds.has(t.id),
       }
     })
 
