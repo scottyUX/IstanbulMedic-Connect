@@ -39,7 +39,8 @@ export function useClinicCompareSignals(clinicId: string | null): {
   loading: boolean
 } {
   const [data, setData] = useState<ClinicCompareSignals | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loadedId, setLoadedId] = useState<string | null>(null)
+  const loading = clinicId != null && loadedId !== clinicId
 
   useEffect(() => {
     if (!clinicId) return
@@ -47,8 +48,6 @@ export function useClinicCompareSignals(clinicId: string | null): {
     let cancelled = false
     const supabase = createClient()
     if (!supabase) return
-
-    setLoading(true)
 
     Promise.all([
       supabase
@@ -136,12 +135,12 @@ export function useClinicCompareSignals(clinicId: string | null): {
           registryRecords,
           extraImages,
         })
-        setLoading(false)
+        setLoadedId(clinicId)
       })
-      .catch(() => { if (!cancelled) setLoading(false) })
+      .catch(() => { if (!cancelled) setLoadedId(clinicId) })
 
     return () => { cancelled = true }
   }, [clinicId])
 
-  return { data, loading }
+  return { data: loading ? null : data, loading }
 }
