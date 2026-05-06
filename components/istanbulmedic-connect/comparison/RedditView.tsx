@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, MapPin, MessageSquare, ThumbsDown, ThumbsUp } from "lucide-react"
+import { ArrowLeft, MapPin, MessageSquare } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
 import { Button } from "@/components/ui/button"
