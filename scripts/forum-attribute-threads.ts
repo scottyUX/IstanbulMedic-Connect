@@ -25,6 +25,9 @@
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 
+// Node 20 lacks native WebSocket — polyfill for @supabase/realtime-js
+if (!globalThis.WebSocket) globalThis.WebSocket = require('ws')
+
 const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENAI_API_KEY'] as const
 const missingEnv = REQUIRED_ENV.filter(k => !process.env[k])
 if (missingEnv.length > 0) {
@@ -149,6 +152,7 @@ async function main() {
       .from('forum_thread_llm_analysis')
       .select('thread_id')
       .eq('is_current', true)
+      .order('thread_id')
       .range(attemptedOffset, attemptedOffset + PAGE_SIZE - 1)
     if (attemptedError) throw new Error(`Failed to load attempted thread IDs: ${attemptedError.message}`)
     for (const r of page ?? []) attemptedIds.add(r.thread_id)
@@ -184,7 +188,7 @@ async function main() {
 
   if (!threads.length) {
     console.log('No unattributed threads found.')
-    return
+    if (!includeInheritedComments) return
   }
 
   console.log(`Found ${threads.length} unattributed threads. Starting attribution...\n`)
@@ -283,7 +287,7 @@ async function main() {
   while (inheritedThreads.length < inheritedLimit) {
     const { data: page, error: pageError } = await supabase
       .from('forum_thread_index')
-      .select('id, clinic_id, title, forum_source, reddit_thread_content(score)')
+      .select('id, clinic_id, title, forum_source, reddit_thread_content!reddit_thread_content_thread_id_fkey(score)')
       .eq('clinic_attribution_method', 'inherited')
       .eq('forum_source', inheritedSource)
       .order('first_scraped_at', { ascending: true })
@@ -293,8 +297,8 @@ async function main() {
 
     for (const row of page) {
       if (inheritedThreads.length >= inheritedLimit) break
-      const contentRows = row.reddit_thread_content as { score: number }[] | null
-      const score = contentRows?.[0]?.score ?? 0
+      const content = row.reddit_thread_content as unknown as { score: number } | null
+      const score = content?.score ?? 0
       if (!attemptedIds.has(row.id) && row.clinic_id && score >= minCommentUpvotes)
         inheritedThreads.push({ id: row.id, clinic_id: row.clinic_id, title: row.title, forum_source: row.forum_source })
     }

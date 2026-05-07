@@ -24,6 +24,7 @@ function getSupabaseAdmin() {
 }
 
 const PROMPT_VERSION = 'v1.0'
+const COMMENT_PROMPT_VERSION = 'v1.1-comment'
 const MODEL_NAME = process.env.FORUM_LLM_MODEL ?? 'gpt-4o-mini'
 const MAX_TEXT_CHARS = 2500 // truncate long posts before sending to LLM
 
@@ -57,6 +58,7 @@ const LlmOutputSchema = z.object({
   })).default([]),
   evidence_snippets: z.record(z.string().nullable()).default({}),
   summary: z.string().default(''),
+  sentiment_toward_clinic: z.enum(['positive', 'mixed', 'negative', 'not_applicable']).nullable().default(null),
 })
 
 type LlmOutput = z.infer<typeof LlmOutputSchema>
@@ -166,6 +168,38 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
   "evidence_snippets": {"sentiment": "<quote>", "is_repair_case": "<quote if true>"},
   "summary": "<1-2 neutral sentences>"
 }`
+}
+
+function buildCommentPrompt(title: string, body: string, clinicNames: string[], clinicDisplayName: string): string {
+  const text = truncateText([title, body].filter(Boolean).join('\n\n'))
+  const clinicList = clinicNames.slice(0, 50).join(', ')
+
+  return `You are analyzing a Reddit comment about hair transplants.
+This comment has been attributed to: ${clinicDisplayName}
+
+Clinic/doctor list (match only to these): ${clinicList}
+
+Comment:
+"""
+${text}
+"""
+
+Respond ONLY with valid JSON matching this exact schema (no markdown, no extra text):
+{
+  "attributed_clinic_name": "<the clinic this comment is primarily about, exact name from list, or null>",
+  "attributed_doctor_name": "<doctor name mentioned, or null>",
+  "sentiment": "positive" | "mixed" | "negative",
+  "satisfaction": "satisfied" | "mixed" | "regretful",
+  "sentiment_toward_clinic": "positive" | "mixed" | "negative" | "not_applicable",
+  "main_topics": ["<up to 4 from: density, hairline, donor_area, healing, communication, value, doctor_involvement, technician_quality, aftercare, natural_results, other>"],
+  "issue_keywords": ["<specific issues mentioned, e.g. shock_loss, scarring, poor_density>"],
+  "is_repair_case": true | false,
+  "secondary_clinic_mentions": [{"clinic_name": "<str>", "doctor_name": "<str|null>", "role": "mentioned|compared|repair_source", "evidence": "<quote>"}],
+  "evidence_snippets": {"sentiment": "<quote>", "is_repair_case": "<quote if true>"},
+  "summary": "<1-2 neutral sentences>"
+}
+
+For sentiment_toward_clinic: use "not_applicable" if the comment's sentiment is directed at a different clinic than ${clinicDisplayName}, or if the comment does not express a view about ${clinicDisplayName} at all.`
 }
 
 // Cost: ~$0.0004/thread at gpt-4o-mini rates ($0.15/M input, $0.60/M output, ~1065 in + ~350 out tokens).
@@ -320,7 +354,8 @@ export async function analyzeSentimentOnly(
   const supabase = getSupabaseAdmin()
 
   const clinicNames = clinics.map(c => c.displayName)
-  const prompt = buildPrompt(title, body, clinicNames)
+  const clinicDisplayName = clinics.find(c => c.clinicId === clinicId)?.displayName ?? clinicId
+  const prompt = buildCommentPrompt(title, body, clinicNames, clinicDisplayName)
   const llmOutput = await callLlm(prompt)
 
   if (!llmOutput) {
@@ -350,8 +385,9 @@ export async function analyzeSentimentOnly(
       is_repair_case: llmOutput.is_repair_case,
       secondary_clinic_mentions: llmOutput.secondary_clinic_mentions ?? [],
       evidence_snippets: llmOutput.evidence_snippets ?? {},
+      sentiment_toward_clinic: llmOutput.sentiment_toward_clinic,
       model_name: MODEL_NAME,
-      prompt_version: PROMPT_VERSION,
+      prompt_version: COMMENT_PROMPT_VERSION,
       is_current: true,
     })
 

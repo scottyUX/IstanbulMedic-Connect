@@ -137,7 +137,7 @@ export async function recomputeProfile(
   // Load LLM analysis (current only)
   const { data: analyses, error: analysesError } = await supabase
     .from('forum_thread_llm_analysis')
-    .select('thread_id, sentiment_label, sentiment_score, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short')
+    .select('thread_id, sentiment_label, sentiment_score, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short, sentiment_toward_clinic')
     .in('thread_id', threadIds)
     .eq('is_current', true)
 
@@ -201,7 +201,14 @@ export async function recomputeProfile(
   const sentimentDist: Record<string, number> = { positive: 0, mixed: 0, negative: 0 }
 
   for (const analysis of analyses ?? []) {
-    const label = analysis.sentiment_label
+    const isInheritedComment = inheritedCommentThreadIds.has(analysis.thread_id)
+    let label: string | null
+    if (isInheritedComment && analysis.sentiment_toward_clinic) {
+      if (analysis.sentiment_toward_clinic === 'not_applicable') continue
+      label = analysis.sentiment_toward_clinic
+    } else {
+      label = analysis.sentiment_label
+    }
     if (label && label in SENTIMENT_WEIGHTS) {
       sentimentWeights.push(SENTIMENT_WEIGHTS[label])
       sentimentDist[label] = (sentimentDist[label] ?? 0) + 1
@@ -265,17 +272,25 @@ export async function recomputeProfile(
 
   const scorerThreads: ForumScorerThread[] = threads
     .filter(t => postTypeThreadIds.has(t.id) || inheritedCommentThreadIds.has(t.id))
+    .filter(t => {
+      if (!inheritedCommentThreadIds.has(t.id)) return true
+      return analysisMap[t.id]?.sentiment_toward_clinic !== 'not_applicable'
+    })
     .map(t => {
       const a = analysisMap[t.id]
       const s = signalsMap[t.id]
+      const isComment = inheritedCommentThreadIds.has(t.id)
+      const sentimentLabel = isComment && a?.sentiment_toward_clinic && a.sentiment_toward_clinic !== 'not_applicable'
+        ? a.sentiment_toward_clinic
+        : (a?.sentiment_label ?? null)
       return {
         postDate: t.post_date ?? null,
         sentimentScore: a?.sentiment_score != null ? Number(a.sentiment_score) : null,
-        sentimentLabel: a?.sentiment_label ?? null,
+        sentimentLabel,
         isRepairCase: a?.is_repair_case === true,
         issueKeywords: a?.issue_keywords ?? [],
         hasLongtermUpdate: s?.['has_longterm_update'] === true,
-        isComment: inheritedCommentThreadIds.has(t.id),
+        isComment,
       }
     })
 
