@@ -8,10 +8,19 @@ vi.mock('next/font/google', () => ({
   }),
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false, loading: false }),
+}));
+
 import { ClinicCard } from '@/components/istanbulmedic-connect/ClinicCard';
 
 describe('ClinicCard', () => {
   const defaultProps = {
+    id: 'clinic-test-id',
     name: 'Test Clinic',
     location: 'Istanbul, Turkey',
     image: 'https://example.com/clinic.jpg',

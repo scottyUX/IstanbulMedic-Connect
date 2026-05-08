@@ -1,9 +1,20 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false, loading: false }),
+}));
+
 import { SummarySidebar } from '@/components/istanbulmedic-connect/profile/SummarySidebar';
 
 describe('SummarySidebar', () => {
   const defaultProps = {
+    clinicId: 'clinic-test-id',
+    clinicName: 'Test Clinic',
     transparencyScore: 85,
     topSpecialties: ['Hair Transplant', 'Dental'],
     rating: 4.8,
@@ -142,10 +153,10 @@ describe('SummarySidebar', () => {
   });
 
   // TODO: Unskip when FEATURE_CONFIG.bookConsultation is enabled
-  it.skip('renders custom book consultation href', () => {
-    render(<SummarySidebar {...defaultProps} bookConsultationHref="https://custom-link.com" />);
-    const link = screen.getByRole('link', { name: 'Book Consultation' });
-    expect(link).toHaveAttribute('href', 'https://custom-link.com');
+  it.skip('renders book consultation button', () => {
+    render(<SummarySidebar {...defaultProps} />);
+    const btn = screen.getByRole('button', { name: /consultation/i });
+    expect(btn).toBeInTheDocument();
   });
 
   it('handles null rating', () => {
