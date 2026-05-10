@@ -26,8 +26,15 @@ import type { SortSlice, SortOrder, TimePeriod } from '../app/api/redditPipeline
 
 dotenv.config({ path: '.env.local' })
 
-const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const
-const missingEnv = REQUIRED_ENV.filter(k => !process.env[k])
+const {
+  NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+} = process.env
+
+const missingEnv = [
+  !NEXT_PUBLIC_SUPABASE_URL && 'NEXT_PUBLIC_SUPABASE_URL',
+  !SUPABASE_SERVICE_ROLE_KEY && 'SUPABASE_SERVICE_ROLE_KEY',
+].filter(Boolean) as string[]
 if (missingEnv.length > 0) {
   console.error(`Missing required env vars: ${missingEnv.join(', ')}`)
   process.exit(1)
