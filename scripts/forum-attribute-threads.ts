@@ -25,11 +25,12 @@
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 import { attributeThread, analyzeSentimentOnly, loadClinicNames } from '../app/api/forumPipeline/llmAttributor'
+import WebSocket from 'ws'
 
 dotenv.config({ path: '.env.local' })
 
 // Node 20 lacks native WebSocket — polyfill for @supabase/realtime-js
-if (!globalThis.WebSocket) globalThis.WebSocket = require('ws')
+if (!globalThis.WebSocket) globalThis.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket
 
 const {
   NEXT_PUBLIC_SUPABASE_URL,
