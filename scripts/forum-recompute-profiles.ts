@@ -16,6 +16,9 @@ import { recomputeProfile, recomputeStaleProfiles } from '../app/api/forumPipeli
 
 dotenv.config({ path: '.env.local' })
 
+// Node 20 lacks native WebSocket — polyfill for @supabase/realtime-js
+if (!globalThis.WebSocket) globalThis.WebSocket = require('ws')
+
 const {
   NEXT_PUBLIC_SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,

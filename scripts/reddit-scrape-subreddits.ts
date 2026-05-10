@@ -18,6 +18,7 @@
  * Comments (all posts scraped; inherited comments affect score at 0.5 weight; run forum-attribute-threads --include-inherited-comments after):
  *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments
  *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments --comments-per-post 75
+ *   Default: 100 comments per post (set in redditConfig.ts, override via REDDIT_COMMENTS_PER_POST)
  */
 
 import dotenv from 'dotenv'
@@ -25,6 +26,9 @@ import { runRedditPipeline } from '../app/api/redditPipeline/redditPipeline'
 import type { SortSlice, SortOrder, TimePeriod } from '../app/api/redditPipeline/redditConfig'
 
 dotenv.config({ path: '.env.local' })
+
+// Node 20 lacks native WebSocket — polyfill for @supabase/realtime-js
+if (!globalThis.WebSocket) globalThis.WebSocket = require('ws')
 
 const {
   NEXT_PUBLIC_SUPABASE_URL,
