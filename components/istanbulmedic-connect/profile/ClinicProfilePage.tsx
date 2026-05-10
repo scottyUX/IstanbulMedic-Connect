@@ -16,6 +16,7 @@ import { HRNSignalsCard } from "./HRNSignalsCard"
 import { RedditSignalsCard } from "./RedditSignalsCard"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
+import { ScoreBreakdownCard } from "./ScoreBreakdownCard"
 import type { ClinicDetail } from "@/lib/api/clinics"
 import {
   toNumber,
@@ -192,8 +193,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
     .map((post) => topicLabels[post.topic] ?? "Other")
     .filter((value, index, self) => self.indexOf(value) === index)
     .slice(0, 3)
-
-  const communitySignals = {
+const communitySignals = {
     posts: posts.map((post) => ({
       source: post.source,
       author: post.author,
@@ -302,7 +302,11 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
                 items={transparencyItems}
               />
             )}
-
+            <ScoreBreakdownCard
+              overallScore={clinic.trustScore}
+              band={clinic.trustBand}
+              scoreComponents={clinic.scoreComponents}
+            />
             {FEATURE_CONFIG.profileRegistry && (
               <RegistrySection
                 registryRecords={registryRecords}
@@ -326,6 +330,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
             />
           </div>
         </div>
+  
 
         {/* Full Width Sections */}
         <div className="mt-12 space-y-12 w-full">
