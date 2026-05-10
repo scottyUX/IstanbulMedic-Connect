@@ -10,7 +10,10 @@
  *   npx tsx scripts/forum-recompute-profiles.ts --clinic-id <uuid>
  */
 
+import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
+import { recomputeProfile, recomputeStaleProfiles } from '../app/api/forumPipeline/profileAggregator'
+
 dotenv.config({ path: '.env.local' })
 
 const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENAI_API_KEY'] as const
@@ -19,9 +22,6 @@ if (missingEnv.length > 0) {
   console.error(`Missing required env vars: ${missingEnv.join(', ')}`)
   process.exit(1)
 }
-
-import { createClient } from '@supabase/supabase-js'
-import { recomputeProfile, recomputeStaleProfiles } from '../app/api/forumPipeline/profileAggregator'
 
 function getSupabaseAdmin() {
   return createClient(

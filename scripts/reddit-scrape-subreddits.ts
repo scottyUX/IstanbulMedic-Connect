@@ -21,6 +21,9 @@
  */
 
 import dotenv from 'dotenv'
+import { runRedditPipeline } from '../app/api/redditPipeline/redditPipeline'
+import type { SortSlice, SortOrder, TimePeriod } from '../app/api/redditPipeline/redditConfig'
+
 dotenv.config({ path: '.env.local' })
 
 const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const
@@ -29,9 +32,6 @@ if (missingEnv.length > 0) {
   console.error(`Missing required env vars: ${missingEnv.join(', ')}`)
   process.exit(1)
 }
-
-import { runRedditPipeline } from '../app/api/redditPipeline/redditPipeline'
-import type { SortSlice, SortOrder, TimePeriod } from '../app/api/redditPipeline/redditConfig'
 
 // ── Parse CLI args ────────────────────────────────────────────────────────────
 
