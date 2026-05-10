@@ -1,26 +1,29 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
+const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
 }));
 
+let isAuthenticated = false;
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ isAuthenticated: false, loading: false }),
+  useAuth: () => ({ isAuthenticated, loading: false }),
 }));
 
 import { SummarySidebar } from '@/components/istanbulmedic-connect/profile/SummarySidebar';
 
-describe('SummarySidebar', () => {
-  const defaultProps = {
-    clinicId: 'clinic-test-id',
-    clinicName: 'Test Clinic',
-    transparencyScore: 85,
-    topSpecialties: ['Hair Transplant', 'Dental'],
-    rating: 4.8,
-    reviewCount: 150,
-  };
+// Shared across both describe blocks
+const defaultProps = {
+  clinicId: 'clinic-test-id',
+  clinicName: 'Test Clinic',
+  transparencyScore: 85,
+  topSpecialties: ['Hair Transplant', 'Dental'],
+  rating: 4.8,
+  reviewCount: 150,
+};
 
+describe('SummarySidebar', () => {
   // TODO: Unskip when FEATURE_CONFIG.profilePricing is enabled
   it.skip('renders price estimate', () => {
     render(<SummarySidebar {...defaultProps} priceEstimate="$2,500" />);
@@ -177,5 +180,91 @@ describe('SummarySidebar', () => {
     expect(screen.getByText('Consultation fee')).toBeInTheDocument();
     expect(screen.getByText('Service charge')).toBeInTheDocument();
     expect(screen.getByText('Total (estimate)')).toBeInTheDocument();
+  });
+});
+
+// ─── Consultation behavior ─────────────────────────────────────────────────────
+//
+// FEATURE_CONFIG.bookConsultation is true. The sidebar renders a
+// "Request Free Consultation" button that gates on auth and fires a modal
+// before calling the API — same flow as ClinicCard.
+
+describe('SummarySidebar — consultation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isAuthenticated = false;
+    global.fetch = vi.fn();
+  });
+
+  it('shows "Request Free Consultation" button', () => {
+    render(<SummarySidebar {...defaultProps} />);
+    expect(screen.getByRole('button', { name: /request free consultation/i })).toBeInTheDocument();
+  });
+
+  // ── Auth gate ──────────────────────────────────────────────────────────────
+
+  it('redirects unauthenticated user to /auth/login on click', () => {
+    isAuthenticated = false;
+    render(<SummarySidebar {...defaultProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
+    expect(mockPush).toHaveBeenCalledWith('/auth/login');
+  });
+
+  it('does not open the modal when user is unauthenticated', () => {
+    isAuthenticated = false;
+    render(<SummarySidebar {...defaultProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
+    expect(screen.queryByText(/request a free consultation with/i)).not.toBeInTheDocument();
+  });
+
+  // ── Modal trigger ──────────────────────────────────────────────────────────
+
+  it('opens the confirmation modal when authenticated user clicks the button', () => {
+    isAuthenticated = true;
+    render(<SummarySidebar {...defaultProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
+    expect(screen.getByText(/request a free consultation with/i)).toBeInTheDocument();
+  });
+
+  // ── Confirm → API + UI flip ────────────────────────────────────────────────
+
+  it('calls /api/consultations and shows "Consultation Requested" after confirming', async () => {
+    isAuthenticated = true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any).mockResolvedValueOnce({ ok: true, json: async () => ({ emailSent: true }) });
+
+    render(<SummarySidebar {...defaultProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^request consultation$/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/consultations',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/consultation requested/i)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /request free consultation/i })).not.toBeInTheDocument();
+    });
+  });
+
+  // ── API failure → UI stays unchanged ──────────────────────────────────────
+
+  it('leaves the button visible when the API call fails', async () => {
+    isAuthenticated = true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any).mockResolvedValueOnce({ ok: false });
+
+    render(<SummarySidebar {...defaultProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^request consultation$/i }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /request free consultation/i })).toBeInTheDocument();
+    });
   });
 });
