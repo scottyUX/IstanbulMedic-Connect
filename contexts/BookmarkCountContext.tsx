@@ -25,6 +25,7 @@ export function BookmarkCountProvider({ children }: { children: React.ReactNode 
   // On logout this clears the set; on login it populates it.
   useEffect(() => {
     if (!isAuthenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBookmarkedIds(new Set())
       return
     }
