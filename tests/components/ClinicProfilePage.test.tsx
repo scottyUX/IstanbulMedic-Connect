@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { ClinicProfilePage } from '@/components/istanbulmedic-connect/profile/ClinicProfilePage';
 import type { ClinicDetail } from '@/lib/api/clinics';
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false, loading: false }),
+}));
+
 // Mock Next.js components and hooks
 vi.mock('next/navigation', () => ({
   useRouter: () => ({

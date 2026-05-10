@@ -70,10 +70,6 @@ interface MakeSupabaseOptions {
   clinicRows?: { id: string; display_name: string }[]
   existingPending?: { clinic_id: string }[]
   insertResult?: { data: { id: string; clinic_id: string }[] | null; error: { message: string } | null }
-  // GET-specific
-  consultationRows?: object[]
-  consultationError?: { message: string } | null
-  mediaRows?: { clinic_id: string; url: string }[]
 }
 
 function makeSupabase({
@@ -83,10 +79,6 @@ function makeSupabase({
   clinicRows = [{ id: 'clinic-1', display_name: 'Clinic One' }],
   existingPending = [],
   insertResult = { data: [{ id: 'consult-1', clinic_id: 'clinic-1' }], error: null },
-  // GET
-  consultationRows = [],
-  consultationError = null,
-  mediaRows = [],
 }: MakeSupabaseOptions = {}) {
   // Track how many times `consultations` table has been accessed so we can
   // distinguish the pre-filter SELECT from the INSERT (both hit the same table).
@@ -120,7 +112,7 @@ function makeSupabase({
       }
 
       case 'clinic_media':
-        return makeChain(mediaRows)
+        return makeChain([])
 
       default:
         return makeChain(null)
