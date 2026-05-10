@@ -39,6 +39,7 @@ export default function BookmarksPage() {
   const [bulkSubmitting, setBulkSubmitting] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<BookmarkedClinic | null>(null)
   const [consultTarget, setConsultTarget] = useState<BookmarkedClinic | null>(null)
+  const [emailWarning, setEmailWarning] = useState(false)
 
   // Redirect unauthenticated users
   useEffect(() => {
@@ -88,38 +89,44 @@ export default function BookmarksPage() {
     if (!consultTarget) return
     const clinic = consultTarget
     setConsultTarget(null)
-    setClinics((prev) =>
-      prev.map((c) => c.clinicId === clinic.clinicId ? { ...c, consultationRequested: true } : c)
-    )
     try {
-      await fetch("/api/consultations", {
+      const res = await fetch("/api/consultations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clinicIds: [clinic.clinicId] }),
       })
+      if (!res.ok) throw new Error('request failed')
+      const data = await res.json()
+      setClinics((prev) =>
+        prev.map((c) => c.clinicId === clinic.clinicId ? { ...c, consultationRequested: true } : c)
+      )
+      if (!data.emailSent) setEmailWarning(true)
     } catch {
-      // non-fatal — optimistic update stands
+      // leave UI unchanged — clinic remains requestable
     }
   }
 
   const handleBulkRequest = async () => {
     setBulkSubmitting(true)
     const ids = Array.from(selected)
-    setClinics((prev) =>
-      prev.map((c) => ids.includes(c.clinicId) ? { ...c, consultationRequested: true } : c)
-    )
     try {
-      await fetch("/api/consultations", {
+      const res = await fetch("/api/consultations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clinicIds: ids }),
       })
-    } catch {
-      // non-fatal
-    } finally {
-      setBulkSubmitting(false)
+      if (!res.ok) throw new Error('request failed')
+      const data = await res.json()
+      setClinics((prev) =>
+        prev.map((c) => ids.includes(c.clinicId) ? { ...c, consultationRequested: true } : c)
+      )
+      if (!data.emailSent) setEmailWarning(true)
       setSelected(new Set())
       setBulkModalOpen(false)
+    } catch {
+      // leave UI unchanged — user can retry
+    } finally {
+      setBulkSubmitting(false)
     }
   }
 
@@ -153,6 +160,11 @@ export default function BookmarksPage() {
 
   return (
     <Container className="py-12">
+      {emailWarning && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Your consultation request was saved, but we had trouble sending the notification. Our team will be in touch within 24 hours.
+        </div>
+      )}
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <h1 className={cn(merriweather.className, "text-3xl font-bold text-[#0D1E32]")}>

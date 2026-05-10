@@ -35,12 +35,12 @@ export async function POST(request: NextRequest) {
   const sb = supabase as any
   const [
     { data: clinicRows },
-    { data: qual },
-    { data: treat },
-    { data: profile },
-    { data: transplants },
-    { data: surgeries },
-    { data: photos },
+    { data: qual,        error: qualErr },
+    { data: treat,       error: treatErr },
+    { data: profile,     error: profileErr },
+    { data: transplants, error: transplantsErr },
+    { data: surgeries,   error: surgeriesErr },
+    { data: photos,      error: photosErr },
   ] = await Promise.all([
     supabase.from('clinics').select('id, display_name').in('id', clinicIds),
     sb.from('user_qualification').select('age_tier, country, budget_tier, timeline, whatsapp_number').eq('user_id', userRow.id).maybeSingle(),
@@ -51,16 +51,47 @@ export async function POST(request: NextRequest) {
     sb.from('user_photos').select('photo_view, storage_url').eq('user_id', userRow.id),
   ])
 
+  const failedQueries = Object.entries({ qualErr, treatErr, profileErr, transplantsErr, surgeriesErr, photosErr })
+    .filter(([, e]) => e != null)
+    .map(([k]) => k)
+  if (failedQueries.length > 0) {
+    console.error('passport data fetch partial failure — email will have incomplete profile', {
+      userId: userRow.id,
+      failedQueries,
+    })
+  }
+
   const clinicNameMap: Record<string, string> = {}
   for (const c of clinicRows ?? []) {
     clinicNameMap[c.id] = c.display_name
   }
 
-  // Insert one row per clinic — skip duplicates (pending unique index)
-  const rows = clinicIds.map((clinicId) => ({
+  // Pre-filter clinics that already have a pending consultation — avoids
+  // a partial-index conflict aborting the entire batch insert.
+  const { data: existingPending } = await supabase
+    .from('consultations')
+    .select('clinic_id')
+    .eq('user_id', userRow.id)
+    .in('clinic_id', clinicIds)
+    .eq('status', 'pending')
+
+  const existingIds = new Set((existingPending ?? []).map((r) => r.clinic_id))
+  const newClinicIds = clinicIds.filter((id) => !existingIds.has(id))
+
+  if (newClinicIds.length === 0) {
+    return NextResponse.json({ created: 0, skipped: clinicIds.length })
+  }
+
+  const userEmail = userRow.email ?? user.email ?? ''
+  if (!userEmail) {
+    console.error('POST /api/consultations — no email on user record', { userId: userRow.id })
+    return NextResponse.json({ error: 'User email not found' }, { status: 500 })
+  }
+
+  const rows = newClinicIds.map((clinicId) => ({
     user_id: userRow.id,
     clinic_id: clinicId,
-    user_email: userRow.email ?? user.email ?? '',
+    user_email: userEmail,
     user_name: userRow.name ?? null,
     status: 'pending' as const,
   }))
@@ -71,10 +102,8 @@ export async function POST(request: NextRequest) {
     .select('id, clinic_id')
 
   if (insertError) {
-    if (insertError.code !== '23505') {
-      console.error('POST /api/consultations insert error:', insertError)
-      return NextResponse.json({ error: 'Failed to create consultations' }, { status: 500 })
-    }
+    console.error('POST /api/consultations insert error:', insertError)
+    return NextResponse.json({ error: 'Failed to create consultations' }, { status: 500 })
   }
 
   const createdIds = (inserted ?? []).map((r) => r.clinic_id)
@@ -119,15 +148,27 @@ export async function POST(request: NextRequest) {
       })),
     }
 
-    await sendConsultationRequest({
-      userName: userRow.name ?? user.email ?? 'Unknown',
-      userEmail: userRow.email ?? user.email ?? '',
-      clinicNames,
-      passport,
-    }).catch((e) => console.error('sendConsultationRequest error:', e))
+    let emailSent = true
+    try {
+      await sendConsultationRequest({
+        userName: userRow.name ?? user.email ?? 'Unknown',
+        userEmail: userRow.email ?? user.email ?? '',
+        clinicNames,
+        passport,
+      })
+    } catch (e) {
+      emailSent = false
+      console.error('sendConsultationRequest failed — consultations saved but team not notified', {
+        userId: userRow.id,
+        clinicIds: createdIds,
+        error: e,
+      })
+    }
+
+    return NextResponse.json({ created: createdIds.length, skipped: skippedIds.length, emailSent })
   }
 
-  return NextResponse.json({ created: createdIds.length, skipped: skippedIds.length })
+  return NextResponse.json({ created: createdIds.length, skipped: skippedIds.length, emailSent: true })
 }
 
 // GET /api/consultations — list all consultations for the logged-in user

@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
     .split(';')
     .map(c => c.trim())
     .find(c => c.startsWith('auth_redirect_next='))
-    ?.split('=')[1];
+    ?.split('=').slice(1).join('=');
   const decodedCookieNext = cookieNext ? decodeURIComponent(cookieNext) : null;
 
   const legacyPaths = ['/profile/treatment-profile'];

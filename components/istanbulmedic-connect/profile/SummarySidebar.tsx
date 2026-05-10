@@ -83,15 +83,16 @@ export const SummarySidebar = ({
 
   const handleConsultationConfirm = async () => {
     try {
-      await fetch("/api/consultations", {
+      const res = await fetch("/api/consultations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clinicIds: [clinicId] }),
       })
+      if (!res.ok) throw new Error('request failed')
+      setConsultationRequested(true)
     } catch {
-      // non-fatal
+      // leave UI unchanged — user can retry
     }
-    setConsultationRequested(true)
   }
 
   return (
