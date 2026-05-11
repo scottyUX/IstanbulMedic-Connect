@@ -13,6 +13,7 @@ import { AllSourcesView } from "./AllSourcesView"
 import { InstagramView } from "./InstagramView"
 import { RedditView } from "./RedditView"
 import { GooglePlacesView } from "./GooglePlacesView"
+import { HRNView } from "./HRNView"
 
 const merriweather = Merriweather({ subsets: ["latin"], weight: ["700"] })
 
@@ -21,15 +22,17 @@ const SOURCES = [
   { id: "instagram",     label: "Instagram",       route: "/clinics/compare/instagram"    },
   { id: "reddit",        label: "Reddit",          route: "/clinics/compare/reddit"       },
   { id: "google_places", label: "Google Places",   route: "/clinics/compare/google-places"},
+  { id: "hrn",           label: "HRN",             route: "/clinics/compare/hrn"          },
 ]
 
-type SourceId = "all" | "instagram" | "reddit" | "google_places"
+type SourceId = "all" | "instagram" | "reddit" | "google_places" | "hrn"
 
 const SOURCE_VIEWS: Record<SourceId, typeof AllSourcesView> = {
   all:           AllSourcesView,
   instagram:     InstagramView,
   reddit:        RedditView,
   google_places: GooglePlacesView,
+  hrn:           HRNView,
 }
 
 interface CompareClinicPageProps {

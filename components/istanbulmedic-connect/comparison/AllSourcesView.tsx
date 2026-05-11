@@ -15,6 +15,7 @@ import {
   type ClinicRegistryRecord,
   type RegistryLicenseStatus,
 } from "./useClinicCompareSignals"
+import type { HRNSignalsData } from "@/components/istanbulmedic-connect/profile/HRNSignalsCard"
 
 const merriweather = Merriweather({ subsets: ["latin"], weight: ["700"] })
 
@@ -102,9 +103,7 @@ function RedditSection({ reddit, loading }: { reddit: RedditSignals | null; load
             {reddit.longtermThreadCount > 0 && (
               <ForumBullet count={reddit.longtermThreadCount} label="with long-term evidence" />
             )}
-            {reddit.repairMentionCount > 0 && (
-              <ForumBullet count={reddit.repairMentionCount} label="repair mentions" />
-            )}
+            <ForumBullet count={reddit.repairMentionCount} label="repair mentions" />
           </ul>
 
           {reddit.sentimentScore != null && (
@@ -121,6 +120,50 @@ function RedditSection({ reddit, loading }: { reddit: RedditSignals | null; load
         </>
       ) : (
         <NoData label="No Reddit data" />
+      )}
+    </div>
+  )
+}
+
+// ── HRN section ───────────────────────────────────────────────────────────
+
+function HRNSection({ hrn, loading }: { hrn: HRNSignalsData | null; loading: boolean }) {
+  return (
+    <div className="space-y-2">
+      <SectionHeader>Hair Restoration Network</SectionHeader>
+
+      {loading ? (
+        <span className="text-xs text-muted-foreground">—</span>
+      ) : hrn ? (
+        <>
+          <ul className="space-y-0.5">
+            <ForumBullet count={hrn.totalThreads} label="threads" />
+            {hrn.photoThreads > 0 && (
+              <ForumBullet count={hrn.photoThreads} label="with photo evidence" />
+            )}
+            {hrn.longTermFollowups > 0 && (
+              <ForumBullet count={hrn.longTermFollowups} label="with long-term follow-ups" />
+            )}
+          </ul>
+
+          {(() => {
+            const { positive, mixed, negative } = hrn.sentiment
+            const total = positive + mixed + negative
+            if (total === 0) return null
+            const score = positive / total
+            return (
+              <span className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                sentimentInfo(score).className
+              )}>
+                <span className={cn("h-1.5 w-1.5 rounded-full", sentimentInfo(score).dotClass)} />
+                {sentimentInfo(score).label}
+              </span>
+            )
+          })()}
+        </>
+      ) : (
+        <NoData label="No forum data yet" />
       )}
     </div>
   )
@@ -179,7 +222,7 @@ function RegistrySection({ records, loading }: { records: ClinicRegistryRecord[]
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function AllSourcesView({ clinic, onDeselect, accentClass }: AllSourcesViewProps) {
-  const { data: signals, loading } = useClinicCompareSignals(clinic.id)
+  const { data: signals, loading } = useClinicCompareSignals(clinic.id, clinic.name)
 
   const extraImages = signals?.extraImages ?? []
   const scoreOutOfTen =
@@ -301,6 +344,9 @@ export function AllSourcesView({ clinic, onDeselect, accentClass }: AllSourcesVi
 
       {/* ── Reddit ────────────────────────────────────────────── */}
       <RedditSection reddit={signals?.reddit ?? null} loading={loading} />
+
+      {/* ── HRN ───────────────────────────────────────────────── */}
+      <HRNSection hrn={signals?.hrn ?? null} loading={loading} />
 
       {/* ── Instagram ─────────────────────────────────────────── */}
       <div className="space-y-1">

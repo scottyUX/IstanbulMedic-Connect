@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { getMockHRNSignals } from "@/lib/api/hrn.mock"
+import type { HRNSignalsData } from "@/components/istanbulmedic-connect/profile/HRNSignalsCard"
 
 export interface RedditSignals {
   threadCount: number
@@ -10,6 +12,8 @@ export interface RedditSignals {
   repairMentionCount: number
   sentimentScore: number | null
   sentimentDistribution: Record<string, number>
+  aiSummary: string | null
+  commonConcerns: string[]
 }
 
 export type RegistryLicenseStatus = "active" | "expired" | "suspended" | "revoked" | "pending"
@@ -30,11 +34,12 @@ export interface ClinicCompareSignals {
     engagementRate: number | null
   } | null
   reddit: RedditSignals | null
+  hrn: HRNSignalsData | null
   registryRecords: ClinicRegistryRecord[]
   extraImages: string[]
 }
 
-export function useClinicCompareSignals(clinicId: string | null): {
+export function useClinicCompareSignals(clinicId: string | null, clinicName = ""): {
   data: ClinicCompareSignals | null
   loading: boolean
 } {
@@ -66,7 +71,7 @@ export function useClinicCompareSignals(clinicId: string | null): {
       supabase
         .from("clinic_forum_profiles")
         .select(
-          "thread_count, photo_thread_count, longterm_thread_count, repair_mention_count, sentiment_score, sentiment_distribution"
+          "thread_count, photo_thread_count, longterm_thread_count, repair_mention_count, sentiment_score, sentiment_distribution, summary, common_concerns"
         )
         .eq("clinic_id", clinicId)
         .eq("forum_source", "reddit")
@@ -84,8 +89,14 @@ export function useClinicCompareSignals(clinicId: string | null): {
         .eq("media_type", "image")
         .order("display_order", { ascending: true })
         .limit(4),
+
+      Promise.resolve(
+        process.env.NEXT_PUBLIC_USE_MOCK_HRN === "true"
+          ? getMockHRNSignals(clinicId, clinicName)
+          : null
+      ),
     ])
-      .then(([social, facts, redditRow, creds, media]) => {
+      .then(([social, facts, redditRow, creds, media, hrn]) => {
         const factsMap: Record<string, unknown> = {}
         for (const f of facts.data ?? []) factsMap[f.fact_key] = f.fact_value
 
@@ -104,6 +115,8 @@ export function useClinicCompareSignals(clinicId: string | null): {
                 r.sentiment_score != null ? Number(r.sentiment_score) : null,
               sentimentDistribution:
                 (r.sentiment_distribution as Record<string, number>) ?? {},
+              aiSummary: r.summary ?? null,
+              commonConcerns: (r.common_concerns as string[]) ?? [],
             }
           : null
 
@@ -132,6 +145,7 @@ export function useClinicCompareSignals(clinicId: string | null): {
               }
             : null,
           reddit,
+          hrn: hrn ?? null,
           registryRecords,
           extraImages,
         })
@@ -140,7 +154,7 @@ export function useClinicCompareSignals(clinicId: string | null): {
       .catch(() => { if (!cancelled) setLoadedId(clinicId) })
 
     return () => { cancelled = true }
-  }, [clinicId])
+  }, [clinicId, clinicName])
 
   return { data: loading ? null : data, loading }
 }
