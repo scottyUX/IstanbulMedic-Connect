@@ -120,8 +120,8 @@ describe('getClinics', () => {
     mockSupabase.from.mockReturnValue(mockBuilder);
 
     // Test max clamping
-    await getClinics({ pageSize: 100 });
-    expect(mockBuilder.range).toHaveBeenCalledWith(0, 49); // max is 50
+    await getClinics({ pageSize: 600 });
+    expect(mockBuilder.range).toHaveBeenCalledWith(0, 499); // max is 500
 
     vi.clearAllMocks();
     mockSupabase.from.mockReturnValue(mockBuilder);
