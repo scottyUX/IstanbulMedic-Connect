@@ -26,6 +26,16 @@ describe('ClinicCard', () => {
     expect(screen.getByText('Test Clinic')).toBeInTheDocument();
   });
 
+  it('renders Ministry verification badge when verified', () => {
+    render(<ClinicCard {...defaultProps} isMinistryVerified />);
+    expect(screen.getByText('Ministry verified')).toBeInTheDocument();
+  });
+
+  it('does not render Ministry verification badge by default', () => {
+    render(<ClinicCard {...defaultProps} />);
+    expect(screen.queryByText('Ministry verified')).not.toBeInTheDocument();
+  });
+
   it('renders location with icon', () => {
     render(<ClinicCard {...defaultProps} />);
     expect(screen.getByText('Istanbul, Turkey')).toBeInTheDocument();

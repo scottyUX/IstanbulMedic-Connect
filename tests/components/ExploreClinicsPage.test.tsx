@@ -71,6 +71,7 @@ describe('ExploreClinicsPage', () => {
       trustScore: 90,
       description: 'Top rated hair clinic',
       rating: 4.8,
+      isMinistryVerified: true,
     },
     {
       id: 'clinic-2',
@@ -83,6 +84,7 @@ describe('ExploreClinicsPage', () => {
       trustScore: 85,
       description: 'Premier dental center',
       rating: 4.5,
+      isMinistryVerified: false,
     },
   ];
 
@@ -119,6 +121,11 @@ describe('ExploreClinicsPage', () => {
       render(<ExploreClinicsPage {...defaultProps} />);
       expect(screen.getByText('Istanbul Hair Clinic')).toBeInTheDocument();
       expect(screen.getByText('Dental Center Ankara')).toBeInTheDocument();
+    });
+
+    it('renders Ministry verification badges on verified clinic cards', () => {
+      render(<ExploreClinicsPage {...defaultProps} />);
+      expect(screen.getByText('Ministry verified')).toBeInTheDocument();
     });
 
     it('renders sort dropdown with default value', () => {

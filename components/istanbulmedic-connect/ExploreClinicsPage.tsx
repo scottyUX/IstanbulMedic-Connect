@@ -209,6 +209,7 @@ export const ExploreClinicsPage = ({
                 rating={clinic.rating}
                 reviewCount={clinic.reviewCount}
                 aiInsight={clinic.aiInsight}
+                isMinistryVerified={clinic.isMinistryVerified}
                 onViewProfile={() => router.push(`/clinics/${clinic.id}`)}
               />
             ))

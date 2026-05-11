@@ -23,6 +23,7 @@ type ClinicTeamRow = Tables<'clinic_team'>;
 type ClinicPackageRow = Tables<'clinic_packages'>;
 type ClinicReviewRow = Tables<'clinic_reviews'>;
 type ClinicScoreComponentRow = Tables<'clinic_score_components'>;
+type ClinicRegistryRecordRow = Tables<'clinic_registry_records'>;
 
 export type ClinicSortOption =
   | 'Alphabetical'
@@ -69,6 +70,7 @@ export interface ClinicListItem {
   rating?: number;
   reviewCount?: number;
   aiInsight?: string;
+  isMinistryVerified?: boolean;
 }
 
 export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
@@ -122,6 +124,7 @@ type ClinicMediaPartial = Pick<ClinicMediaRow, 'url' | 'is_primary' | 'display_o
 type ClinicFactPartial = Pick<ClinicFactRow, 'fact_key' | 'fact_value'>;
 type ClinicGooglePlacesPartial = Pick<ClinicGooglePlacesRow, 'rating' | 'user_ratings_total'>;
 type ClinicScrapedDataPartial = { description: string | null; techniques: string[] | null };
+type ClinicRegistryRecordPartial = Pick<ClinicRegistryRecordRow, 'source' | 'license_status'>;
 
 type ClinicListQueryRow = {
   id: string;
@@ -136,6 +139,7 @@ type ClinicListQueryRow = {
   clinic_facts?: ClinicFactPartial[] | null;
   clinic_google_places?: ClinicGooglePlacesPartial[] | ClinicGooglePlacesPartial | null;
   clinic_scraped_data?:  ClinicScrapedDataPartial | ClinicScrapedDataPartial[] | null;
+  clinic_registry_records?: ClinicRegistryRecordPartial[] | null;
 };
 
 const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
@@ -198,6 +202,15 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     ? clinic.clinic_scraped_data[0]
     : clinic.clinic_scraped_data;
 
+  const registryRecords = Array.isArray(clinic.clinic_registry_records)
+    ? clinic.clinic_registry_records
+    : [];
+  const isMinistryVerified = registryRecords.some(
+    (record) =>
+      record.source === 'turkish_ministry_of_health' &&
+      record.license_status === 'active'
+  );
+
   return {
     id: clinic.id,
     name: clinic.display_name,
@@ -212,6 +225,7 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     rating: googlePlaces?.rating ?? undefined,
     reviewCount: googlePlaces?.user_ratings_total ?? undefined,
     aiInsight: undefined,
+    isMinistryVerified,
   };
 };
 
@@ -490,6 +504,10 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
       clinic_google_places (
         rating,
         user_ratings_total
+      ),
+      clinic_registry_records (
+        source,
+        license_status
       ),
       clinic_scraped_data!clinic_id (*)
     `,

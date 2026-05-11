@@ -2,10 +2,11 @@
 
 import Image from "next/image"
 import { useId, useState } from "react"
-import { MapPin, Star } from "lucide-react"
+import { MapPin, ShieldCheck, Star } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
 
+import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -30,6 +31,7 @@ interface ClinicCardProps {
   rating?: number
   reviewCount?: number
   aiInsight?: string
+  isMinistryVerified?: boolean
   onViewProfile: () => void
 }
 
@@ -42,6 +44,7 @@ export const ClinicCard = ({
   rating,
   reviewCount,
   aiInsight,
+  isMinistryVerified = false,
   onViewProfile,
 }: ClinicCardProps) => {
   const compareId = useId()
@@ -88,14 +91,25 @@ export const ClinicCard = ({
       </div>
 
       {/* Clinic Name (Headline) */}
-      <h3
-        className={cn(
-          merriweather.className,
-          "mt-4 block font-bold text-foreground leading-[140%] text-2xl line-clamp-2"
+      <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2">
+        <h3
+          className={cn(
+            merriweather.className,
+            "block font-bold text-foreground leading-[140%] text-2xl line-clamp-2"
+          )}
+        >
+          {name}
+        </h3>
+        {isMinistryVerified && (
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-[#3EBBB7]/40 bg-[#3EBBB7]/10 px-2.5 py-1 text-xs font-medium text-[#17375B]"
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-[#3EBBB7]" aria-hidden />
+            Ministry verified
+          </Badge>
         )}
-      >
-        {name}
-      </h3>
+      </div>
 
       {/* Description */}
       {description ? (
