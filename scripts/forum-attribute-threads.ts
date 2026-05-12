@@ -25,10 +25,11 @@
  */
 
 import dotenv from 'dotenv'
+import ws from 'ws'
 dotenv.config({ path: '.env.local' })
 
 // Node 20 lacks native WebSocket — polyfill for @supabase/realtime-js
-if (!globalThis.WebSocket) globalThis.WebSocket = require('ws')
+if (!globalThis.WebSocket) globalThis.WebSocket = ws as unknown as typeof WebSocket
 
 const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENAI_API_KEY'] as const
 const missingEnv = REQUIRED_ENV.filter(k => !process.env[k])
