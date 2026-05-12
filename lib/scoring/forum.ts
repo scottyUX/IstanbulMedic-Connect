@@ -16,21 +16,21 @@
 // ── Constants (tunable after pilot batch) ─────────────────────────────────────
 
 /** Prior weight — how much a low-N clinic is pulled toward neutral (5.0). */
-const PRIOR_WEIGHT = 4;
+const PRIOR_WEIGHT = 5;
 
 /** Minimum effective sample size required to show a score. */
 const MIN_EFFECTIVE_N = 3;
 
 const DECAY = {
   under1yr: 1.0,
-  yr1to2:   0.7,
+  yr1to2:   0.8,
   yr2to3:   0.5,
   over3yr:  0.3,
 } as const;
 
 const SENTIMENT_WEIGHTS: Record<string, number> = {
   positive:  1,
-  mixed:     0,
+  mixed:     0.3,
   negative: -1,
 };
 
@@ -51,7 +51,12 @@ const HIGH_SEVERITY_POINTS = 0.3;
 const MED_SEVERITY_POINTS  = 0.1;
 const MAX_SEVERITY_PENALTY = 2.0;
 const MAX_REPAIR_PENALTY   = 1.5;
-const MAX_FOLLOWUP_BONUS   = 0.8;
+const MAX_FOLLOWUP_BONUS   = 1.0;
+
+/** Flat upward shift applied after all penalties/bonuses.
+ *  Reanchors the scale to reflect that these are pre-vetted clinics — a raw
+ *  5.0 (neutral sentiment) should display as ~6.5, not "mediocre". */
+const SCORE_FLOOR_ADJUSTMENT = 2;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -60,6 +65,7 @@ export interface ForumScorerThread {
   sentimentScore: number | null;  // LLM numeric −1 to 1; null for pre-migration rows
   sentimentLabel: string | null;  // fallback when sentimentScore is null
   isRepairCase: boolean;
+  isRepairPerformer?: boolean;  // true when secondary_clinic_mentions has repair_source — clinic is fixing, not causing
   issueKeywords: string[];
   hasLongtermUpdate: boolean;
   isComment?: boolean;  // true for inherited comment rows (weighted at 0.5 by default); omitting treated as false
@@ -158,7 +164,7 @@ export function computeForumScore(
   const postThreads = threads.filter(t => !t.isComment);
   const totalPostThreads = postThreads.length;
 
-  const repairRate    = totalPostThreads > 0 ? postThreads.filter(t => t.isRepairCase).length / totalPostThreads : 0;
+  const repairRate    = totalPostThreads > 0 ? postThreads.filter(t => t.isRepairCase && !t.isRepairPerformer).length / totalPostThreads : 0;
   const repairPenalty = Math.min(repairRate * 4, MAX_REPAIR_PENALTY);
 
   const followupRate  = totalPostThreads > 0 ? postThreads.filter(t => t.hasLongtermUpdate).length / totalPostThreads : 0;
@@ -174,7 +180,7 @@ export function computeForumScore(
 
   // ── Final score ───────────────────────────────────────────────────────────
 
-  const raw   = confidenceScore - repairPenalty + followupBonus - severityPenalty;
+  const raw   = confidenceScore - repairPenalty + followupBonus - severityPenalty + SCORE_FLOOR_ADJUSTMENT;
   const score = Math.round(Math.min(Math.max(raw, 0), 10) * 10) / 10;
 
   return {

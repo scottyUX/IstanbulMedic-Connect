@@ -15,6 +15,8 @@
  * Inherited comments (sentiment-only pass — does NOT change clinic_id):
  *   npx tsx scripts/forum-attribute-threads.ts --include-inherited-comments
  *   npx tsx scripts/forum-attribute-threads.ts --include-inherited-comments --limit 500
+ *   npx tsx scripts/forum-attribute-threads.ts --include-inherited-comments --min-comment-upvotes 5
+ *   Default: 5 upvotes (set in redditConfig.ts, override via REDDIT_COMMENT_MIN_UPVOTES_FOR_ANALYSIS)
  *
  * Pruning (removes threads still unmatched after N days — validate attribution quality first):
  *   npx tsx scripts/forum-attribute-threads.ts --prune
@@ -61,7 +63,7 @@ const sourceArg = getArg('--source') as 'reddit' | 'hrn' | undefined
 const limitArg = getArg('--limit')
 const limit = limitArg ? parseInt(limitArg) : 200
 const pruneDays = parseInt(getArg('--prune-days') ?? '90')
-const minCommentUpvotes = parseInt(getArg('--min-comment-upvotes') ?? '10')
+const minCommentUpvotes = parseInt(getArg('--min-comment-upvotes') ?? '5')
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
