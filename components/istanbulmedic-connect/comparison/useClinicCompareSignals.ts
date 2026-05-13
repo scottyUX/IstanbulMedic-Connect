@@ -6,6 +6,7 @@ import { getMockHRNSignals } from "@/lib/api/hrn.mock"
 import type { HRNSignalsData } from "@/components/istanbulmedic-connect/profile/HRNSignalsCard"
 
 export interface RedditSignals {
+  score: number | null
   threadCount: number
   photoThreadCount: number
   longtermThreadCount: number
@@ -71,7 +72,7 @@ export function useClinicCompareSignals(clinicId: string | null, clinicName = ""
       supabase
         .from("clinic_forum_profiles")
         .select(
-          "thread_count, photo_thread_count, longterm_thread_count, repair_mention_count, sentiment_score, sentiment_distribution, summary, common_concerns"
+          "score, thread_count, photo_thread_count, longterm_thread_count, repair_mention_count, sentiment_score, sentiment_distribution, summary, common_concerns"
         )
         .eq("clinic_id", clinicId)
         .eq("forum_source", "reddit")
@@ -107,6 +108,7 @@ export function useClinicCompareSignals(clinicId: string | null, clinicName = ""
         const r = redditRow.data
         const reddit: RedditSignals | null = r
           ? {
+              score: r.score ?? null,
               threadCount: r.thread_count ?? 0,
               photoThreadCount: r.photo_thread_count ?? 0,
               longtermThreadCount: r.longterm_thread_count ?? 0,

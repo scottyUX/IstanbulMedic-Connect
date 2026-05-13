@@ -69,6 +69,8 @@ export interface ClinicListItem {
   rating?: number;
   reviewCount?: number;
   aiInsight?: string;
+  redditScore?: number | null;
+  hrnScore?: number | null;
 }
 
 export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
@@ -739,6 +741,36 @@ export async function getClinicCities(): Promise<string[]> {
 
   const cities = [...new Set(data?.map((c) => c.primary_city) || [])];
   return cities.sort();
+}
+
+/**
+ * Fetches per-source scores for a list of clinics (used by comparison pages).
+ * Returns a map of clinicId → { instagram, reddit, hrn }.
+ */
+export async function getClinicSourceScores(
+  clinicIds: string[]
+): Promise<Map<string, { redditScore: number | null; hrnScore: number | null }>> {
+  if (clinicIds.length === 0) return new Map()
+
+  const supabase = await createClient()
+
+  const { data } = await supabase
+    .from('clinic_forum_profiles')
+    .select('clinic_id, score, forum_source')
+    .in('clinic_id', clinicIds)
+    .in('forum_source', ['reddit', 'hrn'])
+
+  const result = new Map<string, { redditScore: number | null; hrnScore: number | null }>()
+  for (const id of clinicIds) result.set(id, { redditScore: null, hrnScore: null })
+
+  for (const row of data ?? []) {
+    const entry = result.get(row.clinic_id)
+    if (!entry) continue
+    if (row.forum_source === 'reddit') entry.redditScore = row.score ?? null
+    if (row.forum_source === 'hrn') entry.hrnScore = row.score ?? null
+  }
+
+  return result
 }
 
 /**

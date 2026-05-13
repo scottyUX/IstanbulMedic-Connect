@@ -106,7 +106,7 @@ function RedditSection({ reddit, loading }: { reddit: RedditSignals | null; load
             <ForumBullet count={reddit.repairMentionCount} label="repair mentions" />
           </ul>
 
-          {reddit.sentimentScore != null && (
+          {reddit.sentimentScore != null ? (
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
@@ -115,6 +115,10 @@ function RedditSection({ reddit, loading }: { reddit: RedditSignals | null; load
             >
               <span className={cn("h-1.5 w-1.5 rounded-full", sentimentInfo(reddit.sentimentScore).dotClass)} />
               {sentimentInfo(reddit.sentimentScore).label}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              No sentiment data
             </span>
           )}
         </>

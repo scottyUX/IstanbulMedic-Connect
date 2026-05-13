@@ -1,10 +1,11 @@
 "use client"
 
 import { useMemo } from "react"
-import { ArrowLeft, MapPin, Users2 } from "lucide-react"
+import { ArrowLeft, Info, MapPin, Users2 } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import type { ClinicListItem } from "@/lib/api/clinics"
 import { getMockHRNSignals } from "@/lib/api/hrn.mock"
@@ -76,24 +77,41 @@ export function HRNView({ clinic, onDeselect, accentClass }: HRNViewProps) {
       </div>
 
       {/* HRN Score */}
-      {hrn?.hrnScore !== undefined && (
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            HRN Score
-          </p>
-          <div className="flex items-baseline gap-2">
-            <span className={cn("text-3xl font-bold tabular-nums", accentClass)}>
-              {hrn.hrnScore.toFixed(1)}
+      <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          HRN Score
+        </p>
+        <div className="flex items-baseline gap-2">
+          <span className={cn("text-3xl font-bold tabular-nums", hrn?.hrnScore !== undefined ? accentClass : "text-muted-foreground/40")}>
+            {hrn?.hrnScore !== undefined ? hrn.hrnScore.toFixed(1) : "—"}
+          </span>
+          <span className="text-sm text-muted-foreground">/ 10</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors" aria-label="How is this score calculated?">
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 text-sm" align="end">
+              <p className="font-medium mb-2">HRN Score is based on:</p>
+              <ul className="space-y-1 text-muted-foreground list-disc list-inside">
+                <li>Patient sentiment (recency-weighted)</li>
+                <li>Long-term follow-up rate (6-month+ updates)</li>
+                <li>Repair and revision case rate</li>
+                <li>Severity of reported issues</li>
+              </ul>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Clinics with fewer than 5 threads show no score. Scores reflect self-reported experiences on HairRestorationNetwork.com, not clinical outcomes.
+              </p>
+            </PopoverContent>
+          </Popover>
+          {hrn?.hrnScoreBreakdown?.confidenceTier === "low" && (
+            <span className="ml-auto rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700">
+              Low confidence
             </span>
-            <span className="text-sm text-muted-foreground">/ 10</span>
-            {hrn.hrnScoreBreakdown?.confidenceTier === "low" && (
-              <span className="ml-auto rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700">
-                Low confidence
-              </span>
-            )}
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2">
@@ -119,11 +137,11 @@ export function HRNView({ clinic, onDeselect, accentClass }: HRNViewProps) {
       </div>
 
       {/* Topics */}
-      {hrn && hrn.topTopics.length > 0 && (
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Common Topics
-          </p>
+      <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Common Topics
+        </p>
+        {hrn && hrn.topTopics.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {hrn.topTopics.map(t => (
               <span key={t} className="rounded-full border border-border/60 bg-white px-2.5 py-0.5 text-xs text-muted-foreground">
@@ -131,8 +149,10 @@ export function HRNView({ clinic, onDeselect, accentClass }: HRNViewProps) {
               </span>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-xs italic text-muted-foreground/60">No data yet</p>
+        )}
+      </div>
 
       <Button variant="outline" size="sm" onClick={onDeselect} className="w-full shrink-0 mt-auto">
         <ArrowLeft className="h-4 w-4 mr-1.5" />

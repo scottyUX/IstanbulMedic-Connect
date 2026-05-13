@@ -1,9 +1,10 @@
 "use client"
 
-import { ArrowLeft, MapPin } from "lucide-react"
+import { ArrowLeft, Info, MapPin } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import type { ClinicListItem } from "@/lib/api/clinics"
 import { useClinicCompareSignals } from "./useClinicCompareSignals"
@@ -38,7 +39,7 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
   )
 }
 
-export function RedditView({ clinic, onDeselect }: RedditViewProps) {
+export function RedditView({ clinic, onDeselect, accentClass }: RedditViewProps) {
   const { data: signals, loading } = useClinicCompareSignals(clinic.id, clinic.name)
   const reddit = signals?.reddit ?? null
 
@@ -71,15 +72,51 @@ export function RedditView({ clinic, onDeselect }: RedditViewProps) {
         </div>
       </div>
 
-      {/* AI Summary — only shown when available */}
-      {!loading && reddit?.aiSummary && (
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            AI Summary
-          </p>
-          <p className="text-sm text-foreground leading-relaxed">{reddit.aiSummary}</p>
+      {/* Reddit Score */}
+      <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Reddit Score
+        </p>
+        <div className="flex items-baseline gap-2">
+          <span className={cn("text-3xl font-bold tabular-nums", loading || !reddit?.score ? "text-muted-foreground/40" : accentClass)}>
+            {loading ? "—" : reddit?.score != null ? reddit.score.toFixed(1) : "—"}
+          </span>
+          <span className="text-sm text-muted-foreground">/ 10</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors" aria-label="How is this score calculated?">
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 text-sm" align="end">
+              <p className="font-medium mb-2">Reddit Score is based on:</p>
+              <ul className="space-y-1 text-muted-foreground list-disc list-inside">
+                <li>Patient sentiment across attributed posts (recent posts weighted more heavily)</li>
+                <li>Long-term follow-up rate (posts with 6-month+ updates)</li>
+                <li>Repair and revision case rate</li>
+                <li>Severity of reported issues (e.g. overharvesting, infection)</li>
+              </ul>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Clinics with fewer than 3 posts show no score. Scores reflect self-reported experiences on Reddit, not clinical outcomes.
+              </p>
+            </PopoverContent>
+          </Popover>
         </div>
-      )}
+      </div>
+
+      {/* AI Summary */}
+      <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          AI Summary
+        </p>
+        {loading ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : reddit?.aiSummary ? (
+          <p className="text-sm text-foreground leading-relaxed">{reddit.aiSummary}</p>
+        ) : (
+          <p className="text-xs italic text-muted-foreground/60">No data yet</p>
+        )}
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2">
@@ -107,24 +144,24 @@ export function RedditView({ clinic, onDeselect }: RedditViewProps) {
       </div>
 
       {/* Common Topics */}
-      {(loading || (reddit?.commonConcerns ?? []).length > 0) && (
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Common Topics
-          </p>
-          {loading ? (
-            <span className="text-xs text-muted-foreground">—</span>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {(reddit?.commonConcerns ?? []).map(topic => (
-                <span key={topic} className="rounded-full border border-border/60 bg-white px-2.5 py-0.5 text-xs text-muted-foreground capitalize">
-                  {topic.replace(/_/g, " ")}
+      <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Common Topics
+        </p>
+        {loading ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : (reddit?.commonConcerns ?? []).length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {(reddit?.commonConcerns ?? []).map(topic => (
+              <span key={topic} className="rounded-full border border-border/60 bg-white px-2.5 py-0.5 text-xs text-muted-foreground capitalize">
+                {topic.replace(/_/g, " ")}
                 </span>
               ))}
             </div>
+          ) : (
+            <p className="text-xs italic text-muted-foreground/60">No data yet</p>
           )}
         </div>
-      )}
 
       <Button variant="outline" size="sm" onClick={onDeselect} className="w-full shrink-0 mt-auto">
         <ArrowLeft className="h-4 w-4 mr-1.5" />
