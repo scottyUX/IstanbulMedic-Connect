@@ -196,10 +196,10 @@ function sentimentLabel(score: number): string {
   return "Mostly negative"
 }
 
-function scoreConfidenceTier(threadCount: number): string {
-  if (threadCount >= 15) return "High confidence"
-  if (threadCount >= 6)  return "Moderate"
-  return "Low confidence"
+function scoreConfidenceTier(threadCount: number): 'high' | 'moderate' | 'low' {
+  if (threadCount >= 15) return 'high'
+  if (threadCount >= 6)  return 'moderate'
+  return 'low'
 }
 
 function ScoreInfoPopover() {
@@ -280,7 +280,21 @@ export function RedditSignalsCard({ data }: { data: ClinicForumProfile }) {
                   <span className="text-sm text-muted-foreground leading-none">/&nbsp;10</span>
                   <ScoreInfoPopover />
                 </div>
-                <p className="text-xs text-muted-foreground">{scoreConfidenceTier(data.threadCount)}</p>
+                {(() => {
+                  const tier = scoreConfidenceTier(data.threadCount)
+                  return (
+                    <span className={cn(
+                      "rounded-full px-2 py-0.5 text-xs font-medium",
+                      tier === 'high'     && "bg-emerald-50 text-emerald-700",
+                      tier === 'moderate' && "bg-amber-50 text-amber-700",
+                      tier === 'low'      && "bg-red-50 text-red-700",
+                    )}>
+                      {tier === 'high'     && "Score confidence: High"}
+                      {tier === 'moderate' && "Score confidence: Moderate"}
+                      {tier === 'low'      && "Score confidence: Low"}
+                    </span>
+                  )
+                })()}
               </>
             ) : (
               <span className="text-xs text-muted-foreground">Insufficient data</span>
