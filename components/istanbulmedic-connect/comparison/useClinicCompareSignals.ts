@@ -23,6 +23,18 @@ export interface ClinicRegistryRecord {
   registryUrl: string | null
 }
 
+export interface GoogleReview {
+  rating: number | null
+  text: string
+  date: string | null
+  sourceName: string | null
+}
+
+export interface GooglePlacesSignals {
+  starCounts: Record<1 | 2 | 3 | 4 | 5, number>
+  reviews: GoogleReview[]
+}
+
 export interface ClinicCompareSignals {
   instagram: {
     followerCount: number | null
@@ -30,8 +42,74 @@ export interface ClinicCompareSignals {
     engagementRate: number | null
   } | null
   reddit: RedditSignals | null
+  googlePlaces: GooglePlacesSignals
   registryRecords: ClinicRegistryRecord[]
   extraImages: string[]
+}
+
+type ReviewSource = {
+  source_name: string | null
+  source_type: string | null
+}
+
+type ReviewSourceRow = ReviewSource | ReviewSource[] | null
+
+type ReviewRow = {
+  rating: string | null
+  review_text: string
+  review_date: string | null
+  sources?: ReviewSourceRow
+}
+
+function parseRating(raw: string | null): number | null {
+  if (!raw) return null
+  const match = raw.match(/\d+(?:\.\d+)?/)
+  if (!match) return null
+
+  const value = Number(match[0])
+  if (!Number.isFinite(value)) return null
+
+  return Math.min(5, Math.max(1, Math.round(value)))
+}
+
+function getSource(row: ReviewRow): { sourceName: string | null; sourceType: string | null } {
+  const source = Array.isArray(row.sources) ? row.sources[0] : row.sources
+  return {
+    sourceName: source?.source_name ?? null,
+    sourceType: source?.source_type ?? null,
+  }
+}
+
+function isGoogleReview(row: ReviewRow) {
+  const { sourceName, sourceType } = getSource(row)
+  const sourceText = `${sourceName ?? ""} ${sourceType ?? ""}`.toLowerCase()
+  return sourceText.includes("google")
+}
+
+function buildGooglePlacesSignals(rows: ReviewRow[]): GooglePlacesSignals {
+  const starCounts: Record<1 | 2 | 3 | 4 | 5, number> = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+  }
+
+  const reviews = rows
+    .filter(isGoogleReview)
+    .map((row) => {
+      const rating = parseRating(row.rating)
+      if (rating) starCounts[rating as 1 | 2 | 3 | 4 | 5] += 1
+
+      return {
+        rating,
+        text: row.review_text,
+        date: row.review_date,
+        sourceName: getSource(row).sourceName,
+      }
+    })
+
+  return { starCounts, reviews: reviews.slice(0, 5) }
 }
 
 export function useClinicCompareSignals(clinicId: string | null): {
@@ -78,6 +156,13 @@ export function useClinicCompareSignals(clinicId: string | null): {
         .eq("clinic_id", clinicId),
 
       supabase
+        .from("clinic_reviews")
+        .select("rating, review_text, review_date, sources (source_name, source_type)")
+        .eq("clinic_id", clinicId)
+        .order("review_date", { ascending: false, nullsFirst: false })
+        .limit(100),
+
+      supabase
         .from("clinic_media")
         .select("url, display_order")
         .eq("clinic_id", clinicId)
@@ -85,7 +170,7 @@ export function useClinicCompareSignals(clinicId: string | null): {
         .order("display_order", { ascending: true })
         .limit(4),
     ])
-      .then(([social, facts, redditRow, creds, media]) => {
+      .then(([social, facts, redditRow, creds, reviews, media]) => {
         const factsMap: Record<string, unknown> = {}
         for (const f of facts.data ?? []) factsMap[f.fact_key] = f.fact_value
 
@@ -116,6 +201,8 @@ export function useClinicCompareSignals(clinicId: string | null): {
           registryUrl: c.registry_url,
         }))
 
+        const googlePlaces = buildGooglePlacesSignals((reviews.data ?? []) as ReviewRow[])
+
         // Skip index 0 — primary image already shown via clinic.image
         const extraImages = (media.data ?? [])
           .map((m) => m.url)
@@ -132,6 +219,7 @@ export function useClinicCompareSignals(clinicId: string | null): {
               }
             : null,
           reddit,
+          googlePlaces,
           registryRecords,
           extraImages,
         })

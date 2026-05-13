@@ -16,3 +16,9 @@ grant select on table "public"."clinic_facts"           to "authenticated";
 
 grant select on table "public"."clinic_media"           to "anon";
 grant select on table "public"."clinic_media"           to "authenticated";
+
+grant select on table "public"."clinic_reviews"         to "anon";
+grant select on table "public"."clinic_reviews"         to "authenticated";
+
+grant select on table "public"."sources"                to "anon";
+grant select on table "public"."sources"                to "authenticated";

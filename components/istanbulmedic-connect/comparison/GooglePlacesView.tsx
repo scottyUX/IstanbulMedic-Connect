@@ -6,6 +6,7 @@ import { Merriweather } from "next/font/google"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { ClinicListItem } from "@/lib/api/clinics"
+import { useClinicCompareSignals, type GoogleReview } from "./useClinicCompareSignals"
 
 const merriweather = Merriweather({ subsets: ["latin"], weight: ["700"] })
 
@@ -30,7 +31,56 @@ function StarBar({ stars, count, total }: { stars: number; count: number; total:
   )
 }
 
+function formatReviewDate(date: string | null) {
+  if (!date) return "Recent"
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  })
+}
+
+function ReviewCard({ review }: { review: GoogleReview }) {
+  return (
+    <li className="rounded-xl border border-border/60 bg-white p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              className={cn(
+                "h-3.5 w-3.5",
+                review.rating != null && star <= review.rating
+                  ? "fill-[#FFD700] text-[#FFD700]"
+                  : "text-muted-foreground/30"
+              )}
+            />
+          ))}
+        </div>
+        <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          {formatReviewDate(review.date)}
+        </span>
+      </div>
+      <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-foreground">
+        {review.text || "No written review provided."}
+      </p>
+      {review.sourceName && (
+        <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+          {review.sourceName.replace(/_/g, " ")}
+        </p>
+      )}
+    </li>
+  )
+}
+
 export function GooglePlacesView({ clinic, onDeselect, accentClass }: GooglePlacesViewProps) {
+  const { data: signals, loading } = useClinicCompareSignals(clinic.id)
+  const googlePlaces = signals?.googlePlaces
+  const starCounts = googlePlaces?.starCounts ?? { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  const storedReviewTotal = Object.values(starCounts).reduce((sum, count) => sum + count, 0)
+  const recentReviews = googlePlaces?.reviews ?? []
+
   return (
     <div className="flex flex-col gap-4 p-4 overflow-y-auto h-full">
       {/* Header */}
@@ -77,13 +127,24 @@ export function GooglePlacesView({ clinic, onDeselect, accentClass }: GooglePlac
             </p>
           </div>
           <div className="flex-1 space-y-1">
-            <StarBar stars={5} count={0} total={0} />
-            <StarBar stars={4} count={0} total={0} />
-            <StarBar stars={3} count={0} total={0} />
-            <StarBar stars={2} count={0} total={0} />
-            <StarBar stars={1} count={0} total={0} />
+            {loading ? (
+              <p className="text-xs text-muted-foreground">Loading review breakdown...</p>
+            ) : (
+              <>
+                <StarBar stars={5} count={starCounts[5]} total={storedReviewTotal} />
+                <StarBar stars={4} count={starCounts[4]} total={storedReviewTotal} />
+                <StarBar stars={3} count={starCounts[3]} total={storedReviewTotal} />
+                <StarBar stars={2} count={starCounts[2]} total={storedReviewTotal} />
+                <StarBar stars={1} count={starCounts[1]} total={storedReviewTotal} />
+              </>
+            )}
           </div>
         </div>
+        {!loading && (
+          <p className="mt-3 text-[10px] text-muted-foreground">
+            Breakdown based on {storedReviewTotal.toLocaleString()} stored Google review{storedReviewTotal === 1 ? "" : "s"}.
+          </p>
+        )}
       </div>
 
       {/* Trust score */}
@@ -106,8 +167,23 @@ export function GooglePlacesView({ clinic, onDeselect, accentClass }: GooglePlac
         </div>
       )}
 
-      <div className="rounded-xl border border-dashed border-border bg-muted/10 p-5 text-center text-sm text-muted-foreground flex-1">
-        Per-star breakdown and recent reviews coming soon
+      <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Most Recent Google Reviews
+        </p>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading recent reviews...</p>
+        ) : recentReviews.length > 0 ? (
+          <ul className="space-y-2">
+            {recentReviews.map((review, index) => (
+              <ReviewCard key={`${review.date ?? "undated"}-${index}`} review={review} />
+            ))}
+          </ul>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border bg-white/70 p-4 text-center text-sm text-muted-foreground">
+            No stored Google review text is available for this clinic yet.
+          </div>
+        )}
       </div>
 
       <Button variant="outline" size="sm" onClick={onDeselect} className="w-full shrink-0">
