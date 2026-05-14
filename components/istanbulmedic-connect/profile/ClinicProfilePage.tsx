@@ -68,6 +68,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
       verifiedQualifications: t.qualifications.map((q) => ({
         qualification: q.qualification,
         source: q.source,
+        sourceUrl: q.source_url,
         verifiedAt: q.verified_at,
       })),
       lastVerifiedAt: t.last_verified_at,

@@ -5,35 +5,29 @@ Rules:
   * Each scraped qualification becomes one row, keyed on
     (team_member_id, qualification, source). Stored in `MergedDoctor.qualifications`
     as (qualification, source, source_url) tuples.
-  * Qualifications are canonicalized (e.g. "Fellow of ISHRS" -> "FISHRS")
-    before insert.
+  * Qualifications are canonicalized so casing/whitespace variants collapse
+    to a single row.
   * The full name preferred for the canonical record is the longest scraped
     name — directories that include middle names ("Ali Emre Karadeniz") give
     a more correct identity than the shorter spelling.
+
+Each scraper now emits exactly one qualification (registry presence IS the
+credential), so the merger's main job is name selection and external_id
+collection.
 """
 
 from __future__ import annotations
 
 from scraper.types import MergedDoctor, ScrapedDoctor, SeedEntry
 
-# Both directions of canonical -> alternative spellings live here. Add to this
-# dict as new variants show up; the upsert is keyed on the canonical form so
-# duplicates collapse into one row.
+# Canonical qualification strings, one per registry. Scrapers should emit
+# exactly these — the map exists so casing/whitespace variants from older
+# rows collapse to the same canonical form on re-scrape.
 _CANONICAL: dict[str, str] = {
-    "fellow of ishrs": "FISHRS",
-    "fellow of the ishrs": "FISHRS",
-    "fishrs": "FISHRS",
-    "ishrs fellow": "FISHRS",
-    "ishrs member": "ISHRS Member",
-    "ishrs associate member": "ISHRS Associate Member",
-    "associate member of ishrs": "ISHRS Associate Member",
-    "iahrs member": "IAHRS Member",
-    "abhrs": "ABHRS Diplomate",
-    "abhrs diplomate": "ABHRS Diplomate",
-    "fue europe": "FUE Europe Member",
-    "fue europe member": "FUE Europe Member",
-    "isaps": "ISAPS Member",
-    "isaps member": "ISAPS Member",
+    "ishrs member": "ISHRS member",
+    "iahrs member": "IAHRS member",
+    "tprecd member (turkish board-certified plastic surgeon)":
+        "TPRECD member (Turkish board-certified plastic surgeon)",
 }
 
 

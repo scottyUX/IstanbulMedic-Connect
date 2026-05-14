@@ -12,7 +12,7 @@ def _load(name: str) -> str:
     return (FIXTURES / name).read_text(encoding="utf-8")
 
 
-def test_basic_profile_yields_iahrs_member_plus_extras():
+def test_basic_profile_yields_single_iahrs_member_qualification():
     result = iahrs.scrape(
         "https://www.iahrs.org/hair-transplant/koray-erdogan",
         html=_load("iahrs_basic.html"),
@@ -20,9 +20,7 @@ def test_basic_profile_yields_iahrs_member_plus_extras():
     assert result.full_name == "Koray Erdogan"
     assert result.source == "iahrs"
     assert result.external_id == "koray-erdogan"
-    assert "IAHRS Member" in result.qualifications
-    # "ISHRS" appears in the bio text — picked up as a separate qualification.
-    assert "ISHRS Member" in result.qualifications
+    assert result.qualifications == ("IAHRS member",)
 
 
 def test_unicode_name_preserved():
@@ -33,7 +31,7 @@ def test_unicode_name_preserved():
     # The original diacritic must survive the parse — `name_normalized`
     # strips them only at the DB layer.
     assert result.full_name == "Hakan Doğanay"
-    assert "FUE Europe Member" in result.qualifications
+    assert result.qualifications == ("IAHRS member",)
 
 
 def test_garbage_page_raises():

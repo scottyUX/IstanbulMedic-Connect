@@ -2,6 +2,6 @@
 returning a `ScrapedDoctor` or raising `ScrapeError`.
 """
 
-from scraper.sources import iahrs, ishrs
+from scraper.sources import iahrs, ishrs, tprecd
 
-__all__ = ["ishrs", "iahrs"]
+__all__ = ["ishrs", "iahrs", "tprecd"]

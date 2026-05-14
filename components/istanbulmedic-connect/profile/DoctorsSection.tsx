@@ -47,9 +47,8 @@ export const DoctorsSection = ({ doctors }: DoctorsSectionProps) => {
               data-testid="doctors-listed-unverified"
               className="rounded-xl border border-border/60 bg-muted/10 p-4 text-sm text-muted-foreground"
             >
-              This clinic&apos;s team is listed but no external credential
-              verification was found in our sources. The platform verifies
-              credentials against the{" "}
+              This clinic&apos;s team is listed, but none of these doctors
+              appear on the{" "}
               <a
                 href="https://ishrs.org/find-a-doctor/"
                 target="_blank"
@@ -57,8 +56,8 @@ export const DoctorsSection = ({ doctors }: DoctorsSectionProps) => {
                 className="underline underline-offset-2"
               >
                 ISHRS
-              </a>{" "}
-              and{" "}
+              </a>
+              ,{" "}
               <a
                 href="https://www.iahrs.org/"
                 target="_blank"
@@ -66,8 +65,19 @@ export const DoctorsSection = ({ doctors }: DoctorsSectionProps) => {
                 className="underline underline-offset-2"
               >
                 IAHRS
+              </a>
+              , or{" "}
+              <a
+                href="https://www.plastikcerrahi.org.tr/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                TPRECD
               </a>{" "}
-              public directories.
+              public registries. Membership in one of those registries is
+              what we treat as a credential — the absence of a badge means
+              the doctor is not currently listed in any of them.
             </div>
             {doctors.map((doctor, idx) => (
               <DoctorCard key={doctor.name ?? `unnamed-${idx}`} doctor={doctor} />

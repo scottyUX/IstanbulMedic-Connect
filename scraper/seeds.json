@@ -1,9 +1,15 @@
 [
   {
-    "_comment": "AEK Hair Clinic — Dr. Ali Emre Karadeniz. ISHRS profile shows 'Emre Karadeniz'.",
+    "_comment": "AEK Hair Clinic — ISHRS profile lists the doctor as 'Emre Karadeniz'.",
     "clinic_id": "1034aed1-9c8a-46c7-815d-26372f40b1d8",
     "expected_name": "Emre Karadeniz",
     "ishrs_url": "https://ishrs.org/doctor/50809/"
+  },
+  {
+    "_comment": "AEK Hair Clinic — TPRECD profile lists the same doctor as 'Ali Emre Karadeniz'. Separate seed because the sanity-check matcher rejects the added middle name.",
+    "clinic_id": "1034aed1-9c8a-46c7-815d-26372f40b1d8",
+    "expected_name": "Ali Emre Karadeniz",
+    "tprecd_url": "https://www.plastikcerrahi.org.tr/Doktor-Bilgileri/47"
   },
   {
     "_comment": "ASMED Medical Center — Dr. Koray Erdogan.",

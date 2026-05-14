@@ -28,6 +28,7 @@ class SeedEntry:
     expected_name: str
     ishrs_url: str | None = None
     iahrs_url: str | None = None
+    tprecd_url: str | None = None
 
 
 @dataclass

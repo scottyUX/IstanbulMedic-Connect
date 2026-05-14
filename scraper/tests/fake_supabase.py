@@ -1,7 +1,8 @@
 """In-memory fake of just enough Supabase client surface to test persistence.
 
-Implements: select().eq().eq().limit().execute(), update().eq().execute(),
-insert().execute(), upsert(on_conflict=...).execute().
+Implements: select(...).eq().neq().is_().not_.is_().limit().execute(),
+update(...).eq().execute(), insert(...).execute(),
+upsert(..., on_conflict=...).execute(), delete().eq().neq().execute().
 
 Stores rows in `tables[table_name]` as a list of dicts.
 """
@@ -16,40 +17,79 @@ from typing import Any
 @dataclass
 class _Result:
     data: list[dict[str, Any]]
+    count: int | None = None
 
 
 @dataclass
 class _Query:
     client: "FakeSupabase"
     table_name: str
-    op: str  # "select" | "update" | "insert" | "upsert"
-    filters: list[tuple[str, Any]] = field(default_factory=list)
+    op: str  # "select" | "update" | "insert" | "upsert" | "delete"
+    filters: list[tuple[str, str, Any]] = field(default_factory=list)
     payload: dict[str, Any] | None = None
     on_conflict: str | None = None
     limit_n: int | None = None
 
     def eq(self, column: str, value: Any) -> "_Query":
-        self.filters.append((column, value))
+        self.filters.append(("eq", column, value))
         return self
+
+    def neq(self, column: str, value: Any) -> "_Query":
+        self.filters.append(("neq", column, value))
+        return self
+
+    def is_(self, column: str, value: Any) -> "_Query":
+        # Supabase's `.is_("col", "null")` corresponds to IS NULL.
+        self.filters.append(("is_", column, value))
+        return self
+
+    @property
+    def not_(self) -> "_NotProxy":
+        return _NotProxy(self)
 
     def limit(self, n: int) -> "_Query":
         self.limit_n = n
         return self
 
+    def _matches(self, row: dict[str, Any]) -> bool:
+        for op, column, value in self.filters:
+            if op == "eq":
+                if row.get(column) != value:
+                    return False
+            elif op == "neq":
+                if row.get(column) == value:
+                    return False
+            elif op == "is_":
+                # Only NULL semantics are exercised by current tests.
+                if str(value).lower() == "null":
+                    if row.get(column) is not None:
+                        return False
+                elif row.get(column) != value:
+                    return False
+            elif op == "not_is_":
+                if str(value).lower() == "null":
+                    if row.get(column) is None:
+                        return False
+                elif row.get(column) == value:
+                    return False
+            else:
+                raise NotImplementedError(f"filter op: {op}")
+        return True
+
     def execute(self) -> _Result:
         rows = self.client.tables.setdefault(self.table_name, [])
 
         if self.op == "select":
-            matched = [r for r in rows if all(r.get(c) == v for c, v in self.filters)]
+            matched = [r for r in rows if self._matches(r)]
             if self.limit_n is not None:
                 matched = matched[: self.limit_n]
-            return _Result(data=matched)
+            return _Result(data=matched, count=len(matched))
 
         if self.op == "update":
             assert self.payload is not None
             updated: list[dict[str, Any]] = []
             for r in rows:
-                if all(r.get(c) == v for c, v in self.filters):
+                if self._matches(r):
                     r.update(self.payload)
                     updated.append(dict(r))
             return _Result(data=updated)
@@ -77,7 +117,27 @@ class _Query:
             rows.append(new_row)
             return _Result(data=[dict(new_row)])
 
+        if self.op == "delete":
+            kept: list[dict[str, Any]] = []
+            removed: list[dict[str, Any]] = []
+            for r in rows:
+                if self._matches(r):
+                    removed.append(dict(r))
+                else:
+                    kept.append(r)
+            self.client.tables[self.table_name] = kept
+            return _Result(data=removed)
+
         raise NotImplementedError(self.op)
+
+
+@dataclass
+class _NotProxy:
+    query: _Query
+
+    def is_(self, column: str, value: Any) -> _Query:
+        self.query.filters.append(("not_is_", column, value))
+        return self.query
 
 
 @dataclass
@@ -85,7 +145,7 @@ class _TableHandle:
     client: "FakeSupabase"
     table_name: str
 
-    def select(self, _columns: str) -> _Query:
+    def select(self, _columns: str = "*", *, count: str | None = None) -> _Query:  # noqa: ARG002
         return _Query(self.client, self.table_name, "select")
 
     def update(self, payload: dict[str, Any]) -> _Query:
@@ -102,6 +162,9 @@ class _TableHandle:
             payload=payload,
             on_conflict=on_conflict,
         )
+
+    def delete(self) -> _Query:
+        return _Query(self.client, self.table_name, "delete")
 
 
 class FakeSupabase:

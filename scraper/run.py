@@ -1,14 +1,20 @@
-"""CLI entrypoint: read seeds, scrape, merge, persist.
+"""CLI entrypoint: walk clinic_team, look each doctor up by name in the
+ISHRS / IAHRS / TPRECD registries, write one qualification row per hit.
+
+The clinic_team table is the source of truth for who works at which clinic.
+Every row is checked on each run; clinic_team.last_verified_at is bumped
+even when a doctor has zero registry hits, so the UI can distinguish
+"never checked" from "checked, no badges."
 
 Usage:
-    python -m scraper.run                  # scrape every seed
-    python -m scraper.run --dry-run        # scrape but skip Supabase writes
+    python -m scraper.run                 # check every clinic_team row
+    python -m scraper.run --dry-run       # check but skip Supabase writes
+    python -m scraper.run --clinic <uuid> # only the doctors at this clinic
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import os
 import sys
@@ -16,23 +22,41 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from scraper.matcher import expected_name_matches
-from scraper.merger import merge
-from scraper.persistence import persist
-from scraper.sources import iahrs, ishrs
-from scraper.types import ScrapedDoctor, ScrapeError, SeedEntry
+from scraper.persistence import RegistryHit, upsert_qualifications
+from scraper.sources import iahrs, ishrs, tprecd
+from scraper.types import ScrapeError
 
 logger = logging.getLogger("scraper")
 
 ROOT = Path(__file__).resolve().parent.parent
-SEEDS_PATH = Path(__file__).resolve().parent / "seeds.json"
+
+# Order matches the brief's "ISHRS, IAHRS, TPRECD" sequence.
+SOURCES_BY_NAME = {"ishrs": ishrs, "iahrs": iahrs, "tprecd": tprecd}
+ALL_SOURCES = tuple(SOURCES_BY_NAME)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Scrape ISHRS/IAHRS into Supabase.")
-    parser.add_argument("--dry-run", action="store_true", help="Scrape but don't write.")
-    parser.add_argument("--seeds", type=Path, default=SEEDS_PATH)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Search registries but skip Supabase writes.")
+    parser.add_argument("--clinic", default=None,
+                        help="Restrict to one clinic_id (UUID). Useful for incremental runs.")
+    parser.add_argument(
+        "--sources",
+        default=",".join(ALL_SOURCES),
+        help=(
+            "Comma-separated list of registries to query. Default: all. "
+            "Useful when one registry is misbehaving — e.g. --sources ishrs,iahrs "
+            "to skip TPRECD when the site is slow/down."
+        ),
+    )
     args = parser.parse_args(argv)
+
+    selected = [s.strip() for s in args.sources.split(",") if s.strip()]
+    unknown = set(selected) - set(ALL_SOURCES)
+    if unknown:
+        parser.error(f"unknown source(s): {sorted(unknown)}. Valid: {ALL_SOURCES}")
+    active_sources = tuple(SOURCES_BY_NAME[name] for name in selected)
 
     logging.basicConfig(
         level=logging.INFO,
@@ -40,75 +64,72 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     load_dotenv(ROOT / ".env.local")
+    client = _build_supabase()
 
-    seeds = _load_seeds(args.seeds)
-    logger.info("Loaded %d seed entries from %s", len(seeds), args.seeds)
+    members = _load_team_members(client, clinic_filter=args.clinic)
+    logger.info("Verifying %d clinic_team rows", len(members))
 
-    client = None if args.dry_run else _build_supabase()
-
-    successes = 0
+    verified = 0
+    hit_total = 0
     failures = 0
-    for seed in seeds:
-        try:
-            scrapes = _scrape_one(seed)
-            if not scrapes:
-                logger.warning("No URLs for %s — skipping", seed.expected_name)
-                continue
-            merged = merge(seed, scrapes)
-            if client is None:
-                logger.info(
-                    "[dry-run] would persist %s with %d qualifications",
-                    merged.full_name,
-                    len(merged.qualifications),
-                )
-            else:
-                team_id = persist(client, merged)
-                logger.info("persisted %s (%s)", merged.full_name, team_id)
-            successes += 1
-        except ScrapeError as exc:
-            logger.error("scrape error for %s: %s", seed.expected_name, exc)
-            failures += 1
-        except Exception:
-            logger.exception("unexpected error for %s", seed.expected_name)
-            failures += 1
 
-    logger.info("done: %d ok, %d failed", successes, failures)
+    for member in members:
+        team_id = member["id"]
+        name = (member.get("name") or "").strip()
+        if not name:
+            logger.warning("skip team_id=%s — no name on row", team_id)
+            continue
+
+        try:
+            hits = _lookup_all(name, active_sources)
+        except ScrapeError as exc:
+            logger.error("registry lookup failed for %s (%s): %s", name, team_id, exc)
+            failures += 1
+            continue
+        except Exception:
+            logger.exception("unexpected error for %s (%s)", name, team_id)
+            failures += 1
+            continue
+
+        if args.dry_run:
+            logger.info(
+                "[dry-run] %s → %d hit(s): %s",
+                name,
+                len(hits),
+                ", ".join(f"{h.source} {h.source_url}" for h in hits) or "none",
+            )
+        else:
+            upsert_qualifications(client, team_id, hits)
+            logger.info("%s → %d hit(s) persisted", name, len(hits))
+
+        verified += 1
+        hit_total += len(hits)
+
+    logger.info(
+        "done: %d members verified, %d total hits, %d failures",
+        verified, hit_total, failures,
+    )
     return 0 if failures == 0 else 1
 
 
-def _scrape_one(seed: SeedEntry) -> list[ScrapedDoctor]:
-    """Scrape every source URL declared on a seed entry, with the expected_name
-    sanity check. Returns scrapes that passed the check."""
-    scrapes: list[ScrapedDoctor] = []
-    targets = []
-    if seed.ishrs_url:
-        targets.append((ishrs, seed.ishrs_url))
-    if seed.iahrs_url:
-        targets.append((iahrs, seed.iahrs_url))
-
-    for module, url in targets:
-        scraped = module.scrape(url)
-        if not expected_name_matches(scraped, seed.expected_name):
-            raise ScrapeError(
-                f"{module.SOURCE} sanity check failed: expected '{seed.expected_name}', "
-                f"got '{scraped.full_name}' from {url}"
-            )
-        scrapes.append(scraped)
-
-    return scrapes
+def _lookup_all(name: str, sources=None) -> list[RegistryHit]:
+    """Run name through every selected registry and collect hits."""
+    if sources is None:
+        sources = tuple(SOURCES_BY_NAME.values())
+    hits: list[RegistryHit] = []
+    for source_module in sources:
+        hit = source_module.search(name)
+        if hit is not None:
+            hits.append(hit)
+    return hits
 
 
-def _load_seeds(path: Path) -> list[SeedEntry]:
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    return [
-        SeedEntry(
-            clinic_id=entry["clinic_id"],
-            expected_name=entry["expected_name"],
-            ishrs_url=entry.get("ishrs_url"),
-            iahrs_url=entry.get("iahrs_url"),
-        )
-        for entry in raw
-    ]
+def _load_team_members(client, *, clinic_filter: str | None) -> list[dict]:
+    query = client.table("clinic_team").select("id, clinic_id, name").not_.is_("name", "null")
+    if clinic_filter:
+        query = query.eq("clinic_id", clinic_filter)
+    result = query.execute()
+    return getattr(result, "data", None) or []
 
 
 def _build_supabase():

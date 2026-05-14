@@ -1,13 +1,21 @@
-"""IAHRS doctor profile scraper.
+"""IAHRS doctor lookup.
 
-Profile URLs look like `https://www.iahrs.org/hair-transplant/<name-slug>`.
+Two entry points:
 
-Heuristics:
-  * Name: first <h1>; if that fails, the <title> with a trailing site name
-    stripped off.
-  * IAHRS membership itself becomes a qualification: "IAHRS Member" — listing
-    on iahrs.org implies vetted membership.
-  * Bio text scanned for additional hints: ISHRS, FUE Europe, ABHRS, ISAPS.
+  * search(name) — primary entry point used by the clinic_team-driven runner.
+    Loads the IAHRS Turkey country page once per process (cached), parses
+    its 6-or-so doctor anchors, returns the profile URL of the best name
+    match or None.
+
+  * scrape(url, html=None) — legacy URL-driven entry point used by the
+    seed pipeline.
+
+The Turkey page is the canonical IAHRS-Turkey list; everyone listed there
+has /hair-transplant/<slug> profile URLs in plain anchors. No JS rendering,
+no ajax — one HTTP fetch covers every Turkish doctor.
+
+Registry presence IS the credential. Each match emits exactly one
+"IAHRS member" qualification.
 """
 
 from __future__ import annotations
@@ -18,18 +26,94 @@ from datetime import UTC, datetime
 from bs4 import BeautifulSoup
 
 from scraper.httpcache import FetchError, fetch
+from scraper.matcher import names_match
+from scraper.normalize import normalize_name
+from scraper.persistence import RegistryHit
 from scraper.types import ScrapedDoctor, ScrapeError
 
 SOURCE = "iahrs"
+QUALIFICATION = "IAHRS member"
 
-_BIO_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"\bABHRS\b", re.IGNORECASE), "ABHRS Diplomate"),
-    (re.compile(r"\bFUE\s+Europe\b", re.IGNORECASE), "FUE Europe Member"),
-    (re.compile(r"\bISAPS\b", re.IGNORECASE), "ISAPS Member"),
-    (re.compile(r"\bISHRS\b", re.IGNORECASE), "ISHRS Member"),
-)
+TURKEY_URL = "https://www.iahrs.org/hair-transplant/turkey"
 
-_SLUG_PATTERN = re.compile(r"/hair-transplant/([a-z0-9\-]+)")
+_SLUG_PATTERN = re.compile(r"(?:^|/)hair-transplant/([a-z0-9\-]+)")
+# Country/region slugs that appear under /hair-transplant/* but are NOT
+# doctor profiles. Anything else is treated as a doctor profile slug.
+_NON_DOCTOR_SLUGS = frozenset({
+    "turkey", "usa", "uk", "germany", "spain", "mexico", "canada",
+    "australia", "italy", "greece", "india", "singapore", "south-korea",
+    "brazil", "argentina", "egypt", "iran",
+})
+
+
+def search(name: str) -> RegistryHit | None:
+    """Look up a doctor by name in the IAHRS Turkey directory.
+
+    Returns a RegistryHit on a name match, or None if no Turkey-listed
+    doctor matches.
+    """
+    if not name or not name.strip():
+        return None
+
+    rows = _load_turkey_doctors()
+    target = normalize_name(name)
+
+    exact = [r for r in rows if normalize_name(r["full_name"]) == target]
+    if exact:
+        chosen = exact[0]
+    else:
+        candidates = [r for r in rows if names_match(r["full_name"], name)]
+        if not candidates:
+            return None
+        chosen = min(candidates, key=lambda r: len(normalize_name(r["full_name"])))
+
+    return RegistryHit(
+        source=SOURCE,
+        qualification=QUALIFICATION,
+        source_url=chosen["profile"],
+    )
+
+
+def _load_turkey_doctors(_cache: dict[str, list[dict[str, str]]] = {}) -> list[dict[str, str]]:
+    if "rows" in _cache:
+        return _cache["rows"]
+
+    try:
+        html = fetch(TURKEY_URL)
+    except FetchError as exc:
+        raise ScrapeError(f"IAHRS: cannot load Turkey directory: {exc}") from exc
+
+    _cache["rows"] = _parse_turkey_directory(html)
+    return _cache["rows"]
+
+
+def _parse_turkey_directory(html: str) -> list[dict[str, str]]:
+    soup = BeautifulSoup(html, "html.parser")
+    seen: dict[str, dict[str, str]] = {}
+    for anchor in soup.find_all("a", href=True):
+        href = anchor["href"]
+        match = _SLUG_PATTERN.search(href)
+        if not match:
+            continue
+        slug = match.group(1)
+        if slug.lower() in _NON_DOCTOR_SLUGS:
+            continue
+        text = anchor.get_text(strip=True)
+        full = _clean_name(text)
+        if not full:
+            continue
+        # Resolve relative URLs to absolute. The Turkey page emits both forms:
+        # bare ("hair-transplant/koray-erdogan") and absolute.
+        if href.startswith("http"):
+            profile = href
+        elif href.startswith("/"):
+            profile = f"https://www.iahrs.org{href}"
+        else:
+            profile = f"https://www.iahrs.org/{href}"
+        # Dedupe — the page sometimes lists the same doctor twice (anchor text
+        # in the listing AND a "View Profile" link). First spelling wins.
+        seen.setdefault(slug, {"full_name": full, "profile": profile})
+    return list(seen.values())
 
 
 def scrape(url: str, html: str | None = None) -> ScrapedDoctor:
@@ -45,18 +129,12 @@ def scrape(url: str, html: str | None = None) -> ScrapedDoctor:
     if not name:
         raise ScrapeError(f"IAHRS: no name found on {url}")
 
-    qualifications = _extract_qualifications(soup)
-    if not qualifications:
-        raise ScrapeError(f"IAHRS: no qualifications found on {url}")
-
-    external_id = _extract_slug(url)
-
     return ScrapedDoctor(
         source=SOURCE,
         source_url=url,
-        external_id=external_id,
+        external_id=_extract_slug(url),
         full_name=name,
-        qualifications=tuple(qualifications),
+        qualifications=(QUALIFICATION,),
         scraped_at=datetime.now(UTC),
     )
 
@@ -73,19 +151,6 @@ def _extract_name(soup: BeautifulSoup) -> str:
     return ""
 
 
-def _extract_qualifications(soup: BeautifulSoup) -> list[str]:
-    body_text = soup.get_text(" ", strip=True)
-    qualifications = ["IAHRS Member"]
-    seen = {"IAHRS Member"}
-
-    for pattern, qualification in _BIO_PATTERNS:
-        if pattern.search(body_text) and qualification not in seen:
-            qualifications.append(qualification)
-            seen.add(qualification)
-
-    return qualifications
-
-
 def _extract_slug(url: str) -> str:
     match = _SLUG_PATTERN.search(url)
     return match.group(1) if match else url
@@ -100,7 +165,6 @@ def _clean_name(name: str) -> str:
     """
     name = name.split("—")[0].strip()
     name = name.split(" - ")[0].strip()
-    # Strip trailing ", MD" / ", MD, FISHRS" etc.
     if "," in name:
         name = name.split(",")[0].strip()
     return name

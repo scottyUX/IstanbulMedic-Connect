@@ -1,14 +1,20 @@
-"""Persistence: writes a MergedDoctor into clinic_team + clinic_team_qualifications.
+"""Persistence: writes scraper output into clinic_team + clinic_team_qualifications.
 
-The Supabase write path is:
+Two write paths exist:
 
-  1. Look up an existing clinic_team row by (clinic_id, name_normalized).
-  2. If found: update name (directory spelling wins), merge external_ids,
-     bump last_verified_at.
-  3. If not found: insert a new clinic_team row with role='doctor',
-     credentials='' (the existing column is NOT NULL but blank is fine for
-     scraper-inserted rows; the credential signal lives in the qualifications table).
-  4. Upsert each qualification on (team_member_id, qualification, source).
+  * persist(MergedDoctor) — seed-driven path. Fuzzy-matches the scraped name
+    against existing clinic_team rows for the seed's clinic_id, inserting a
+    new doctor row if no match is found. Used by the legacy URL-keyed
+    seeds.json runner and its tests.
+
+  * upsert_qualifications(team_member_id, hits) — clinic_team-driven path.
+    The runner already knows which doctor row a hit belongs to (it walked
+    clinic_team to discover the doctor in the first place), so this path
+    skips fuzzy lookup entirely. It upserts one row per hit and bumps
+    clinic_team.last_verified_at.
+
+Both paths upsert qualifications on (team_member_id, source) — registry
+presence is the credential, exactly one row per registry per doctor.
 
 The Supabase client is passed in (not constructed here) so unit tests can
 inject a fake.
@@ -16,6 +22,7 @@ inject a fake.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
 
@@ -24,6 +31,20 @@ from rapidfuzz import fuzz
 from scraper.matcher import names_match
 from scraper.normalize import normalize_name
 from scraper.types import MergedDoctor
+
+
+@dataclass(frozen=True)
+class RegistryHit:
+    """One registry's verdict on one doctor.
+
+    `source` is the registry slug ('ishrs' / 'iahrs' / 'tprecd'),
+    `qualification` is the canonical credential string, `source_url` is
+    the profile URL the qualification was discovered from.
+    """
+
+    source: str
+    qualification: str
+    source_url: str
 
 
 class SupabaseLike(Protocol):
@@ -109,15 +130,59 @@ def persist(client: SupabaseLike, merged: MergedDoctor) -> str:
         team_member_id = inserted_rows[0]["id"]
 
     for qualification, source, source_url in merged.qualifications:
-        client.table("clinic_team_qualifications").upsert(
-            {
-                "team_member_id": team_member_id,
-                "qualification": qualification,
-                "source": source,
-                "source_url": source_url,
-                "verified_at": now_iso,
-            },
-            on_conflict="team_member_id,qualification,source",
-        ).execute()
+        _upsert_qualification_row(
+            client, team_member_id, source, qualification, source_url, now_iso
+        )
 
     return team_member_id
+
+
+def upsert_qualifications(
+    client: SupabaseLike,
+    team_member_id: str,
+    hits: list[RegistryHit],
+) -> None:
+    """Write registry hits for a doctor whose clinic_team.id we already know.
+
+    Always bumps clinic_team.last_verified_at, even when `hits` is empty —
+    the runner's job is to record that we *checked* this doctor, not just
+    to record successful hits.
+
+    Each hit upserts on (team_member_id, source). Re-running with the same
+    hits is a no-op other than refreshing verified_at timestamps.
+    """
+    now_iso = datetime.now(UTC).isoformat()
+
+    client.table("clinic_team").update({"last_verified_at": now_iso}).eq(
+        "id", team_member_id
+    ).execute()
+
+    for hit in hits:
+        _upsert_qualification_row(
+            client,
+            team_member_id,
+            hit.source,
+            hit.qualification,
+            hit.source_url,
+            now_iso,
+        )
+
+
+def _upsert_qualification_row(
+    client: SupabaseLike,
+    team_member_id: str,
+    source: str,
+    qualification: str,
+    source_url: str | None,
+    now_iso: str,
+) -> None:
+    client.table("clinic_team_qualifications").upsert(
+        {
+            "team_member_id": team_member_id,
+            "qualification": qualification,
+            "source": source,
+            "source_url": source_url,
+            "verified_at": now_iso,
+        },
+        on_conflict="team_member_id,source",
+    ).execute()
