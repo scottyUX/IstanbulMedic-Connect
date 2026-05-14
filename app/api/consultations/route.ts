@@ -14,7 +14,9 @@ export async function POST(request: NextRequest) {
   let clinicIds: string[]
   try {
     const body = await request.json()
-    clinicIds = body.clinicIds
+    clinicIds = Array.isArray(body.clinicIds)
+      ? Array.from(new Set(body.clinicIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)))
+      : []
     if (!Array.isArray(clinicIds) || clinicIds.length === 0) throw new Error('invalid')
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
@@ -68,12 +70,17 @@ export async function POST(request: NextRequest) {
 
   // Pre-filter clinics that already have a pending consultation — avoids
   // a partial-index conflict aborting the entire batch insert.
-  const { data: existingPending } = await supabase
+  const { data: existingPending, error: existingPendingError } = await supabase
     .from('consultations')
     .select('clinic_id')
     .eq('user_id', userRow.id)
     .in('clinic_id', clinicIds)
     .eq('status', 'pending')
+
+  if (existingPendingError) {
+    console.error('POST /api/consultations existing-pending lookup error:', existingPendingError)
+    return NextResponse.json({ error: 'Failed to check existing consultations' }, { status: 500 })
+  }
 
   const existingIds = new Set((existingPending ?? []).map((r) => r.clinic_id))
   const newClinicIds = clinicIds.filter((id) => !existingIds.has(id))

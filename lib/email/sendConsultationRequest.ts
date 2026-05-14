@@ -301,14 +301,12 @@ Istanbul Medic Connect Concierge
 export async function sendConsultationRequest(params: SendConsultationRequestParams): Promise<void> {
   const toEmail = process.env.CONSULTATION_EMAIL
   if (!toEmail) {
-    console.warn('sendConsultationRequest: CONSULTATION_EMAIL not set — skipping email')
-    return
+    throw new Error('sendConsultationRequest: CONSULTATION_EMAIL not set')
   }
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
-    console.warn('sendConsultationRequest: RESEND_API_KEY not set — skipping email')
-    return
+    throw new Error('sendConsultationRequest: RESEND_API_KEY not set')
   }
 
   const subject = `[Istanbul Medic Connect] New Consultation Request — ${params.userName}`

@@ -69,6 +69,7 @@ interface MakeSupabaseOptions {
   userRow?: { id: string; name: string; email: string } | null
   clinicRows?: { id: string; display_name: string }[]
   existingPending?: { clinic_id: string }[]
+  existingPendingError?: { message: string } | null
   insertResult?: { data: { id: string; clinic_id: string }[] | null; error: { message: string } | null }
 }
 
@@ -78,6 +79,7 @@ function makeSupabase({
   userRow = { id: 'user-uuid', name: 'Test User', email: 'user@test.com' },
   clinicRows = [{ id: 'clinic-1', display_name: 'Clinic One' }],
   existingPending = [],
+  existingPendingError = null,
   insertResult = { data: [{ id: 'consult-1', clinic_id: 'clinic-1' }], error: null },
 }: MakeSupabaseOptions = {}) {
   // Track how many times `consultations` table has been accessed so we can
@@ -105,7 +107,7 @@ function makeSupabase({
         consultationsCallCount++
         if (consultationsCallCount === 1) {
           // First call: pre-filter SELECT — returns existing pending rows
-          return makeChain(existingPending)
+          return makeChain(existingPending, existingPendingError)
         }
         // Second call: INSERT — returns the newly created rows (or error)
         return makeChain(insertResult.data, insertResult.error)
@@ -172,6 +174,12 @@ describe('POST /api/consultations', () => {
     expect(res.status).toBe(400)
   })
 
+  it('returns 400 when clinicIds contains no valid string IDs', async () => {
+    mockClient(makeSupabase())
+    const res = await POST(makePostRequest({ clinicIds: ['', null, 42] }))
+    expect(res.status).toBe(400)
+  })
+
   // ── User record lookup ──────────────────────────────────────────────────────
   //
   // There are two separate failure modes: no auth session (401) and a valid
@@ -224,6 +232,49 @@ describe('POST /api/consultations', () => {
     // Only clinic-2 was new — that's the one that should be inserted
     expect(body.created).toBe(1)
     expect(body.skipped).toBe(1)
+  })
+
+  it('deduplicates clinicIds before inserting', async () => {
+    const supabase = makeSupabase({
+      clinicRows: [
+        { id: 'clinic-1', display_name: 'Clinic One' },
+        { id: 'clinic-2', display_name: 'Clinic Two' },
+      ],
+      insertResult: {
+        data: [
+          { id: 'consult-1', clinic_id: 'clinic-1' },
+          { id: 'consult-2', clinic_id: 'clinic-2' },
+        ],
+        error: null,
+      },
+    })
+    mockClient(supabase)
+
+    const res = await POST(makePostRequest({ clinicIds: ['clinic-1', 'clinic-1', 'clinic-2'] }))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.created).toBe(2)
+    expect(body.skipped).toBe(0)
+
+    const insertChain = supabase.from.mock.results
+      .filter((r) => r.value?.insert)
+      .at(-1)?.value
+    expect(insertChain.insert).toHaveBeenCalledWith([
+      expect.objectContaining({ clinic_id: 'clinic-1' }),
+      expect.objectContaining({ clinic_id: 'clinic-2' }),
+    ])
+  })
+
+  it('returns 500 when the existing-pending lookup fails', async () => {
+    mockClient(makeSupabase({
+      existingPendingError: { message: 'lookup failed' },
+    }))
+
+    const res = await POST(makePostRequest({ clinicIds: ['clinic-1'] }))
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(body.error).toMatch(/existing consultations/i)
+    expect(mockSendEmail).not.toHaveBeenCalled()
   })
 
   it('returns created:0 early without inserting when all clinics are already pending', async () => {
