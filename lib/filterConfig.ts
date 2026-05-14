@@ -67,7 +67,7 @@ export const FEATURE_CONFIG = {
   auth: false, // login/sign up
   compare: false,
   saveClinic: false,
-  bookConsultation: false,
+  bookConsultation: true,
   share: false, // TODO: implement copy URL to clipboard
   createProfile: false, // landing page "Create a profile" CTA
   personalizedOffers: false, // landing page "Receive Personalized Offers" step

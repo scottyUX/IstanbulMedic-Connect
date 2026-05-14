@@ -39,7 +39,6 @@ if (typeof globalThis.DOMMatrix === 'undefined') {
 
 // pdf-parse is CJS-only; use createRequire to load it from ESM context
 const require = createRequire(import.meta.url)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { PDFParse } = require('pdf-parse') as { PDFParse: new (opts: { data: Buffer }) => { getText(): Promise<{ text: string }> } }
 
 export interface MOHPDFRow {

@@ -24,22 +24,31 @@
  *   npx tsx scripts/forum-attribute-threads.ts --prune --dry-run   (shows count, deletes nothing)
  */
 
+import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
-import ws from 'ws'
+import { attributeThread, analyzeSentimentOnly, loadClinicNames } from '../app/api/forumPipeline/llmAttributor'
+import WebSocket from 'ws'
+
 dotenv.config({ path: '.env.local' })
 
 // Node 20 lacks native WebSocket — polyfill for @supabase/realtime-js
-if (!globalThis.WebSocket) globalThis.WebSocket = ws as unknown as typeof WebSocket
+if (!globalThis.WebSocket) globalThis.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket
 
-const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENAI_API_KEY'] as const
-const missingEnv = REQUIRED_ENV.filter(k => !process.env[k])
+const {
+  NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  OPENAI_API_KEY,
+} = process.env
+
+const missingEnv = [
+  !NEXT_PUBLIC_SUPABASE_URL && 'NEXT_PUBLIC_SUPABASE_URL',
+  !SUPABASE_SERVICE_ROLE_KEY && 'SUPABASE_SERVICE_ROLE_KEY',
+  !OPENAI_API_KEY && 'OPENAI_API_KEY',
+].filter(Boolean) as string[]
 if (missingEnv.length > 0) {
   console.error(`Missing required env vars: ${missingEnv.join(', ')}`)
   process.exit(1)
 }
-
-import { createClient } from '@supabase/supabase-js'
-import { attributeThread, analyzeSentimentOnly, loadClinicNames } from '../app/api/forumPipeline/llmAttributor'
 
 function getSupabaseAdmin() {
   return createClient(
