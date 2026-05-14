@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendConsultationRequest, type ConsultationPassport } from '@/lib/email/sendConsultationRequest'
+import { sendConsultationRequest, sendConsultationConfirmation, type ConsultationPassport } from '@/lib/email/sendConsultationRequest'
 
 // POST /api/consultations — { clinicIds: string[] } → create records + send email
 export async function POST(request: NextRequest) {
@@ -155,17 +155,18 @@ export async function POST(request: NextRequest) {
       })),
     }
 
+    const userName = userRow.name ?? user.email ?? 'Unknown'
+    const emailParams = { userName, userEmail, clinicNames }
+
     let emailSent = true
     try {
-      await sendConsultationRequest({
-        userName: userRow.name ?? user.email ?? 'Unknown',
-        userEmail: userRow.email ?? user.email ?? '',
-        clinicNames,
-        passport,
-      })
+      await Promise.all([
+        sendConsultationRequest({ ...emailParams, passport }),
+        sendConsultationConfirmation(emailParams),
+      ])
     } catch (e) {
       emailSent = false
-      console.error('sendConsultationRequest failed — consultations saved but team not notified', {
+      console.error('consultation email(s) failed — consultations saved but notifications incomplete', {
         userId: userRow.id,
         clinicIds: createdIds,
         error: e,

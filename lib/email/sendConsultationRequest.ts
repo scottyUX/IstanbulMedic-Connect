@@ -296,6 +296,101 @@ Istanbul Medic Connect Concierge
 `.trim()
 }
 
+// ─── User confirmation email ──────────────────────────────────────────────────
+
+function buildConfirmationHtml(userName: string, clinicNames: string[]): string {
+  const clinicList = clinicNames
+    .map((n) => `<div style="padding:4px 0;color:#0D1E32;font-size:13px;">→ &nbsp;${n}</div>`)
+    .join('')
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+      <!-- Header -->
+      <tr>
+        <td style="background:#0D1E32;padding:22px 32px;">
+          <span style="color:#3EBBB7;font-size:17px;font-weight:700;letter-spacing:0.06em;">ISTANBUL MEDIC CONNECT</span>
+        </td>
+      </tr>
+
+      <!-- Body -->
+      <tr>
+        <td style="padding:32px 32px 24px;">
+          <h1 style="margin:0 0 16px;font-size:21px;font-weight:700;color:#0D1E32;">Your request has been received</h1>
+          <p style="margin:0 0 20px;color:#334155;font-size:14px;line-height:1.7;">
+            Hi ${userName},<br><br>
+            Thank you for reaching out through Istanbul Medic Connect. We've notified the team about your interest in the following clinic${clinicNames.length > 1 ? 's' : ''}:
+          </p>
+          <div style="background:#f8fafc;border-radius:8px;padding:16px 20px;margin-bottom:20px;">
+            ${clinicList}
+          </div>
+          <p style="margin:0;color:#334155;font-size:14px;line-height:1.7;">
+            A member of our team will be in touch with you shortly to help coordinate your consultation.
+          </p>
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="padding:20px 32px 28px;border-top:1px solid #e2e8f0;background:#f8fafc;">
+          <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.6;">
+            <strong style="color:#64748b;">Istanbul Medic Connect</strong><br>
+            Your trusted partner for hair transplant consultations in Istanbul.
+          </p>
+        </td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`
+}
+
+function buildConfirmationText(userName: string, clinicNames: string[]): string {
+  const hr = '─'.repeat(48)
+  return `
+ISTANBUL MEDIC CONNECT
+${hr}
+
+Hi ${userName},
+
+Thank you for reaching out through Istanbul Medic Connect. We've notified the team about your interest in the following clinic${clinicNames.length > 1 ? 's' : ''}:
+
+${clinicNames.map((n) => `  → ${n}`).join('\n')}
+
+A member of our team will be in touch with you shortly to help coordinate your consultation.
+
+Istanbul Medic Connect
+Your trusted partner for hair transplant consultations in Istanbul.
+`.trim()
+}
+
+export async function sendConsultationConfirmation(
+  params: Pick<SendConsultationRequestParams, 'userName' | 'userEmail' | 'clinicNames'>
+): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    throw new Error('sendConsultationConfirmation: RESEND_API_KEY not set')
+  }
+
+  const from = process.env.CONSULTATION_FROM_EMAIL ?? 'Istanbul Medic Connect <noreply@istanbulmedic.com>'
+  const resend = new Resend(apiKey)
+
+  await resend.emails.send({
+    from,
+    to: [params.userEmail],
+    subject: '[Istanbul Medic Connect] Your consultation request has been received',
+    html: buildConfirmationHtml(params.userName, params.clinicNames),
+    text: buildConfirmationText(params.userName, params.clinicNames),
+  })
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function sendConsultationRequest(params: SendConsultationRequestParams): Promise<void> {
