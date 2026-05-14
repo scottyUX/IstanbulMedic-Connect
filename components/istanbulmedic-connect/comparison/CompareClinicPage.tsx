@@ -1,35 +1,40 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
-import { MapPin, Star } from "lucide-react"
+import { MapPin } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
 import { cn } from "@/lib/utils"
 import type { ClinicListItem } from "@/lib/api/clinics"
+import { getMockHRNSignals } from "@/lib/api/hrn.mock"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import { AllSourcesView } from "./AllSourcesView"
 import { InstagramView } from "./InstagramView"
 import { RedditView } from "./RedditView"
 import { GooglePlacesView } from "./GooglePlacesView"
+import { HRNView } from "./HRNView"
 
 const merriweather = Merriweather({ subsets: ["latin"], weight: ["700"] })
 
 const SOURCES = [
   { id: "all",           label: "All Sources",    route: "/clinics/compare"              },
-  { id: "instagram",     label: "Instagram",       route: "/clinics/compare/instagram"    },
-  { id: "reddit",        label: "Reddit",          route: "/clinics/compare/reddit"       },
   { id: "google_places", label: "Google Places",   route: "/clinics/compare/google-places"},
+  { id: "reddit",        label: "Reddit",          route: "/clinics/compare/reddit"       },
+  { id: "hrn",           label: "HRN",             route: "/clinics/compare/hrn"          },
+  { id: "instagram",     label: "Instagram",       route: "/clinics/compare/instagram"    },
 ]
 
-type SourceId = "all" | "instagram" | "reddit" | "google_places"
+type SourceId = "all" | "instagram" | "reddit" | "google_places" | "hrn"
 
 const SOURCE_VIEWS: Record<SourceId, typeof AllSourcesView> = {
   all:           AllSourcesView,
   instagram:     InstagramView,
   reddit:        RedditView,
   google_places: GooglePlacesView,
+  hrn:           HRNView,
 }
 
 interface CompareClinicPageProps {
@@ -42,10 +47,12 @@ function ClinicRow({
   clinic,
   isDisabled,
   onClick,
+  source,
 }: {
   clinic: ClinicListItem
   isDisabled: boolean
   onClick: () => void
+  source: SourceId
 }) {
   return (
     <button
@@ -76,15 +83,41 @@ function ClinicRow({
           <MapPin className="h-3 w-3 shrink-0" />
           <span className="truncate">{clinic.location}</span>
         </div>
-        {typeof clinic.rating === "number" && (
-          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-            <Star className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />
-            <span className="font-medium">{clinic.rating.toFixed(1)}</span>
-            {clinic.reviewCount ? (
-              <span className="text-muted-foreground/60">({clinic.reviewCount.toLocaleString()})</span>
-            ) : null}
-          </div>
-        )}
+        {(() => {
+          const score =
+            source === "google_places" ? (clinic.rating ?? null) :
+            source === "instagram"     ? null :
+            source === "reddit"        ? (clinic.redditScore    ?? null) :
+            source === "hrn"           ? (process.env.NEXT_PUBLIC_USE_MOCK_HRN === "true"
+                ? getMockHRNSignals(clinic.id, clinic.name)?.hrnScore ?? null
+                : clinic.hrnScore ?? null) :
+            (clinic.trustScore > 0 ? clinic.trustScore / 10 : null)
+
+          const denom = source === "google_places" ? "/5" : "/10"
+
+          const colorClass =
+            source === "google_places" ? "bg-yellow-50 text-yellow-700" :
+            source === "instagram"     ? "bg-fuchsia-50 text-fuchsia-700" :
+            source === "reddit"        ? "bg-orange-50 text-orange-700" :
+            source === "hrn"           ? "bg-teal-50 text-teal-700" :
+            "bg-[var(--im-color-primary)]/10 text-[var(--im-color-primary)]"
+
+          return (
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] tabular-nums", colorClass)}>
+                {score != null
+                  ? <><span className="font-bold">{score.toFixed(1)}</span><span className="font-medium">{denom}</span></>
+                  : <><span className="font-medium">—</span><span className="font-medium">{denom}</span></>
+                }
+              </span>
+              {source === "all" && clinic.trustBand && (
+                <span className="rounded-full bg-[var(--im-color-primary)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[var(--im-color-primary)]">
+                  Band {clinic.trustBand}
+                </span>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {isDisabled && (
@@ -144,6 +177,7 @@ function ComparePane({
                   clinic={clinic}
                   isDisabled={clinic.id === disabledId}
                   onClick={() => onSelect(clinic.id)}
+                  source={source}
                 />
               ))
             )}
@@ -161,20 +195,48 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
 
   const [leftId,  setLeftId]  = useState<string | null>(searchParams.get("left")  ?? null)
   const [rightId, setRightId] = useState<string | null>(searchParams.get("right") ?? null)
+  const rawSort = searchParams.get("sort")
+  const [sortBy, setSortBy] = useState<"Alphabetical" | "Highest Rated" | "Lowest Rated">(
+    rawSort === "highest" ? "Highest Rated" : rawSort === "lowest" ? "Lowest Rated" : "Alphabetical"
+  )
+
+  const sortedClinics = useMemo(() => {
+    const sorted = [...clinics]
+    if (sortBy === "Alphabetical" || source === "instagram") {
+      sorted.sort((a, b) => a.name.localeCompare(b.name))
+    } else {
+      const getScore = (c: ClinicListItem): number => {
+        if (source === "google_places") return c.rating ?? 0
+        if (source === "reddit")        return c.redditScore ?? 0
+        if (source === "hrn")           return (
+          process.env.NEXT_PUBLIC_USE_MOCK_HRN === "true"
+            ? getMockHRNSignals(c.id, c.name)?.hrnScore ?? 0
+            : c.hrnScore ?? 0
+        )
+        return c.trustScore / 10
+      }
+      sorted.sort((a, b) =>
+        sortBy === "Highest Rated" ? getScore(b) - getScore(a) : getScore(a) - getScore(b)
+      )
+    }
+    return sorted
+  }, [clinics, sortBy, source])
 
   const currentRoute = SOURCES.find(s => s.id === source)?.route ?? "/clinics/compare"
 
-  const syncUrl = useCallback((left: string | null, right: string | null) => {
+  const syncUrl = useCallback((left: string | null, right: string | null, sort: typeof sortBy) => {
     const params = new URLSearchParams()
     if (left)  params.set("left",  left)
     if (right) params.set("right", right)
+    if (sort === "Highest Rated") params.set("sort", "highest")
+    if (sort === "Lowest Rated")  params.set("sort", "lowest")
     const qs = params.toString()
     router.replace(`${currentRoute}${qs ? `?${qs}` : ""}`, { scroll: false })
   }, [router, currentRoute])
 
   useEffect(() => {
-    syncUrl(leftId, rightId)
-  }, [leftId, rightId, syncUrl])
+    syncUrl(leftId, rightId, sortBy)
+  }, [leftId, rightId, sortBy, syncUrl])
 
   const handleSourceChange = (newSource: string) => {
     const target = SOURCES.find(s => s.id === newSource)
@@ -182,6 +244,8 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
     const params = new URLSearchParams()
     if (leftId)  params.set("left",  leftId)
     if (rightId) params.set("right", rightId)
+    if (sortBy === "Highest Rated") params.set("sort", "highest")
+    if (sortBy === "Lowest Rated")  params.set("sort", "lowest")
     const qs = params.toString()
     router.push(`${target.route}${qs ? `?${qs}` : ""}`)
   }
@@ -210,10 +274,20 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
             ))}
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:block">
-              Select one clinic in each panel to compare
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground hidden sm:block whitespace-nowrap">Sort by:</span>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                <SelectTrigger className="w-[152px] h-8 bg-white text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Alphabetical">Alphabetical</SelectItem>
+                  <SelectItem value="Highest Rated">Highest Rated</SelectItem>
+                  <SelectItem value="Lowest Rated">Lowest Rated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {(leftId || rightId) && (
               <button
                 onClick={() => { setLeftId(null); setRightId(null) }}
@@ -235,7 +309,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
           label="Clinic A"
           headerBg="bg-[var(--im-color-primary)]"
           accentClass="text-[var(--im-color-primary)]"
-          clinics={clinics}
+          clinics={sortedClinics}
           selectedId={leftId}
           disabledId={rightId}
           source={source}
@@ -246,7 +320,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
           label="Clinic B"
           headerBg="bg-[var(--im-color-secondary)]"
           accentClass="text-[var(--im-color-secondary)]"
-          clinics={clinics}
+          clinics={sortedClinics}
           selectedId={rightId}
           disabledId={leftId}
           source={source}
