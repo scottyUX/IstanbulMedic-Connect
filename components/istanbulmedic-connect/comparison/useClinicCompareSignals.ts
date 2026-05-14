@@ -47,7 +47,7 @@ export interface ClinicCompareSignals {
     engagementRate: number | null
   } | null
   reddit: RedditSignals | null
-  googlePlaces: GooglePlacesSignals
+  googlePlaces: GooglePlacesSignals | null
   hrn: HRNSignalsData | null
   registryRecords: ClinicRegistryRecord[]
   extraImages: string[]
@@ -182,7 +182,7 @@ export function useClinicCompareSignals(clinicId: string | null, clinicName = ""
           : null
       ),
     ])
-      .then(([social, facts, redditRow, creds, media, hrn]) => {
+      .then(([social, facts, redditRow, creds, reviews, media, hrn]) => {
         const factsMap: Record<string, unknown> = {}
         for (const f of facts.data ?? []) factsMap[f.fact_key] = f.fact_value
 
