@@ -17,6 +17,7 @@ import type { NextRequest } from 'next/server'
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('@/lib/email/sendConsultationRequest', () => ({
   sendConsultationRequest: vi.fn().mockResolvedValue(undefined),
+  sendConsultationConfirmation: vi.fn().mockResolvedValue(undefined),
 }))
 
 import { createClient } from '@/lib/supabase/server'
