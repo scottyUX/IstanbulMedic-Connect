@@ -88,22 +88,17 @@ export default function BookmarksPage() {
   const handleRequestOne = async () => {
     if (!consultTarget) return
     const clinic = consultTarget
-    setConsultTarget(null)
-    try {
-      const res = await fetch("/api/consultations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clinicIds: [clinic.clinicId] }),
-      })
-      if (!res.ok) throw new Error('request failed')
-      const data = await res.json()
-      setClinics((prev) =>
-        prev.map((c) => c.clinicId === clinic.clinicId ? { ...c, consultationRequested: true } : c)
-      )
-      if (!data.emailSent) setEmailWarning(true)
-    } catch {
-      // leave UI unchanged — clinic remains requestable
-    }
+    const res = await fetch("/api/consultations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clinicIds: [clinic.clinicId] }),
+    })
+    if (!res.ok) throw new Error('request failed')
+    const data = await res.json()
+    setClinics((prev) =>
+      prev.map((c) => c.clinicId === clinic.clinicId ? { ...c, consultationRequested: true } : c)
+    )
+    if (!data.emailSent) setEmailWarning(true)
   }
 
   const handleBulkRequest = async () => {
@@ -122,7 +117,6 @@ export default function BookmarksPage() {
       )
       if (!data.emailSent) setEmailWarning(true)
       setSelected(new Set())
-      setBulkModalOpen(false)
     } catch {
       // leave UI unchanged — user can retry
     } finally {
@@ -305,7 +299,7 @@ export default function BookmarksPage() {
       {/* Individual consultation request modal */}
       <ConsultationConfirmModal
         open={consultTarget !== null}
-        onOpenChange={(open) => !open && setConsultTarget(null)}
+        onOpenChange={(open) => { if (!open) setConsultTarget(null) }}
         clinicName={consultTarget?.name ?? ""}
         isRemoving={false}
         onConfirm={handleRequestOne}
@@ -323,7 +317,7 @@ export default function BookmarksPage() {
       {/* Bulk request modal */}
       <ConsultationConfirmModal
         open={bulkModalOpen}
-        onOpenChange={(open) => !open && setBulkModalOpen(false)}
+        onOpenChange={(open) => { if (!open) setBulkModalOpen(false) }}
         clinicName={`${selected.size} clinic${selected.size !== 1 ? "s" : ""}`}
         isRemoving={false}
         onConfirm={handleBulkRequest}

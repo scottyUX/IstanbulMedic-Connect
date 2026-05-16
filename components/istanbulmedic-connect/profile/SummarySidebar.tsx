@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Share2, X, Globe, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -64,6 +64,16 @@ export const SummarySidebar = ({
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [consultationRequested, setConsultationRequested] = useState(false)
   const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    fetch('/api/consultations/pending-ids')
+      .then((res) => res.ok ? res.json() : { pendingClinicIds: [] })
+      .then(({ pendingClinicIds }: { pendingClinicIds: string[] }) => {
+        if (pendingClinicIds.includes(clinicId)) setConsultationRequested(true)
+      })
+      .catch(() => {/* non-critical */})
+  }, [isAuthenticated, clinicId])
   const router = useRouter()
 
   // suppress unused-var warning — kept for future use
@@ -82,17 +92,13 @@ export const SummarySidebar = ({
   }
 
   const handleConsultationConfirm = async () => {
-    try {
-      const res = await fetch("/api/consultations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clinicIds: [clinicId] }),
-      })
-      if (!res.ok) throw new Error('request failed')
-      setConsultationRequested(true)
-    } catch {
-      // leave UI unchanged — user can retry
-    }
+    const res = await fetch("/api/consultations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clinicIds: [clinicId] }),
+    })
+    if (!res.ok) throw new Error('request failed')
+    setConsultationRequested(true)
   }
 
   return (
@@ -238,7 +244,7 @@ export const SummarySidebar = ({
 
       <ConsultationConfirmModal
         open={confirmModalOpen}
-        onOpenChange={(open) => !open && setConfirmModalOpen(false)}
+        onOpenChange={(open) => { if (!open) setConfirmModalOpen(false) }}
         clinicName={clinicName}
         isRemoving={false}
         onConfirm={handleConsultationConfirm}

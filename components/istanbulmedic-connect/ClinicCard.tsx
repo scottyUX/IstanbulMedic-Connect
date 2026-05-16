@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useId, useState } from "react"
+import { useId, useState, useEffect } from "react"
 import { MapPin, Star, Check } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
@@ -34,6 +34,7 @@ interface ClinicCardProps {
   rating?: number
   reviewCount?: number
   aiInsight?: string
+  initialConsultationRequested?: boolean
   onViewProfile: () => void
 }
 
@@ -47,11 +48,18 @@ export const ClinicCard = ({
   rating,
   reviewCount,
   aiInsight,
+  initialConsultationRequested,
   onViewProfile,
 }: ClinicCardProps) => {
   const compareId = useId()
   const [isCompared, setIsCompared] = useState(false)
-  const [consultationRequested, setConsultationRequested] = useState(false)
+  const [consultationRequested, setConsultationRequested] = useState(initialConsultationRequested ?? false)
+
+  // Sync when parent resolves pending status asynchronously after first render
+  useEffect(() => {
+    if (initialConsultationRequested) setConsultationRequested(true)
+  }, [initialConsultationRequested])
+
   const [modalOpen, setModalOpen] = useState(false)
   const { isAuthenticated } = useAuth()
   const router = useRouter()

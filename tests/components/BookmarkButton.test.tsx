@@ -3,13 +3,15 @@
  *
  * Covers:
  *   - Visual state: filled icon when bookmarked, outline when not
- *   - Auth gate: unauthenticated click redirects to /auth/login
+ *   - Auth gate: unauthenticated click opens sign-in modal (no redirect)
+ *   - Sign-in intent: stores bookmark_intent in sessionStorage, redirects with ?next=
+ *   - Auto-bookmark: useEffect fires bookmark API when intent matches on mount while authenticated
  *   - Add: calls POST /api/bookmarks, optimistic addId, reverts on failure
  *   - Remove: calls DELETE /api/bookmarks, optimistic removeId, reverts on failure
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
 // ─── Context mocks ─────────────────────────────────────────────────────────────
 //
@@ -46,6 +48,7 @@ describe('BookmarkButton', () => {
     bookmarkedIds = new Set()
     isAuthenticated = false
     global.fetch = vi.fn()
+    sessionStorage.clear()
   })
 
   // ── Visual state ─────────────────────────────────────────────────────────────
@@ -74,31 +77,83 @@ describe('BookmarkButton', () => {
 
   // ── Auth gate ─────────────────────────────────────────────────────────────────
   //
-  // Clicking while signed out should NOT call the API — it should set a cookie
-  // for post-login redirect and push to /auth/login.
+  // Clicking while signed out should open the sign-in modal, NOT redirect or
+  // call the API directly.
 
-  it('redirects unauthenticated user to /auth/login on click', () => {
+  it('opens sign-in modal on click when unauthenticated', () => {
     isAuthenticated = false
     render(<BookmarkButton {...defaultProps} />)
     fireEvent.click(screen.getByRole('button'))
-    expect(mockPush).toHaveBeenCalledWith('/auth/login')
+    expect(screen.getByText('Sign in to save clinics')).toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
-  it('sets auth_redirect_next cookie before redirecting', () => {
-    isAuthenticated = false
-    // jsdom doesn't implement cookie writing, so we spy on document.cookie setter
-    let writtenCookie = ''
-    const descriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')!
-    vi.spyOn(document, 'cookie', 'set').mockImplementation((val) => { writtenCookie = val })
-
+  it('does not open modal when authenticated', () => {
+    isAuthenticated = true
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(global.fetch as any).mockResolvedValueOnce({ ok: true })
     render(<BookmarkButton {...defaultProps} />)
     fireEvent.click(screen.getByRole('button'))
+    expect(screen.queryByText('Sign in to save clinics')).not.toBeInTheDocument()
+  })
 
-    expect(writtenCookie).toContain('auth_redirect_next')
+  // ── Sign-in intent ────────────────────────────────────────────────────────────
+  //
+  // When the user clicks "Sign In" in the modal, we store the clinic ID in
+  // sessionStorage and redirect to /auth/login?next=<currentPath> so the
+  // login page passes the right destination to loginWithGoogle.
 
-    // Restore original cookie descriptor
-    Object.defineProperty(document, 'cookie', descriptor)
+  it('stores bookmark_intent and redirects with ?next= when Sign In is clicked', () => {
+    isAuthenticated = false
+    render(<BookmarkButton {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button'))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }))
+
+    expect(sessionStorage.getItem('bookmark_intent')).toBe('clinic-1')
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/login?next=')
+    )
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  // ── Auto-bookmark on return ───────────────────────────────────────────────────
+  //
+  // After sign-in the user lands back on the page. On mount, if isAuthenticated
+  // is true and sessionStorage has a matching bookmark_intent, the button should
+  // fire the POST automatically and clear the intent.
+
+  it('auto-bookmarks and clears intent when mounted authenticated with matching intent', async () => {
+    isAuthenticated = true
+    sessionStorage.setItem('bookmark_intent', 'clinic-1')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(global.fetch as any).mockResolvedValueOnce({ ok: true })
+
+    await act(async () => {
+      render(<BookmarkButton {...defaultProps} />)
+    })
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/bookmarks',
+        expect.objectContaining({ method: 'POST' })
+      )
+    })
+    expect(sessionStorage.getItem('bookmark_intent')).toBeNull()
+    expect(mockAddId).toHaveBeenCalledWith('clinic-1')
+  })
+
+  it('does not auto-bookmark when intent is for a different clinic', async () => {
+    isAuthenticated = true
+    sessionStorage.setItem('bookmark_intent', 'clinic-999')
+
+    await act(async () => {
+      render(<BookmarkButton {...defaultProps} />)
+    })
+
+    expect(global.fetch).not.toHaveBeenCalled()
+    // Intent should remain untouched since it wasn't ours to clear
+    expect(sessionStorage.getItem('bookmark_intent')).toBe('clinic-999')
   })
 
   // ── Add (optimistic + revert) ─────────────────────────────────────────────────
