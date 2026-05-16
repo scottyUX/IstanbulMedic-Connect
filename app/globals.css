@@ -859,6 +859,26 @@ body {
   animation: spin 0.6s linear infinite !important;
 }
 
+/* ── Browser autofill override ─────────────────────────────────────────────
+   Prevents browsers from applying their own yellow/blue background and
+   overriding our text colour when autofilling inputs and selects.          */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px hsl(var(--background)) inset !important;
+  box-shadow: 0 0 0px 1000px hsl(var(--background)) inset !important;
+  -webkit-text-fill-color: hsl(var(--muted-foreground)) !important;
+  caret-color: hsl(var(--foreground));
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 /* Thinking dots animation */
 .langchain-thinking-dots span {
   animation: langchain-dot-blink 1.4s infinite;

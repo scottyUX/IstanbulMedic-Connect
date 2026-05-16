@@ -31,6 +31,9 @@ export async function GET() {
       avatar_url: metadata.avatar_url || metadata.picture || null,
       given_name: metadata.given_name || null,
       family_name: metadata.family_name || null,
+      birthday: metadata.birthday || null,
+      phone_number: metadata.phone_number || null,
+      location: metadata.location || null,
     };
 
     return NextResponse.json({

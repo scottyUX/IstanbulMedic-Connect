@@ -67,13 +67,13 @@ export const FEATURE_CONFIG = {
   auth: false, // login/sign up
   compare: false,
   saveClinic: false,
-  bookConsultation: false,
+  bookConsultation: true,
   share: false, // TODO: implement copy URL to clipboard
   createProfile: false, // landing page "Create a profile" CTA
   personalizedOffers: false, // landing page "Receive Personalized Offers" step
 
   // Profile sections - disabled until real data
-  profileOverview: false,
+  profileOverview: true,
   profilePricing: false,
   profilePackages: false,
   profileDoctors: false,
@@ -81,9 +81,12 @@ export const FEATURE_CONFIG = {
   profileAIInsights: false,
   profileCommunitySignals: false,
   profileInstagram: true,
+  profileHRN: true,
+  profileRedditSignals: true,
   profileLanguages: false,
   profilePaymentMethods: false,
   profileServices: false,
+  profileRegistry: true,
 } as const;
 
 export type FeatureConfigKey = keyof typeof FEATURE_CONFIG;

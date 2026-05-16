@@ -12,8 +12,6 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   loginWithGoogle: (next?: string) => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   logout: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
 }
@@ -81,12 +79,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(session.user);
           // Fetch user profile after session check
           await fetchUserProfile();
+          // Fallback: if the cookie-based server redirect failed (e.g. cookie
+          // was blocked), check sessionStorage and redirect client-side.
+          const stored = sessionStorage.getItem('auth_redirect_next');
+          if (stored) {
+            try {
+              const { path, ts } = JSON.parse(stored);
+              const isRecent = Date.now() - ts < 2 * 60 * 1000;
+              sessionStorage.removeItem('auth_redirect_next');
+              if (isRecent) router.push(path);
+            } catch {
+              sessionStorage.removeItem('auth_redirect_next');
+            }
+          }
         } else {
           setIsAuthenticated(false);
           setUser(null);
           setProfile(null);
         }
-      } catch (error) {
+      } catch {
         setIsAuthenticated(false);
         setUser(null);
         setProfile(null);
@@ -183,38 +194,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!supabase) {
         throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
       }
+      // Supabase strips query params from redirectTo, so persist the destination
+      // in a cookie — the server-side callback reads it and redirects directly,
+      // eliminating the flash. sessionStorage is kept as a silent fallback.
+      if (next && typeof window !== 'undefined') {
+        document.cookie = `auth_redirect_next=${encodeURIComponent(next)}; path=/; max-age=300; SameSite=Lax`;
+        sessionStorage.setItem('auth_redirect_next', JSON.stringify({ path: next, ts: Date.now() }));
+      }
       const callbackUrl = new URL(`${window.location.origin}/auth/callback`);
-      if (next) callbackUrl.searchParams.set('next', next);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: callbackUrl.toString() },
+        options: {
+          redirectTo: callbackUrl.toString(),
+          scopes: [
+            'profile',
+            'email',
+            'https://www.googleapis.com/auth/user.birthday.read',
+            'https://www.googleapis.com/auth/user.gender.read',
+            'https://www.googleapis.com/auth/user.phonenumbers.read',
+            'https://www.googleapis.com/auth/user.addresses.read',
+          ].join(' '),
+        },
       });
       if (error) throw error;
     } catch (error) {
       throw error;
     }
-  };
-
-  const signInWithEmail = async (email: string, password: string) => {
-    const supabase = createClient();
-    if (!supabase) throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-  };
-
-  const signUpWithEmail = async (email: string, password: string) => {
-    const supabase = createClient();
-    if (!supabase) throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE);
-    const callbackUrl = `${window.location.origin}/auth/callback?next=/profile`;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: callbackUrl },
-    });
-    if (error) throw error;
-    // If identities is empty, email confirmation is pending
-    const needsConfirmation = !data.session;
-    return { needsConfirmation };
   };
 
   const logout = async () => {
@@ -226,13 +231,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // continue regardless
     } finally {
-      setIsAuthenticated(false);
-      setUser(null);
-      setProfile(null);
       if (typeof window !== 'undefined') {
         localStorage.clear();
+        window.location.href = '/';
       }
-      router.push('/');
     }
   };
 
@@ -244,8 +246,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         loginWithGoogle,
-        signInWithEmail,
-        signUpWithEmail,
         logout,
         fetchUserProfile,
       }}

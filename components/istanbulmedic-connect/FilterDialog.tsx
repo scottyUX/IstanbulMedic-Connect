@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, X } from "lucide-react"
+import { X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -19,7 +19,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RangeValueDisplay } from "@/components/ui/range-value-display"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
 import {
     Select,
     SelectContent,

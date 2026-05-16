@@ -12,6 +12,8 @@ import { ReviewsSection } from "./ReviewsSection"
 import { normalizeReviewSource } from "@/lib/review-sources"
 import { CommunitySignalsSection } from "./CommunitySignalsSection"
 import { InstagramSignalsCard } from "./InstagramSignalsCard"
+import { HRNSignalsCard } from "./HRNSignalsCard"
+import { RedditSignalsCard } from "./RedditSignalsCard"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
 import type { ClinicDetail } from "@/lib/api/clinics"
@@ -22,12 +24,16 @@ import {
   type OpeningHoursJson,
 } from "@/lib/transformers/clinic"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
+import { RegistrySection } from "./RegistrySection"
+import type { RegistryRecord, ComplianceEvent } from "./RegistrySection"
 
 type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
 type CommunitySentiment = "Positive" | "Neutral" | "Negative"
 
 interface ClinicProfilePageProps {
   clinic: ClinicDetail
+  registryRecords: RegistryRecord[]
+  complianceHistory: ComplianceEvent[]
 }
 
 const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
@@ -43,7 +49,7 @@ const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
 }
 
 
-export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
+export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }: ClinicProfilePageProps) => {
   // Transform database data to component format
 
   // Get languages from clinic_languages
@@ -257,13 +263,14 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content Column */}
           <div className="space-y-6 lg:col-span-2">
-            {FEATURE_CONFIG.profileOverview && (
+            {FEATURE_CONFIG.profileOverview && (clinic.description || (clinic.techniques ?? []).length > 0) && (
               <OverviewSection
                 specialties={specialties}
                 yearsInOperation={yearsInOperation}
                 proceduresPerformed={proceduresPerformed}
                 languages={languages}
-                description={clinic.description}
+                description={clinic.description ?? ''}
+                techniques={clinic.techniques ?? []}
               />
             )}
 
@@ -296,6 +303,13 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
               />
             )}
 
+            {FEATURE_CONFIG.profileRegistry && (
+              <RegistrySection
+                registryRecords={registryRecords}
+                complianceHistory={complianceHistory}
+              />
+            )}
+
             {FEATURE_CONFIG.profileAIInsights && (
               <AIInsightsSection insights={aiInsights} />
             )}
@@ -304,10 +318,13 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <SummarySidebar
-              transparencyScore={clinic.trustScore}
-              topSpecialties={specialties.slice(0, 3)}
+              clinicId={clinic.id}
+              clinicName={clinic.name}
+              clinicLocation={clinic.location}
+              clinicImageUrl={clinic.image}
               rating={clinic.rating ?? null}
               reviewCount={clinic.totalReviewCount}
+              websiteUrl={clinic.websiteUrl}
             />
           </div>
         </div>
@@ -329,6 +346,14 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
 
           {FEATURE_CONFIG.profileInstagram && clinic.instagramSignals && (
             <InstagramSignalsCard data={clinic.instagramSignals} />
+          )}
+
+          {FEATURE_CONFIG.profileHRN && clinic.hrnSignals && (
+            <HRNSignalsCard data={clinic.hrnSignals} />
+          )}
+
+          {FEATURE_CONFIG.profileRedditSignals && clinic.redditSignals && (
+            <RedditSignalsCard data={clinic.redditSignals} />
           )}
         </div>
       </div>

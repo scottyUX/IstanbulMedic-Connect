@@ -1,21 +1,37 @@
-# User Profile — Digital Treatment Passport
+# User Profile — Treatment Passport
 
-The User Profile feature is the core onboarding flow for patients. It collects everything a hair transplant clinic needs to assess a patient — from basic preferences to a full medical history — and stores it as a **Digital Treatment Passport** that can later be shared with vetted clinics.
-
-The profile is split into **4 sequential phases**. Each phase unlocks after the previous one is complete.
-
-| Phase | Label | Route | Status |
-|-------|-------|-------|--------|
-| 1 | Get Started | `/profile/get-started` | Implemented |
-| 2 | Treatment Profile | `/profile/treatment-profile` | Implemented |
-| 3 | AI Insights | `/profile/ai-insights` | Planned |
-| 4 | Share & Connect | `/profile/share-connect` | Planned |
-
-For how the feature is built, see [architecture.md](./architecture.md).
+The User Profile feature lets patients build a detailed Treatment Passport — the information a hair transplant clinic needs to assess their case. It has two parts: a guided onboarding wizard and a persistent dashboard where the profile is maintained over time.
 
 ---
 
-## Running the Feature Locally
+## User flow
+
+```
+Sign in (Google OAuth)
+    ↓
+/api/auth/callback  — bootstrap users + user_profiles rows
+    ↓
+First visit     → /profile/get-started  (GetStarted wizard, 6 steps)
+Returning visit → /profile              (ProfileDashboard)
+```
+
+---
+
+## Feature overview
+
+| Area | What it does |
+|------|-------------|
+| **GetStarted wizard** | 6-step form collecting the minimum data to match clinics. Saves to `localStorage` per step; submits to the database on the final "Create my account" step. Steps whose data is already saved are skipped on re-entry. |
+| **ProfileDashboard** | Persistent sidebar-nav shell at `/profile`. Houses five section components. Autosaves on every field change via a debounced POST. |
+| **ProfileHome** | Welcome banner, 5-view hair photo upload (Supabase Storage), and quick-nav cards to other sections. |
+| **ProfilePersonalInfo** | Name, gender, birthday, phone, country, language, budget range, treatment timeline. |
+| **ProfileMedicalHistory** | Prior hair transplants, prior surgeries, allergies, medications, and other conditions. |
+| **ProfileHairLossStatus** | Norwood scale (1–7) and hair loss duration. |
+| **ProfileConsultations** | Coming soon placeholder — clinic shortlisting and booking. |
+
+---
+
+## Running locally
 
 ### 1. Install dependencies
 
@@ -25,15 +41,11 @@ npm install
 
 ### 2. Set up environment variables
 
-Fill in your Supabase credentials:
-
 ```bash
 # .env.local
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
-
-You can find these in your Supabase project under **Settings → API**.
 
 ### 3. Apply database migrations
 
@@ -41,7 +53,7 @@ You can find these in your Supabase project under **Settings → API**.
 npx supabase db push
 ```
 
-Or if running Supabase locally:
+Or with a local Supabase instance:
 
 ```bash
 npx supabase start
@@ -58,109 +70,96 @@ npm run dev
 
 | URL | What you'll see |
 |-----|----------------|
-| `http://localhost:3000/auth/login` | Sign in |
-| `http://localhost:3000/profile` | Dashboard — shows phase progress |
-| `http://localhost:3000/profile/get-started` | Phase 1 form |
-| `http://localhost:3000/profile/treatment-profile` | Phase 2 form (unlocks after Phase 1) |
-
-> **Phase 1** can be completed without being signed in — answers are saved to `localStorage` and synced to the database when you sign in or create an account at the end of the form.
->
-> **Phase 2 requires being signed in.** Data saves directly to the database and photo uploads go to Supabase Storage, both of which need an active session.
+| `http://localhost:3000/auth/login` | Sign in with Google |
+| `http://localhost:3000/profile/get-started` | Onboarding wizard |
+| `http://localhost:3000/profile` | Full profile dashboard |
 
 ---
 
-## Verifying Data in the Database
+## Verifying data in the database
 
-After completing a phase, check these tables in your Supabase dashboard (**Table Editor** or **SQL Editor**).
+After completing the wizard, check these tables in your Supabase dashboard.
 
-### After completing Phase 1 (Get Started)
+### After the GetStarted wizard
 
-**`users`** — one row per signed-in user
+**`users`**
 
 | Column | What to check |
 |--------|--------------|
 | `auth_id` | Matches the Supabase Auth user ID |
-| `name` | Full name entered in step 7 |
-| `email` | Email entered in step 7 |
+| `name` | Full name entered in the contact step |
+| `email` | Email from Google OAuth |
 
-**`user_profiles`** — one row per user
-
-| Column | What to check |
-|--------|--------------|
-| `user_id` | Foreign key → `users.id` |
-| `first_name` / `last_name` | Split from the full name |
-| `gender` | Selected in step 2 |
-| `preferred_language` | Selected in step 7 |
-
-**`user_qualification`** — one row per user
+**`user_profiles`**
 
 | Column | What to check |
 |--------|--------------|
-| `user_id` | Foreign key → `users.id` |
+| `user_id` | FK → `users.id` |
+| `given_name` / `family_name` | From Google OAuth |
+| `preferred_language` | Written here and also to `user_qualification` |
+
+**`user_qualification`**
+
+| Column | What to check |
+|--------|--------------|
+| `user_id` | FK → `users.id` |
 | `age_tier` | Selected in step 1 |
 | `gender` | Selected in step 2 |
-| `hair_loss_pattern` | Selected in step 3 |
-| `country` | Selected in step 4 |
+| `norwood_scale` | Selected in step 3 (also written to `user_treatment_profiles`) |
+| `country` | Entered in step 4 |
 | `budget_tier` | Selected in step 5 |
 | `timeline` | Selected in step 6 |
-| `whatsapp_number` | Entered in step 7 |
-| `terms_accepted` | Should be `true` after review step |
+| `full_name` | Entered in contact step |
+| `whats_app` | Phone number entered in contact step |
+| `terms_accepted` | Should be `true` |
 
-### After completing Phase 2 (Treatment Profile)
+### After using the dashboard sections
 
-**`user_treatment_profiles`** — one row per user
-
-| Column | What to check |
-|--------|--------------|
-| `user_id` | Foreign key → `users.id` |
-| `norwood_scale` | Number 1–7 from step 1 |
-| `hair_loss_duration_years` | Number from step 2 |
-| `donor_area_quality` | `poor` / `adequate` / `good` / `excellent` |
-| `donor_area_availability` | `limited` / `adequate` / `good` |
-| `desired_density` | `low` / `medium` / `high` / `maximum` |
-| `allergies` | Array of strings |
-| `medications` | Array of strings |
-| `other_conditions` | Array of strings |
-
-**`user_prior_transplants`** — one row per past transplant (0 or more)
+**`user_treatment_profiles`**
 
 | Column | What to check |
 |--------|--------------|
-| `user_id` | Foreign key → `users.id` |
+| `norwood_scale` | Set in Hair loss status section |
+| `hair_loss_duration_years` | Set in Hair loss status section |
+| `allergies` | Array from Medical history |
+| `medications` | Array from Medical history |
+| `other_conditions` | Array from Medical history |
+
+**`user_prior_transplants`** — one row per past transplant
+
+| Column | What to check |
+|--------|--------------|
+| `user_id` | FK → `users.id` |
 | `year` | Year of transplant |
 | `estimated_grafts` | Graft count |
 | `clinic_country` | Country name |
 
-**`user_prior_surgeries`** — one row per past surgery (0 or more)
+**`user_prior_surgeries`** — one row per past surgery
 
 | Column | What to check |
 |--------|--------------|
-| `user_id` | Foreign key → `users.id` |
+| `user_id` | FK → `users.id` |
 | `surgery_type` | Type of surgery |
-| `year` | Year of surgery |
+| `year` | Year |
 | `notes` | Optional notes |
 
 **`user_photos`** — one row per uploaded photo view
 
 | Column | What to check |
 |--------|--------------|
-| `user_id` | Foreign key → `users.id` |
+| `user_id` | FK → `users.id` |
 | `photo_view` | `front`, `left_side`, `right_side`, `top`, or `donor_area` |
-| `storage_url` | Public URL in the `user-photos` Supabase Storage bucket |
-| `file_size_bytes` | Should match the uploaded file |
+| `storage_url` | Public URL in the `user-photos` bucket |
+| `file_size_bytes` | Should match uploaded file |
 | `mime_type` | `image/jpeg`, `image/png`, or `image/webp` |
-
-You can also verify photos appear in **Storage → user-photos** in the Supabase dashboard, organised by `userId/view.ext`.
 
 ### Quick SQL checks
 
-Run these in the **Supabase SQL Editor** to verify a specific user's data:
-
 ```sql
--- Replace with the user's auth UUID from Auth → Users
+-- Replace with the user's auth UUID (Auth → Users in Supabase dashboard)
 SELECT * FROM users WHERE auth_id = 'your-auth-uuid';
 
--- Once you have the users.id:
+-- Once you have users.id:
 SELECT * FROM user_qualification      WHERE user_id = 'users-id';
 SELECT * FROM user_treatment_profiles WHERE user_id = 'users-id';
 SELECT * FROM user_prior_transplants  WHERE user_id = 'users-id';

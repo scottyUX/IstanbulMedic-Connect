@@ -1,6 +1,28 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import type { NextRequest } from 'next/server';
 import type { Database } from './database.types';
+
+export function createCallbackClient(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cookieMutations: Array<{ name: string; value: string; options: any }> = [];
+
+  const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() { return request.cookies.getAll(); },
+      setAll(cookiesToSet) { cookieMutations.push(...cookiesToSet); },
+    },
+  });
+
+  return { supabase, cookieMutations };
+}
 
 export async function createClient() {
   const cookieStore = await cookies();
