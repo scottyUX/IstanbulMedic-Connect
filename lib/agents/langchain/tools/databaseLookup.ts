@@ -57,7 +57,11 @@ export const databaseLookupTool = new DynamicStructuredTool({
     try {
       assertTableAllowed(table);
       const supabase = await createClient();
-      let queryBuilder = supabase.from(table).select(select ?? "*");
+      // assertTableAllowed has already narrowed `table` to the allowlist; cast
+      // satisfies Supabase's strictly typed `from()` overload.
+      let queryBuilder = supabase
+        .from(table as Parameters<typeof supabase.from>[0])
+        .select(select ?? "*");
 
       // Apply exact-match filters
       if (filters) {

@@ -69,15 +69,11 @@ export const doctorProfileTool = new DynamicStructuredTool({
       }
 
       const doctors: DoctorProfile[] = (data ?? []).map((row) => {
-        // Supabase's typed join can come back as an object or an array of objects;
-        // both forms are observed depending on the schema cardinality declaration.
-        const clinicJoin = Array.isArray(
-          (row as { clinics?: unknown }).clinics,
-        )
-          ? ((row as { clinics: { id: string; display_name: string }[] })
-              .clinics[0])
-          : ((row as { clinics: { id: string; display_name: string } })
-              .clinics);
+        // Supabase's typed join shape varies by version; normalize to an object.
+        const rawClinic = (row as { clinics?: unknown }).clinics;
+        const clinicJoin = Array.isArray(rawClinic)
+          ? (rawClinic[0] as { id: string; display_name: string } | undefined)
+          : (rawClinic as { id: string; display_name: string } | undefined);
 
         const base = stripNulls({
           id: row.id,

@@ -50,7 +50,7 @@ export interface ClinicDataBundle {
     price_max?: number | null;
     currency?: string | null;
     pricing_type: string;
-    is_verified: boolean;
+    is_verified: boolean | null;
   }[];
   packages: {
     package_name: string;
