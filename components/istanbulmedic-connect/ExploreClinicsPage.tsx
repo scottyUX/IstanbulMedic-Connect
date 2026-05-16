@@ -217,6 +217,7 @@ export const ExploreClinicsPage = ({
             clinics.map((clinic) => (
               <ClinicCard
                 key={clinic.id}
+                id={clinic.id}
                 name={clinic.name}
                 location={clinic.location}
                 image={clinic.image}

@@ -63,9 +63,9 @@ describe('confidence tiers', () => {
 describe('Bayesian shrinkage', () => {
   it('pulls a low-N clinic with perfect sentiment toward 5.0', () => {
     const result = computeForumScore(threads(4, { sentimentScore: 1.0 }), NOW);
-    // Without shrinkage: normalizedBase = 10. With k=6: (6*5 + 4*10)/(6+4) = 70/10 = 7.0
+    // Without shrinkage: normalizedBase = 10 → score would reach 10. With k=5: (5*5 + 4*10)/(5+4) = 65/9 ≈ 7.2; +floor(2) → 9.2
     expect(result?.score).toBeGreaterThan(5.0);
-    expect(result?.score).toBeLessThan(9.0);
+    expect(result?.score).toBeLessThan(10.0);
   });
 
   it('high-N positive clinic scores higher than low-N positive clinic', () => {
@@ -136,9 +136,9 @@ describe('follow-up bonus', () => {
     expect(highFollowup!.score).toBeGreaterThan(noFollowup!.score);
   });
 
-  it('follow-up bonus is capped at 0.8', () => {
+  it('follow-up bonus is capped at 1.0', () => {
     const result = computeForumScore(threads(20, { hasLongtermUpdate: true }), NOW);
-    expect(result!.followupBonus).toBeLessThanOrEqual(0.8);
+    expect(result!.followupBonus).toBeLessThanOrEqual(1.0);
   });
 });
 
@@ -210,8 +210,8 @@ describe('sentiment fallback', () => {
       NOW,
     );
     expect(result).not.toBeUndefined();
-    // Neutral sentiment → normalizedBase ≈ 5.0 → score close to 5.0
-    expect(result!.score).toBeCloseTo(5.0, 0);
+    // Neutral sentiment → normalizedBase ≈ 5.0 → score ≈ 7.0 after floor adjustment (+2)
+    expect(result!.score).toBeCloseTo(7.0, 0);
   });
 });
 

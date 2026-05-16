@@ -15,6 +15,8 @@
  * Inherited comments (sentiment-only pass — does NOT change clinic_id):
  *   npx tsx scripts/forum-attribute-threads.ts --include-inherited-comments
  *   npx tsx scripts/forum-attribute-threads.ts --include-inherited-comments --limit 500
+ *   npx tsx scripts/forum-attribute-threads.ts --include-inherited-comments --min-comment-upvotes 5
+ *   Default: 5 upvotes (set in redditConfig.ts, override via REDDIT_COMMENT_MIN_UPVOTES_FOR_ANALYSIS)
  *
  * Pruning (removes threads still unmatched after N days — validate attribution quality first):
  *   npx tsx scripts/forum-attribute-threads.ts --prune
@@ -22,23 +24,31 @@
  *   npx tsx scripts/forum-attribute-threads.ts --prune --dry-run   (shows count, deletes nothing)
  */
 
+import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
-import { createRequire } from 'module'
+import { attributeThread, analyzeSentimentOnly, loadClinicNames } from '../app/api/forumPipeline/llmAttributor'
+import WebSocket from 'ws'
+
 dotenv.config({ path: '.env.local' })
 
 // Node 20 lacks native WebSocket — polyfill for @supabase/realtime-js
-const nodeRequire = createRequire(import.meta.url)
-if (!globalThis.WebSocket) globalThis.WebSocket = nodeRequire('ws')
+if (!globalThis.WebSocket) globalThis.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket
 
-const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENAI_API_KEY'] as const
-const missingEnv = REQUIRED_ENV.filter(k => !process.env[k])
+const {
+  NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  OPENAI_API_KEY,
+} = process.env
+
+const missingEnv = [
+  !NEXT_PUBLIC_SUPABASE_URL && 'NEXT_PUBLIC_SUPABASE_URL',
+  !SUPABASE_SERVICE_ROLE_KEY && 'SUPABASE_SERVICE_ROLE_KEY',
+  !OPENAI_API_KEY && 'OPENAI_API_KEY',
+].filter(Boolean) as string[]
 if (missingEnv.length > 0) {
   console.error(`Missing required env vars: ${missingEnv.join(', ')}`)
   process.exit(1)
 }
-
-import { createClient } from '@supabase/supabase-js'
-import { attributeThread, analyzeSentimentOnly, loadClinicNames } from '../app/api/forumPipeline/llmAttributor'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -63,7 +73,7 @@ const sourceArg = getArg('--source') as 'reddit' | 'hrn' | undefined
 const limitArg = getArg('--limit')
 const limit = limitArg ? parseInt(limitArg) : 200
 const pruneDays = parseInt(getArg('--prune-days') ?? '90')
-const minCommentUpvotes = parseInt(getArg('--min-comment-upvotes') ?? '10')
+const minCommentUpvotes = parseInt(getArg('--min-comment-upvotes') ?? '5')
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 

@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
+import { createClient } from "@/lib/supabase/client"
+
+const IS_LOCAL_SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL?.startsWith("http://127.0.0.1")
 
 const LoginPageClient = () => {
   const router = useRouter()
@@ -11,6 +14,8 @@ const LoginPageClient = () => {
 
   const [isLoading, setIsLoading] = useState(false)
   const [manualError, setManualError] = useState<string | null>(null)
+  const [devEmail, setDevEmail] = useState("")
+  const [devPassword, setDevPassword] = useState("")
 
   const next = searchParams.get("next") ?? "/profile"
 
@@ -27,6 +32,22 @@ const LoginPageClient = () => {
       router.push(next)
     }
   }, [loading, isAuthenticated, next, router])
+
+  const handleDevLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setManualError(null)
+    setIsLoading(true)
+    try {
+      const supabase = createClient()
+      if (!supabase) throw new Error("Supabase not configured")
+      const { error } = await supabase.auth.signInWithPassword({ email: devEmail, password: devPassword })
+      if (error) throw error
+      router.push(next)
+    } catch (err) {
+      setManualError(err instanceof Error ? err.message : "Sign in failed.")
+      setIsLoading(false)
+    }
+  }
 
   const handleGoogleLogin = async () => {
     setManualError(null)
@@ -80,6 +101,41 @@ const LoginPageClient = () => {
             )}
             {isLoading ? "Redirecting to Google…" : "Continue with Google"}
           </button>
+
+          {IS_LOCAL_SUPABASE && (
+            <>
+              <div className="my-4 flex items-center gap-3">
+                <hr className="flex-1 border-slate-200" />
+                <span className="text-xs text-slate-400">local dev only</span>
+                <hr className="flex-1 border-slate-200" />
+              </div>
+              <form onSubmit={handleDevLogin} className="flex flex-col gap-3">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={devEmail}
+                  onChange={e => setDevEmail(e.target.value)}
+                  required
+                  className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400"
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={devPassword}
+                  onChange={e => setDevPassword(e.target.value)}
+                  required
+                  className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="rounded-xl bg-slate-800 py-3 text-sm font-semibold text-white hover:bg-slate-700 transition-colors disabled:opacity-50"
+                >
+                  Sign in with email
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </div>

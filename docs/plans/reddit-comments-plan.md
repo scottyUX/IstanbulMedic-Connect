@@ -596,13 +596,14 @@ if (thread.clinic_attribution_method !== 'inherited') {
    Run this after the first real comment scrape to understand whether LLM-attributed comments are large enough to reconsider including them in scoring:
    ```sql
    SELECT
-     clinic_attribution_method,
-     COUNT(*)                                                        AS count,
-     ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 1)            AS pct
-   FROM forum_thread_index
-   WHERE post_type = 'comment'
-     AND forum_source = 'reddit'
-   GROUP BY clinic_attribution_method
+     fti.clinic_attribution_method,
+     COUNT(*)                                                     AS count,
+     ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 1)         AS pct
+   FROM forum_thread_index fti
+   JOIN reddit_thread_content rtc ON rtc.thread_id = fti.id
+   WHERE rtc.post_type = 'comment'
+     AND fti.forum_source = 'reddit'
+   GROUP BY fti.clinic_attribution_method
    ORDER BY count DESC;
    ```
    Expected breakdown:

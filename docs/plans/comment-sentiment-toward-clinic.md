@@ -120,6 +120,36 @@ npx tsx scripts/forum-attribute-threads.ts --source reddit --include-inherited-c
 
 ---
 
+## Repair case — performer vs. cause
+
+### Problem
+
+`is_repair_case = true` is applied to any thread mentioning repair/revision, but the repair penalty
+currently penalizes the attributed clinic regardless of whether it *caused* the damage or is
+*performing* the repair. A thread like "I went to Vera Clinic to fix ASMED's botched result" is
+attributed to Vera Clinic and unfairly penalizes it.
+
+The LLM already captures this distinction via `secondary_clinic_mentions` with `role: "repair_source"`.
+If any secondary mention has `role = "repair_source"`, the attributed clinic is the repair performer —
+not the cause — and should not be penalized.
+
+### Changes
+
+**`lib/scoring/forum.ts`**:
+- Add `isRepairPerformer?: boolean` to `ForumScorerThread`
+- Filter out repair performer threads when computing `repairRate`:
+  ```ts
+  postThreads.filter(t => t.isRepairCase && !t.isRepairPerformer)
+  ```
+
+**`profileAggregator.ts`**:
+- Add `secondary_clinic_mentions` to the analyses select query
+- When mapping scorer threads, set `isRepairPerformer: true` if any secondary mention has `role = 'repair_source'`
+
+No migration needed — `secondary_clinic_mentions` is already stored in `forum_thread_llm_analysis`.
+
+---
+
 ## Implementation order
 
 1. Write and push migration
