@@ -11,6 +11,10 @@ import type { StructuredToolInterface } from '@langchain/core/tools';
 import { AgentState, LangchainMessage } from '@/types/langchain';
 import { databaseLookupTool } from './tools/databaseLookup';
 import { clinicSummaryTool } from './tools/clinicSummary';
+import { doctorProfileTool } from './tools/doctorProfile';
+import { clinicReviewsTool } from './tools/clinicReviews';
+import { clinicPackagesTool } from './tools/clinicPackages';
+import { clinicComparisonTool } from './tools/clinicComparison';
 import { LEILA_SYSTEM_PROMPT, PROMPT_VERSION } from './prompts/leila-system-prompt';
 import { checkInputGuardrails, checkOutputGuardrails } from './guardrails';
 
@@ -85,7 +89,14 @@ export class LangchainAgent {
     });
 
     // Register tools
-    this.tools = [databaseLookupTool, clinicSummaryTool];
+    this.tools = [
+      databaseLookupTool,
+      clinicSummaryTool,
+      doctorProfileTool,
+      clinicReviewsTool,
+      clinicPackagesTool,
+      clinicComparisonTool,
+    ];
   }
 
   /**
@@ -214,10 +225,17 @@ export class LangchainAgent {
    *
    * @param message - The user's message
    * @param onChunk - Callback that receives each token as it's generated
+   * @param onToolCall - Callback that receives each completed tool call (id, name, args, result)
    */
   async handleMessageStream(
     message: LangchainMessage,
-    onChunk?: (chunk: string) => void
+    onChunk?: (chunk: string) => void,
+    onToolCall?: (call: {
+      id: string;
+      name: string;
+      args: Record<string, unknown>;
+      result: string;
+    }) => void | Promise<void>
   ): Promise<LangchainMessage> {
     // Add user message to state
     const userMessage: LangchainMessage = {
@@ -272,6 +290,14 @@ export class LangchainAgent {
             tool_call_id: toolCall.id ?? '',
           })
         );
+        if (onToolCall) {
+          await onToolCall({
+            id: toolCall.id ?? '',
+            name: toolCall.name,
+            args: toolCall.args ?? {},
+            result,
+          });
+        }
       }
     }
 

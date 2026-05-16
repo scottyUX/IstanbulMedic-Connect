@@ -1,24 +1,8 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-
-// All queryable tables
-const ALLOWED_TABLES = [
-  "clinics",
-  "clinic_locations",
-  "clinic_pricing",
-  "clinic_packages",
-  "clinic_reviews",
-  "clinic_services",
-  "clinic_team",
-  "clinic_scores",
-  "clinic_credentials",
-  "clinic_languages",
-  "clinic_mentions",
-  "clinic_facts",
-  "clinic_media",
-  "sources",
-] as const;
+import { assertTableAllowed } from "@/lib/agents/langchain/guardrails/schema-allowlist";
+import { GuardrailError } from "@/lib/agents/langchain/guardrails/errors";
 
 // Columns to search with ilike per table
 const SEARCHABLE_COLUMNS: Record<string, string[]> = {
@@ -35,16 +19,16 @@ const SEARCHABLE_COLUMNS: Record<string, string[]> = {
   clinic_mentions: ["mention_text"],
   clinic_facts: ["fact_key"],
   clinic_media: ["alt_text", "caption"],
-  sources: ["source_name"],
+  clinic_google_places: [],
 };
 
 export const databaseLookupTool = new DynamicStructuredTool({
   name: "database_lookup",
   description:
-    "Look up information from the database. Available tables: clinics (name, city, status, contact info), clinic_locations (addresses, coordinates), clinic_pricing (service prices), clinic_packages (treatment packages with inclusions), clinic_reviews (patient reviews and ratings), clinic_services (offered procedures), clinic_team (doctors and staff), clinic_scores (quality scores and bands), clinic_credentials (accreditations and licenses), clinic_languages (language support), clinic_mentions (source mentions and sentiment), clinic_facts (computed facts about clinics), clinic_media (photos and images), sources (data sources). Most tables have a clinic_id column for filtering by clinic.",
+    "Look up information from the database. Available tables: clinics (name, city, status, contact info), clinic_locations (addresses, coordinates), clinic_pricing (service prices), clinic_packages (treatment packages with inclusions), clinic_reviews (patient reviews and ratings), clinic_services (offered procedures), clinic_team (doctors and staff), clinic_scores (quality scores and bands), clinic_credentials (accreditations and licenses), clinic_languages (language support), clinic_mentions (source mentions and sentiment), clinic_facts (computed facts about clinics), clinic_media (photos and images), clinic_google_places (Google reviews and ratings). Most tables have a clinic_id column for filtering by clinic.",
   schema: z.object({
     table: z
-      .enum(ALLOWED_TABLES)
+      .string()
       .describe("The database table to query"),
     query: z
       .string()
@@ -71,6 +55,7 @@ export const databaseLookupTool = new DynamicStructuredTool({
     const startTime = Date.now();
 
     try {
+      assertTableAllowed(table);
       const supabase = await createClient();
       let queryBuilder = supabase.from(table).select(select ?? "*");
 
@@ -112,9 +97,16 @@ export const databaseLookupTool = new DynamicStructuredTool({
         },
       });
     } catch (error) {
+      if (error instanceof GuardrailError) {
+        return JSON.stringify({
+          error: error.message,
+          guardrail: error.category,
+          metadata: { table, tookMs: Date.now() - startTime },
+        });
+      }
       return JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",
-        metadata: { table },
+        metadata: { table, tookMs: Date.now() - startTime },
       });
     }
   },

@@ -180,10 +180,20 @@ describe('databaseLookupTool', () => {
       expect(parsed.error).toBe('Missing Supabase env');
     });
 
-    it('rejects invalid table name via schema validation', async () => {
-      await expect(
-        databaseLookupTool.invoke({ table: 'invalid_table' } as unknown as Parameters<typeof databaseLookupTool.invoke>[0])
-      ).rejects.toThrow();
+    it('returns guardrail error JSON for tables outside the allowlist', async () => {
+      const result = await databaseLookupTool.invoke({ table: 'users' });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain('users');
+      expect(parsed.guardrail).toBe('schema_allowlist');
+      expect(parsed.metadata.table).toBe('users');
+    });
+
+    it('returns guardrail error JSON for sources (data-pipeline metadata)', async () => {
+      const result = await databaseLookupTool.invoke({ table: 'sources' });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.guardrail).toBe('schema_allowlist');
     });
   });
 });
