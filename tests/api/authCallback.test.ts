@@ -146,30 +146,23 @@ describe('GET /auth/callback', () => {
     expect(extractLocation(res)).toContain('/auth/login?error=auth_callback_error')
   })
 
-  // ─── New user → get-started ──────────────────────────────────────────────────
+  // ─── Successful auth → /profile ─────────────────────────────────────────────
+  //
+  // The route no longer checks terms acceptance — all authenticated users land
+  // on /profile (or the cookie destination if set). The /profile page handles
+  // onboarding state internally.
 
-  it('redirects new user (no terms) to /profile/get-started', async () => {
+  it('redirects new user to /profile', async () => {
     // No provider_token so People API is skipped; existingUserRow=null = new user
     mockClient(makeSupabase())
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
-    expect(extractLocation(res)).toContain('/profile/get-started')
+    expect(extractLocation(res)).toContain('/profile')
   })
 
-  // ─── Existing user with terms accepted ──────────────────────────────────────
-
-  it('redirects existing user who accepted terms to /profile', async () => {
+  it('redirects existing user to /profile', async () => {
     mockClient(makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: true }))
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
     expect(extractLocation(res)).toContain('/profile')
-    expect(extractLocation(res)).not.toContain('get-started')
-  })
-
-  // ─── Existing user without terms ─────────────────────────────────────────────
-
-  it('redirects existing user who has not accepted terms to /profile/get-started', async () => {
-    mockClient(makeSupabase({ existingUserRow: { id: 'internal-id' }, qualTermsAccepted: false }))
-    const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
-    expect(extractLocation(res)).toContain('/profile/get-started')
   })
 
   // ─── Custom next param ───────────────────────────────────────────────────────
@@ -258,9 +251,9 @@ describe('GET /auth/callback', () => {
       existingUserRow: null,
     }))
 
-    // Should not throw; should redirect to get-started
+    // Should not throw; People API failure is non-fatal — user still lands on /profile
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
-    expect(extractLocation(res)).toContain('/profile/get-started')
+    expect(extractLocation(res)).toContain('/profile')
   })
 
   // ─── fetchGoogleExtras — data parsing ────────────────────────────────────────
@@ -325,6 +318,6 @@ describe('GET /auth/callback', () => {
     mockClient(supabase)
 
     const res = await GET(makeRequest('http://localhost/auth/callback?code=abc'))
-    expect(extractLocation(res)).toContain('/profile/get-started')
+    expect(extractLocation(res)).toContain('/profile')
   })
 })

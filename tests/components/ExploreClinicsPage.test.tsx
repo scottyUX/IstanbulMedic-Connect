@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ExploreClinicsPage } from '@/components/istanbulmedic-connect/ExploreClinicsPage';
 import type { Clinic, FilterState } from '@/components/istanbulmedic-connect/types';
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false, loading: false }),
+}));
+
 // Mock next/navigation
 const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({

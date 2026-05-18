@@ -10,21 +10,31 @@
  *   npx tsx scripts/forum-recompute-profiles.ts --clinic-id <uuid>
  */
 
+import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
+import { recomputeProfile, recomputeStaleProfiles } from '../app/api/forumPipeline/profileAggregator'
+import WebSocket from 'ws'
+
 dotenv.config({ path: '.env.local' })
 
 // Node 20 lacks native WebSocket — polyfill for @supabase/realtime-js
-if (!globalThis.WebSocket) globalThis.WebSocket = require('ws')
+if (!globalThis.WebSocket) globalThis.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket
 
-const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENAI_API_KEY'] as const
-const missingEnv = REQUIRED_ENV.filter(k => !process.env[k])
+const {
+  NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  OPENAI_API_KEY,
+} = process.env
+
+const missingEnv = [
+  !NEXT_PUBLIC_SUPABASE_URL && 'NEXT_PUBLIC_SUPABASE_URL',
+  !SUPABASE_SERVICE_ROLE_KEY && 'SUPABASE_SERVICE_ROLE_KEY',
+  !OPENAI_API_KEY && 'OPENAI_API_KEY',
+].filter(Boolean) as string[]
 if (missingEnv.length > 0) {
   console.error(`Missing required env vars: ${missingEnv.join(', ')}`)
   process.exit(1)
 }
-
-import { createClient } from '@supabase/supabase-js'
-import { recomputeProfile, recomputeStaleProfiles } from '../app/api/forumPipeline/profileAggregator'
 
 function getSupabaseAdmin() {
   return createClient(

@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -772,163 +767,6 @@ export type Database = {
           },
         ]
       }
-      clinic_reddit_posts: {
-        Row: {
-          author_username: string | null
-          body: string | null
-          captured_at: string
-          clinic_id: string
-          comment_count: number | null
-          had_clinical_procedures: boolean | null
-          id: string
-          is_firsthand: boolean | null
-          medical_summary: string | null
-          post_type: Database["public"]["Enums"]["reddit_post_type"]
-          posted_at: string | null
-          reddit_post_id: string
-          score: number | null
-          seeking_medical_help: boolean | null
-          source_id: string | null
-          subreddit: string | null
-          title: string | null
-          url: string
-        }
-        Insert: {
-          author_username?: string | null
-          body?: string | null
-          captured_at?: string
-          clinic_id: string
-          comment_count?: number | null
-          had_clinical_procedures?: boolean | null
-          id?: string
-          is_firsthand?: boolean | null
-          medical_summary?: string | null
-          post_type: Database["public"]["Enums"]["reddit_post_type"]
-          posted_at?: string | null
-          reddit_post_id: string
-          score?: number | null
-          seeking_medical_help?: boolean | null
-          source_id?: string | null
-          subreddit?: string | null
-          title?: string | null
-          url: string
-        }
-        Update: {
-          author_username?: string | null
-          body?: string | null
-          captured_at?: string
-          clinic_id?: string
-          comment_count?: number | null
-          had_clinical_procedures?: boolean | null
-          id?: string
-          is_firsthand?: boolean | null
-          medical_summary?: string | null
-          post_type?: Database["public"]["Enums"]["reddit_post_type"]
-          posted_at?: string | null
-          reddit_post_id?: string
-          score?: number | null
-          seeking_medical_help?: boolean | null
-          source_id?: string | null
-          subreddit?: string | null
-          title?: string | null
-          url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinic_reddit_posts_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinic_reddit_posts_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinics_with_scores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinic_reddit_posts_source_id_fkey"
-            columns: ["source_id"]
-            isOneToOne: false
-            referencedRelation: "sources"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clinic_reddit_profiles: {
-        Row: {
-          captured_at: string
-          caution_flags: Json | null
-          clinic_id: string
-          confidence_score: number | null
-          cons: string[] | null
-          id: string
-          last_mentioned_at: string | null
-          mention_count: number
-          notable_mentions: Json | null
-          pros: string[] | null
-          sentiment_score: number | null
-          summary: string | null
-          themes: Json | null
-          thread_count: number
-          unique_authors_count: number | null
-          updated_at: string
-        }
-        Insert: {
-          captured_at?: string
-          caution_flags?: Json | null
-          clinic_id: string
-          confidence_score?: number | null
-          cons?: string[] | null
-          id?: string
-          last_mentioned_at?: string | null
-          mention_count?: number
-          notable_mentions?: Json | null
-          pros?: string[] | null
-          sentiment_score?: number | null
-          summary?: string | null
-          themes?: Json | null
-          thread_count?: number
-          unique_authors_count?: number | null
-          updated_at?: string
-        }
-        Update: {
-          captured_at?: string
-          caution_flags?: Json | null
-          clinic_id?: string
-          confidence_score?: number | null
-          cons?: string[] | null
-          id?: string
-          last_mentioned_at?: string | null
-          mention_count?: number
-          notable_mentions?: Json | null
-          pros?: string[] | null
-          sentiment_score?: number | null
-          summary?: string | null
-          themes?: Json | null
-          thread_count?: number
-          unique_authors_count?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinic_reddit_profiles_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: true
-            referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinic_reddit_profiles_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: true
-            referencedRelation: "clinics_with_scores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       clinic_registry_records: {
         Row: {
           authorized_specialties: string[] | null
@@ -1506,6 +1344,61 @@ export type Database = {
         }
         Relationships: []
       }
+      consultations: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["consultation_status"]
+          updated_at: string
+          user_email: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["consultation_status"]
+          updated_at?: string
+          user_email: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["consultation_status"]
+          updated_at?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultations_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fact_evidence: {
         Row: {
           clinic_fact_id: string
@@ -1803,6 +1696,7 @@ export type Database = {
           comment_count: number | null
           had_clinical_procedures: boolean | null
           is_firsthand: boolean | null
+          parent_thread_id: string | null
           post_type: string
           reddit_post_id: string
           score: number | null
@@ -1815,6 +1709,7 @@ export type Database = {
           comment_count?: number | null
           had_clinical_procedures?: boolean | null
           is_firsthand?: boolean | null
+          parent_thread_id?: string | null
           post_type: string
           reddit_post_id: string
           score?: number | null
@@ -1827,6 +1722,7 @@ export type Database = {
           comment_count?: number | null
           had_clinical_procedures?: boolean | null
           is_firsthand?: boolean | null
+          parent_thread_id?: string | null
           post_type?: string
           reddit_post_id?: string
           score?: number | null
@@ -1835,6 +1731,13 @@ export type Database = {
           thread_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reddit_thread_content_parent_thread_id_fkey"
+            columns: ["parent_thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_thread_index"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reddit_thread_content_thread_id_fkey"
             columns: ["thread_id"]
@@ -1911,6 +1814,49 @@ export type Database = {
           url?: string | null
         }
         Relationships: []
+      }
+      user_bookmarks: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bookmarks_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bookmarks_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_photos: {
         Row: {
@@ -2028,10 +1974,10 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           deleted: boolean | null
-          first_name: string
+          first_name: string | null
           gender: string | null
           id: string
-          last_name: string
+          last_name: string | null
           nationality: string | null
           preferred_language: string | null
           profile_picture_url: string | null
@@ -2043,10 +1989,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name: string
+          first_name?: string | null
           gender?: string | null
           id?: string
-          last_name: string
+          last_name?: string | null
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -2058,10 +2004,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name?: string
+          first_name?: string | null
           gender?: string | null
           id?: string
-          last_name?: string
+          last_name?: string | null
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -2362,6 +2308,7 @@ export type Database = {
         | "audit_finding"
       compliance_severity_enum: "low" | "medium" | "high" | "critical"
       computed_by_enum: "extractor" | "human" | "inquiry" | "model"
+      consultation_status: "pending" | "in_progress" | "completed" | "cancelled"
       desired_density: "maximum" | "high" | "medium" | "low"
       doc_type_enum: "html" | "pdf" | "post" | "comment" | "review"
       doctor_involvement_levels: "high" | "medium" | "low"
@@ -2383,7 +2330,6 @@ export type Database = {
         | "package_accuracy"
         | "before_after"
       photo_view: "front" | "left_side" | "right_side" | "top" | "donor_area"
-      reddit_post_type: "post" | "comment"
       registry_license_status_enum:
         | "active"
         | "expired"
@@ -2541,6 +2487,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       age_tier: ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"],
@@ -2607,6 +2556,7 @@ export const Constants = {
       ],
       compliance_severity_enum: ["low", "medium", "high", "critical"],
       computed_by_enum: ["extractor", "human", "inquiry", "model"],
+      consultation_status: ["pending", "in_progress", "completed", "cancelled"],
       desired_density: ["maximum", "high", "medium", "low"],
       doc_type_enum: ["html", "pdf", "post", "comment", "review"],
       doctor_involvement_levels: ["high", "medium", "low"],
@@ -2629,7 +2579,6 @@ export const Constants = {
         "before_after",
       ],
       photo_view: ["front", "left_side", "right_side", "top", "donor_area"],
-      reddit_post_type: ["post", "comment"],
       registry_license_status_enum: [
         "active",
         "expired",
@@ -2669,3 +2618,4 @@ export const Constants = {
     },
   },
 } as const
+

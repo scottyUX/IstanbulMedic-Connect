@@ -69,6 +69,20 @@ async function generateSummary(
   }
 }
 
+const IN_CHUNK_SIZE = 200
+
+async function inChunks<T>(
+  ids: string[],
+  fetcher: (chunk: string[]) => Promise<T[]>
+): Promise<T[]> {
+  const results: T[] = []
+  for (let i = 0; i < ids.length; i += IN_CHUNK_SIZE) {
+    const rows = await fetcher(ids.slice(i, i + IN_CHUNK_SIZE))
+    results.push(...rows)
+  }
+  return results
+}
+
 // ── Main aggregation ──────────────────────────────────────────────────────────
 
 export interface AggregatedProfile {
@@ -134,14 +148,16 @@ export async function recomputeProfile(
 
   const threadIds = threads.map(t => t.id)
 
-  // Load LLM analysis (current only)
-  const { data: analyses, error: analysesError } = await supabase
-    .from('forum_thread_llm_analysis')
-    .select('thread_id, sentiment_label, sentiment_score, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short, sentiment_toward_clinic')
-    .in('thread_id', threadIds)
-    .eq('is_current', true)
-
-  if (analysesError) throw new Error(`[profileAggregator] Failed to load LLM analyses: ${analysesError.message}`)
+  // Load LLM analysis (current only) — chunked to avoid fetch size limits
+  const analyses = await inChunks(threadIds, async chunk => {
+    const { data, error } = await supabase
+      .from('forum_thread_llm_analysis')
+      .select('thread_id, sentiment_label, sentiment_score, satisfaction_label, main_topics, issue_keywords, is_repair_case, secondary_clinic_mentions, summary_short, sentiment_toward_clinic')
+      .in('thread_id', chunk)
+      .eq('is_current', true)
+    if (error) throw new Error(`[profileAggregator] Failed to load LLM analyses: ${error.message}`)
+    return data ?? []
+  })
 
   // For Reddit: distinguish post-type rows from comment-type rows for mention_count vs thread_count.
   // Inherited comments (clinic_attribution_method = 'inherited') enter the scorer at 0.5 weight.
@@ -149,11 +165,14 @@ export async function recomputeProfile(
   let postTypeThreadIds: Set<string> = new Set(threadIds)
   let inheritedCommentThreadIds: Set<string> = new Set()
   if (forumSource === 'reddit') {
-    const { data: redditContent, error: redditError } = await supabase
-      .from('reddit_thread_content')
-      .select('thread_id, post_type')
-      .in('thread_id', threadIds)
-    if (redditError) throw new Error(`[profileAggregator] Failed to load reddit_thread_content: ${redditError.message}`)
+    const redditContent = await inChunks(threadIds, async chunk => {
+      const { data, error } = await supabase
+        .from('reddit_thread_content')
+        .select('thread_id, post_type')
+        .in('thread_id', chunk)
+      if (error) throw new Error(`[profileAggregator] Failed to load reddit_thread_content: ${error.message}`)
+      return data ?? []
+    })
     postTypeThreadIds = new Set(
       (redditContent ?? []).filter(r => r.post_type === 'post').map(r => r.thread_id)
     )
@@ -164,13 +183,15 @@ export async function recomputeProfile(
     )
   }
 
-  // Load signals
-  const { data: signals, error: signalsError } = await supabase
-    .from('forum_thread_signals')
-    .select('thread_id, signal_name, signal_value')
-    .in('thread_id', threadIds)
-
-  if (signalsError) throw new Error(`[profileAggregator] Failed to load signals: ${signalsError.message}`)
+  // Load signals — chunked to avoid fetch size limits
+  const signals = await inChunks(threadIds, async chunk => {
+    const { data, error } = await supabase
+      .from('forum_thread_signals')
+      .select('thread_id, signal_name, signal_value')
+      .in('thread_id', chunk)
+    if (error) throw new Error(`[profileAggregator] Failed to load signals: ${error.message}`)
+    return data ?? []
+  })
 
   // Build lookups
   const analysisMap = Object.fromEntries((analyses ?? []).map(a => [a.thread_id, a]))
@@ -288,6 +309,8 @@ export async function recomputeProfile(
         sentimentScore: a?.sentiment_score != null ? Number(a.sentiment_score) : null,
         sentimentLabel,
         isRepairCase: a?.is_repair_case === true,
+        isRepairPerformer: (a?.secondary_clinic_mentions as { role: string }[] | null)
+          ?.some(m => m.role === 'repair_source') ?? false,
         issueKeywords: a?.issue_keywords ?? [],
         hasLongtermUpdate: s?.['has_longterm_update'] === true,
         isComment,

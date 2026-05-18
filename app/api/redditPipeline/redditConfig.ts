@@ -15,7 +15,7 @@ export const REDDIT_CONFIG = {
   lookbackDays: parseInt(process.env.REDDIT_LOOKBACK_DAYS ?? '365'),
   includeComments: (process.env.REDDIT_INCLUDE_COMMENTS ?? 'false') === 'true',
   commentsPerPost: parseInt(process.env.REDDIT_COMMENTS_PER_POST ?? '100'),
-  commentMinUpvotesForAnalysis: parseInt(process.env.REDDIT_COMMENT_MIN_UPVOTES_FOR_ANALYSIS ?? '10'),
+  commentMinUpvotesForAnalysis: parseInt(process.env.REDDIT_COMMENT_MIN_UPVOTES_FOR_ANALYSIS ?? '5'),
 } as const
 
 export type RedditConfig = typeof REDDIT_CONFIG
