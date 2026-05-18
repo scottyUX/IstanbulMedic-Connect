@@ -102,6 +102,21 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   /** Reddit community signals (null if no Reddit data exists) */
   redditSignals: ClinicForumProfile | null;
   techniques: string[] | null;
+  sourceScores: ClinicSourceScore[]
+}
+
+export interface ClinicSourceScore {
+  id: string
+  clinic_id: string
+  source_name: string
+  score_version: string
+  summary_score: number
+  confidence_score: number | null
+  metrics_json: Record<string, number>
+  breakdown_json: Record<string, unknown>
+  explanation: string | null
+  computed_at: string
+  is_current: boolean
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -586,7 +601,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
       clinic_team (*),
       clinic_packages (*),
       clinic_reviews (*, sources (source_name, source_type)),
-      clinic_scraped_data!clinic_id (*)
+      clinic_scraped_data!clinic_id (*),
+      clinic_source_scores (*)
     `)
     .eq('id', clinicId)
     .single();
@@ -718,6 +734,7 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     hrnSignals,
     redditSignals,
     techniques: scrapedData?.techniques ?? null,
+    sourceScores: (clinic.clinic_source_scores as ClinicSourceScore[]) ?? []
   };
 }
 

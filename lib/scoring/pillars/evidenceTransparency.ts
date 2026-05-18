@@ -1,37 +1,26 @@
 // lib/scoring/pillars/evidenceTransparency.ts
 // Computes the Evidence & Transparency pillar score (0–100).
 //
-// Structure:
-//   Independent Evidence = 55%
-//     - reddit_volume          8%
-//     - reddit_unique_voices   11%
-//     - reddit_long_term       9%
-//     - reddit_photo_threads   8%  (using reddit photo threads for now, HRN later)
-//     - google_review_volume   6%
-//     - hrn_threads            5%  (stubbed)
-//     - hrn_12m_followups      8%  (stubbed)
-//
-//   Verification = 35%
-//     - registry_listed        14%
-//     - license_verifiable     14%
-//     - credentials_score      7%  (stubbed)
-//
-//   Breadth / Coverage = 10%
-//     - source_breadth         10%
+// Floors (absence of data ≠ bad clinic):
+//   Reddit missing      → volume/voices/longterm/photo floor 40
+//   Registry missing    → listed/verifiable floor 30
+//   Credentials missing → floor 30
 
 import { RedditMetrics } from "../metrics/reddit";
 import { RegistryMetrics } from "../metrics/registry";
 import { CredentialsMetrics } from "../metrics/credentials";
 
+const REDDIT_VOLUME_FLOOR   = 50;
+const REGISTRY_FLOOR        = 40;
+const CREDENTIALS_FLOOR     = 40;
+
 export interface EvidenceTransparencyInputs {
   google_review_volume_score: number;
   reddit?: RedditMetrics;
   registry?: RegistryMetrics;
-  // HRN stubbed
   hrn_threads_score?: number;
   hrn_12m_followups_score?: number;
   credentials?: CredentialsMetrics;
-  // How many distinct sources have data (google, reddit, instagram, registry...)
   source_count?: number;
 }
 
@@ -42,23 +31,19 @@ export interface EvidenceTransparencyResult {
 }
 
 const WEIGHTS = {
+  google_review_volume_score: 0.20,
   reddit_volume_score:        0.08,
-  reddit_unique_voices_score: 0.11,
-  reddit_long_term_score:     0.09,
+  reddit_unique_voices_score: 0.12,
+  reddit_long_term_score:     0.10,
   reddit_photo_threads_score: 0.08,
-  google_review_volume_score: 0.06,
-  hrn_threads_score:          0.05,
-  hrn_12m_followups_score:    0.08,
-  registry_listed:            0.14,
-  license_verifiable:         0.14,
-  credentials_score:          0.07,
-  source_breadth_score:       0.10,
+  hrn_threads_score:          0.00,
+  hrn_12m_followups_score:    0.00,
+  registry_listed:            0.07,
+  license_verifiable:         0.03,
+  credentials_score:          0.15,
+  source_breadth_score:       0.17,
 } as const;
 
-/**
- * Normalize source count to 0–100.
- * 1 source → 25, 2 → 50, 3 → 75, 4+ → 100
- */
 function computeSourceBreadth(sourceCount: number): number {
   return Math.min(sourceCount * 25, 100);
 }
@@ -67,19 +52,33 @@ export function computeEvidenceTransparencyScore(
   inputs: EvidenceTransparencyInputs
 ): EvidenceTransparencyResult {
   const sourceCount = inputs.source_count ?? 1;
+  const hasReddit   = !!inputs.reddit;
+  const hasRegistry = !!inputs.registry;
+  const hasCredentials = !!inputs.credentials;
 
   const metrics: Record<string, number> = {
-    reddit_volume_score:        inputs.reddit?.reddit_volume_score ?? 0,
-    reddit_unique_voices_score: inputs.reddit?.reddit_unique_voices_score ?? 0,
-    reddit_long_term_score:     inputs.reddit?.reddit_long_term_score ?? 0,
-    reddit_photo_threads_score: inputs.reddit?.reddit_photo_threads_score ?? 0,
     google_review_volume_score: inputs.google_review_volume_score,
+
+    // Reddit — use floors when missing
+    reddit_volume_score:        hasReddit ? inputs.reddit!.reddit_volume_score        : REDDIT_VOLUME_FLOOR,
+    reddit_unique_voices_score: hasReddit ? inputs.reddit!.reddit_unique_voices_score : REDDIT_VOLUME_FLOOR,
+    reddit_long_term_score:     hasReddit ? inputs.reddit!.reddit_long_term_score     : REDDIT_VOLUME_FLOOR,
+    reddit_photo_threads_score: hasReddit ? inputs.reddit!.reddit_photo_threads_score : REDDIT_VOLUME_FLOOR,
+
+    // HRN — stubbed at 0
     hrn_threads_score:          inputs.hrn_threads_score ?? 0,
     hrn_12m_followups_score:    inputs.hrn_12m_followups_score ?? 0,
-    registry_listed:            inputs.registry?.registry_listed ? 100 : 0,
-    license_verifiable:         inputs.registry?.license_verifiable ? 100 : 0,
-    credentials_score:          inputs.credentials?.credentials_score ?? 0,
-    source_breadth_score:       computeSourceBreadth(sourceCount),
+
+    // Registry — use floors when missing
+    registry_listed:    hasRegistry ? (inputs.registry!.registry_listed    ? 100 : REGISTRY_FLOOR) : REGISTRY_FLOOR,
+    license_verifiable: hasRegistry ? (inputs.registry!.license_verifiable ? 100 : REGISTRY_FLOOR) : REGISTRY_FLOOR,
+
+    // Credentials — use floor when missing
+    credentials_score: hasCredentials
+      ? (inputs.credentials!.credentials_score > 0 ? inputs.credentials!.credentials_score : CREDENTIALS_FLOOR)
+      : CREDENTIALS_FLOOR,
+
+    source_breadth_score: computeSourceBreadth(sourceCount),
   };
 
   const score = Object.entries(WEIGHTS).reduce((sum, [key, weight]) => {

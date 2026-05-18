@@ -23,9 +23,9 @@ const REPUTATION_WEIGHT = 0.60;
 const EVIDENCE_WEIGHT = 0.40;
 
 export function computeBand(score: number): ScoreBand {
-  if (score >= 81) return "A";
-  if (score >= 61) return "B";
-  if (score >= 41) return "C";
+  if (score >= 70) return "A";
+  if (score >= 60) return "B";
+  if (score >= 40) return "C";
   return "D";
 }
 

@@ -12,6 +12,7 @@ import { computeInstagramMetrics } from "./metrics/instagram";
 import { computeRegistryMetrics } from "./metrics/registry";
 import { computeCredentialsMetrics } from "./metrics/credentials";
 import { computeGoogleSourceScore } from "./sources/google";
+import { computeInstagramSourceScore } from "./sources/instagram";
 import { computeReputationScore } from "./pillars/reputation";
 import { computeEvidenceTransparencyScore } from "./pillars/evidenceTransparency";
 import { computeOverallScore } from "./overall";
@@ -26,7 +27,7 @@ export async function scoreClinic(
   // 1. Fetch raw data in parallel
   // ─────────────────────────────────────────────────────────────────────────
 
-  const [googleResult, redditResult, instagramResult, registryResult, teamResult] = await Promise.all([
+  const [googleResult, redditResult, instagramResult, registryResult, teamResult, instagramPostsResult] = await Promise.all([
     supabase
       .from("clinic_google_places")
       .select("rating, user_ratings_total")
@@ -37,7 +38,7 @@ export async function scoreClinic(
 
     supabase
       .from("clinic_forum_profiles")
-      .select("sentiment_score, confidence_score, thread_count, unique_authors_count, longterm_thread_count, photo_thread_count, repair_mention_count, mention_count")
+      .select("sentiment_score, confidence_score, thread_count, unique_authors_count, longterm_thread_count, photo_thread_count, repair_mention_count, mention_count, score")
       .eq("clinic_id", clinicId)
       .eq("forum_source", "reddit")
       .maybeSingle(),
@@ -58,6 +59,11 @@ export async function scoreClinic(
       .from("clinic_team")
       .select("id, role, last_verified_at")
       .eq("clinic_id", clinicId),
+
+    supabase
+      .from("clinic_instagram_posts")
+      .select("likes_count, comments_count")
+      .eq("clinic_id", clinicId),
   ]);
 
   if (googleResult.error) throw new Error(`Google fetch failed: ${googleResult.error.message}`);
@@ -65,6 +71,7 @@ export async function scoreClinic(
   if (instagramResult.error) throw new Error(`Instagram fetch failed: ${instagramResult.error.message}`);
   if (registryResult.error) throw new Error(`Registry fetch failed: ${registryResult.error.message}`);
   if (teamResult.error) throw new Error(`Team fetch failed: ${teamResult.error.message}`);
+  if (instagramPostsResult.error) throw new Error(`Instagram posts fetch failed: ${instagramPostsResult.error.message}`);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 2. Compute metrics
@@ -111,10 +118,40 @@ export async function scoreClinic(
   ].filter(Boolean).length;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 3. Compute source summary (Google only for now)
+  // 3. Compute source summaries
   // ─────────────────────────────────────────────────────────────────────────
 
   const googleSource = computeGoogleSourceScore(googleMetrics);
+
+  // Compute avg engagement from Instagram posts
+  const instagramPosts = instagramPostsResult.data ?? [];
+  const avgLikes = instagramPosts.length > 0
+    ? instagramPosts.reduce((sum: number, p: { likes_count: number | null }) => sum + (p.likes_count ?? 0), 0) / instagramPosts.length
+    : null;
+  const avgComments = instagramPosts.length > 0
+    ? instagramPosts.reduce((sum: number, p: { comments_count: number | null }) => sum + (p.comments_count ?? 0), 0) / instagramPosts.length
+    : null;
+
+  const instagramSource = instagramResult.data
+    ? computeInstagramSourceScore({
+        follower_count:        instagramResult.data.follower_count ?? null,
+        verified:              instagramResult.data.verified ?? null,
+        posts_count:           instagramResult.data.posts_count ?? null,
+        avg_likes_per_post:    avgLikes,
+        avg_comments_per_post: avgComments,
+      })
+    : null;
+
+  // Reddit source summary — normalized from teammate's 1–10 forum score
+  const redditForumScore = redditResult.data?.score ?? null;
+  const redditSource = redditForumScore !== null
+    ? {
+        summary_score:    Math.round(Math.min(Math.max((redditForumScore / 10) * 100, 0), 100)),
+        confidence_score: Math.round((redditResult.data?.confidence_score ?? 0) * 100),
+        metrics_json:     { forum_score: redditForumScore, normalized_score: Math.round((redditForumScore / 10) * 100) },
+        breakdown_json:   { method: "teammate_forum_score", scale: "1-10 normalized to 0-100" },
+      }
+    : null;
 
   // ─────────────────────────────────────────────────────────────────────────
   // 4. Compute pillar scores
@@ -166,6 +203,56 @@ export async function scoreClinic(
     }, { onConflict: "clinic_id,source_name,score_version" });
 
   if (sourceError) throw new Error(`Source score insert failed: ${sourceError.message}`);
+
+  // --- clinic_source_scores (Reddit) ---
+  if (redditSource) {
+    await supabase
+      .from("clinic_source_scores")
+      .update({ is_current: false })
+      .eq("clinic_id", clinicId)
+      .eq("source_name", "reddit")
+      .eq("is_current", true);
+
+    const { error: redditSourceError } = await supabase
+      .from("clinic_source_scores")
+      .upsert({
+        clinic_id:        clinicId,
+        source_name:      "reddit",
+        score_version:    SCORE_VERSION,
+        summary_score:    redditSource.summary_score,
+        confidence_score: redditSource.confidence_score,
+        metrics_json:     redditSource.metrics_json,
+        breakdown_json:   redditSource.breakdown_json,
+        is_current:       true,
+      }, { onConflict: "clinic_id,source_name,score_version" });
+
+    if (redditSourceError) throw new Error(`Reddit source score insert failed: ${redditSourceError.message}`);
+  }
+
+  // --- clinic_source_scores (Instagram) ---
+  if (instagramSource) {
+    await supabase
+      .from("clinic_source_scores")
+      .update({ is_current: false })
+      .eq("clinic_id", clinicId)
+      .eq("source_name", "instagram")
+      .eq("is_current", true);
+
+    const { error: instagramSourceError } = await supabase
+      .from("clinic_source_scores")
+      .upsert({
+        clinic_id:        clinicId,
+        source_name:      "instagram",
+        score_version:    SCORE_VERSION,
+        summary_score:    instagramSource.summary_score,
+        confidence_score: instagramSource.confidence_score,
+        metrics_json:     instagramSource.metrics_json,
+        breakdown_json:   instagramSource.breakdown_json,
+        is_current:       true,
+      }, { onConflict: "clinic_id,source_name,score_version" });
+
+    if (instagramSourceError) throw new Error(`Instagram source score insert failed: ${instagramSourceError.message}`);
+  }
 
   // --- clinic_score_components (pillars) ---
   await supabase.from("clinic_score_components").delete().eq("clinic_id", clinicId);

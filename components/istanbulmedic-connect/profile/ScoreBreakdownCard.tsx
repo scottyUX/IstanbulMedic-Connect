@@ -10,10 +10,18 @@ interface ScoreComponent {
   explanation?: string | null
 }
 
+interface ClinicSourceScore {
+  source_name: string
+  summary_score: number
+  confidence_score: number | null
+  is_current: boolean
+}
+
 interface ScoreBreakdownCardProps {
   overallScore: number
   band: "A" | "B" | "C" | "D" | null
   scoreComponents: ScoreComponent[]
+  sourceScores?: ClinicSourceScore[]
 }
 
 const BAND_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -34,6 +42,12 @@ const PILLAR_CONFIG: Record<string, { label: string; description: string }> = {
   },
 }
 
+const SOURCE_CONFIG: Record<string, { label: string; icon: string }> = {
+  google:   { label: "Google",  icon: "G" },
+  reddit:   { label: "Reddit",  icon: "R" },
+  instagram: { label: "Instagram", icon: "I" },
+}
+
 function ScoreBar({ score }: { score: number }) {
   return (
     <div className="relative h-2 w-full rounded-full bg-muted/20 overflow-hidden">
@@ -49,13 +63,18 @@ export const ScoreBreakdownCard = ({
   overallScore,
   band,
   scoreComponents,
+  sourceScores = [],
 }: ScoreBreakdownCardProps) => {
   const bandConfig = band ? BAND_CONFIG[band] : null
 
-  // Find pillar components
   const reputation = scoreComponents.find((c) => c.component_key === "reputation")
   const evidence = scoreComponents.find((c) => c.component_key === "evidence_transparency")
   const pillars = [reputation, evidence].filter(Boolean) as ScoreComponent[]
+
+  // Only show Google and Reddit — not Instagram (per architecture doc)
+  const publicSources = sourceScores.filter(
+    (s) => s.is_current && ["google", "reddit", "instagram"].includes(s.source_name)
+  )
 
   return (
     <Card id="score-breakdown" variant="profile" className="scroll-mt-32">
@@ -88,6 +107,31 @@ export const ScoreBreakdownCard = ({
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Source score tiles */}
+        {publicSources.length > 0 && (
+          <div className="flex flex-wrap gap-3">
+            {publicSources.map((source) => {
+              const config = SOURCE_CONFIG[source.source_name]
+              if (!config) return null
+              return (
+                <div
+                  key={source.source_name}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-muted/5 px-3 py-2"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#17375B] text-xs font-bold text-white">
+                    {config.icon}
+                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">{config.label}</span>
+                    <span className="text-sm font-semibold text-foreground">{source.summary_score}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Pillar breakdown */}
         {pillars.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pillars.map((pillar) => {

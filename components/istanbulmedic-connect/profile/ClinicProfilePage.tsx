@@ -306,6 +306,7 @@ const communitySignals = {
               overallScore={clinic.trustScore}
               band={clinic.trustBand}
               scoreComponents={clinic.scoreComponents}
+              sourceScores={clinic.sourceScores}
             />
             {FEATURE_CONFIG.profileRegistry && (
               <RegistrySection
