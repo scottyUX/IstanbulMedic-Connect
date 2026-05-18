@@ -734,7 +734,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     hrnSignals,
     redditSignals,
     techniques: scrapedData?.techniques ?? null,
-    sourceScores: (clinic.clinic_source_scores as ClinicSourceScore[]) ?? []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sourceScores: ((clinic as any).clinic_source_scores as ClinicSourceScore[]) ?? [],
   };
 }
 

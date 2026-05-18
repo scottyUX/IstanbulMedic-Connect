@@ -64,6 +64,56 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_source_scores: {
+        Row: {
+          id: string
+          clinic_id: string
+          source_name: string
+          score_version: string
+          summary_score: number
+          confidence_score: number | null
+          metrics_json: Json
+          breakdown_json: Json
+          explanation: string | null
+          computed_at: string
+          is_current: boolean
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          source_name: string
+          score_version: string
+          summary_score: number
+          confidence_score?: number | null
+          metrics_json?: Json
+          breakdown_json?: Json
+          explanation?: string | null
+          computed_at?: string
+          is_current?: boolean
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          source_name?: string
+          score_version?: string
+          summary_score?: number
+          confidence_score?: number | null
+          metrics_json?: Json
+          breakdown_json?: Json
+          explanation?: string | null
+          computed_at?: string
+          is_current?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_source_scores_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_compliance_history: {
         Row: {
           clinic_id: string
