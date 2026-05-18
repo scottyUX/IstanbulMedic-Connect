@@ -76,6 +76,40 @@ async function seed() {
 
   console.log("Starting prod → local sync...\n");
 
+  // ── Step 1: wipe all clinic data from local so stale seed.sql rows don't linger
+  // Delete in reverse FK order so foreign key constraints don't block us.
+  // pk = the column to filter on (most tables use "id"; clinic_scores uses "clinic_id")
+  const WIPE_ORDER: Array<{ table: string; pk: string }> = [
+    { table: "clinic_reviews",          pk: "id" },
+    { table: "clinic_mentions",         pk: "id" },
+    { table: "clinic_social_media",     pk: "id" },
+    { table: "clinic_instagram_posts",  pk: "id" },
+    { table: "clinic_packages",         pk: "id" },
+    { table: "clinic_pricing",          pk: "id" },
+    { table: "clinic_facts",            pk: "id" },
+    { table: "clinic_google_places",    pk: "id" },
+    { table: "clinic_score_components", pk: "id" },
+    { table: "clinic_scores",           pk: "clinic_id" },
+    { table: "clinic_media",            pk: "id" },
+    { table: "clinic_credentials",      pk: "id" },
+    { table: "clinic_languages",        pk: "id" },
+    { table: "clinic_services",         pk: "id" },
+    { table: "clinic_locations",        pk: "id" },
+    { table: "clinic_team",             pk: "id" },
+    { table: "clinics",                 pk: "id" },
+    { table: "sources",                 pk: "id" },
+  ];
+
+  process.stdout.write("Wiping local clinic data...");
+  for (const { table, pk } of WIPE_ORDER) {
+    const { error } = await local.from(table).delete().neq(pk, "00000000-0000-0000-0000-000000000000");
+    if (error) {
+      console.error(`\n  ✗ Failed to wipe ${table}: ${error.message}`);
+    }
+  }
+  console.log(" ✓\n");
+
+  // ── Step 2: upsert from production
   for (const table of TABLES) {
     process.stdout.write(`Fetching ${table.label}...`);
 

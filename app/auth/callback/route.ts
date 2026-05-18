@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
     .split(';')
     .map(c => c.trim())
     .find(c => c.startsWith('auth_redirect_next='))
-    ?.split('=')[1];
+    ?.split('=').slice(1).join('=');
   const decodedCookieNext = cookieNext ? decodeURIComponent(cookieNext) : null;
 
   const legacyPaths = ['/profile/treatment-profile'];
@@ -220,25 +220,8 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Decide where to send the user
-      let destination = next;
-      if (next === '/profile') {
-        // No specific destination — check if new user needs onboarding
-        const { data: freshUserRow } = await s
-          .from('users')
-          .select('id')
-          .eq('auth_id', data.user.id)
-          .maybeSingle();
-        const { data: qualRow } = freshUserRow
-          ? await s
-              .from('user_qualification')
-              .select('terms_accepted')
-              .eq('user_id', freshUserRow.id)
-              .maybeSingle()
-          : { data: null };
-        const hasConsented = qualRow?.terms_accepted === true;
-        destination = hasConsented ? '/profile' : '/profile/get-started';
-      }
+      // Decide where to send the user — always honour the next cookie
+      const destination = next;
 
       const redirectResponse = NextResponse.redirect(`${origin}${destination}`);
       cookieMutations.forEach(({ name, value, options }) =>

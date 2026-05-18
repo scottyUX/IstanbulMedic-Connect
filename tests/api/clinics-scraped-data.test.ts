@@ -6,7 +6,7 @@
  * added as part of the website-scraping feature.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // ── Pure logic extracted from lib/api/clinics.ts ──────────────────────────────
 

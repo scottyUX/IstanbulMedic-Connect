@@ -323,8 +323,10 @@ const communitySignals = {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <SummarySidebar
-              transparencyScore={clinic.trustScore}
-              topSpecialties={specialties.slice(0, 3)}
+              clinicId={clinic.id}
+              clinicName={clinic.name}
+              clinicLocation={clinic.location}
+              clinicImageUrl={clinic.image}
               rating={clinic.rating ?? null}
               reviewCount={clinic.totalReviewCount}
               websiteUrl={clinic.websiteUrl}
