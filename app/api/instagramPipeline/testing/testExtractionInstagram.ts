@@ -18,9 +18,9 @@ function assert(condition: boolean, label: string) {
 }
 
 try {
-  result = extractInstagramClaims(rawData as any);
-} catch (err: any) {
-  console.error(`\n✗ extractInstagramClaims threw unexpectedly: ${err.message}`);
+  result = extractInstagramClaims(rawData as Parameters<typeof extractInstagramClaims>[0]);
+} catch (err: unknown) {
+  console.error(`\n✗ extractInstagramClaims threw unexpectedly: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 }
 

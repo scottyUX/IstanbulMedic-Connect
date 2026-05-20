@@ -2,9 +2,8 @@
 
 import Image from "next/image"
 import { useId, useState } from "react"
-import { MapPin, Star } from "lucide-react"
+import { MapPin, Star, Check } from "lucide-react"
 import { Merriweather } from "next/font/google"
-
 
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,6 +13,10 @@ import {
 } from "@/components/ui/specialty-tag"
 import { cn } from "@/lib/utils"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
+import { useAuth } from "@/contexts/AuthContext"
+import { useRouter } from "next/navigation"
+import { ConsultationConfirmModal } from "@/components/istanbulmedic-connect/ConsultationConfirmModal"
+import { BookmarkButton } from "@/components/istanbulmedic-connect/BookmarkButton"
 
 const merriweather = Merriweather({
   subsets: ["latin"],
@@ -21,12 +24,13 @@ const merriweather = Merriweather({
 })
 
 interface ClinicCardProps {
+  id: string
   name: string
   location: string
   image: string | null
   specialties: string[]
   trustScore: number
-  description: string
+  description: string | null
   rating?: number
   reviewCount?: number
   aiInsight?: string
@@ -34,11 +38,11 @@ interface ClinicCardProps {
 }
 
 export const ClinicCard = ({
+  id,
   name,
   location,
   image,
   specialties,
-  trustScore,
   description,
   rating,
   reviewCount,
@@ -47,13 +51,45 @@ export const ClinicCard = ({
 }: ClinicCardProps) => {
   const compareId = useId()
   const [isCompared, setIsCompared] = useState(false)
+  const [consultationRequested, setConsultationRequested] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const { isAuthenticated } = useAuth()
+  const router = useRouter()
+
+  const handleConsultationClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!isAuthenticated) {
+      document.cookie = `auth_redirect_next=${encodeURIComponent(window.location.pathname)}; path=/; max-age=300`
+      router.push("/auth/login")
+      return
+    }
+    if (!consultationRequested) {
+      setModalOpen(true)
+    }
+  }
+
+  const handleConsultationConfirm = async () => {
+    try {
+      const res = await fetch("/api/consultations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinicIds: [id] }),
+      })
+      if (!res.ok) throw new Error('request failed')
+      setConsultationRequested(true)
+    } catch {
+      // leave UI unchanged — user can retry
+    }
+  }
 
   return (
+    <>
     <Card
       variant="interactive"
       radius="xl"
       className="group flex h-full flex-col overflow-hidden cursor-pointer"
       onClick={onViewProfile}
+      data-testid="clinic-card"
     >
       <CardContent className="p-6">
         {/* Image Section */}
@@ -69,6 +105,20 @@ export const ClinicCard = ({
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-[16px] bg-muted/40 text-sm text-muted-foreground">
               No clinic photo uploaded
+            </div>
+          )}
+          {/* Bookmark icon — top-right overlay */}
+          {FEATURE_CONFIG.bookConsultation && (
+            <div
+              className="absolute top-2 right-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <BookmarkButton
+                clinicId={id}
+                clinicName={name}
+                className="grid h-8 w-8 place-items-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white"
+                iconClassName="h-4 w-4"
+              />
             </div>
           )}
         </div>
@@ -118,7 +168,7 @@ export const ClinicCard = ({
             <span className="truncate">{location}</span>
           </div>
           {typeof rating === "number" ? (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground" data-testid="clinic-rating">
               <Star className="h-3.5 w-3.5 fill-current text-[#FFD700]" />
               <span className="font-medium">{rating.toFixed(1)}</span>
               {typeof reviewCount === "number" && reviewCount > 0 && (
@@ -130,12 +180,12 @@ export const ClinicCard = ({
           )}
         </div>
 
-        {/* Right: Compare + View Profile */}
-        {FEATURE_CONFIG.compare && (
-          <div
-            className="flex shrink-0 flex-col items-end gap-2"
-            onClick={(e) => e.stopPropagation()}
-          >
+        {/* Right: Compare + Consultation text link */}
+        <div
+          className="flex shrink-0 flex-col items-end gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {FEATURE_CONFIG.compare && (
             <div className="flex items-center gap-2">
               <Checkbox
                 id={compareId}
@@ -150,10 +200,35 @@ export const ClinicCard = ({
                 Compare
               </label>
             </div>
-          </div>
-        )}
+          )}
+          {FEATURE_CONFIG.bookConsultation && (
+            consultationRequested ? (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Check className="h-3.5 w-3.5 text-[#3EBBB7]" />
+                Consultation Requested
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleConsultationClick}
+                className="text-xs font-medium text-[#3EBBB7] hover:underline underline-offset-2 transition-colors"
+              >
+                Request Free Consultation
+              </button>
+            )
+          )}
+        </div>
       </div>
       </CardContent>
     </Card>
+
+    <ConsultationConfirmModal
+      open={modalOpen}
+      onOpenChange={(open) => !open && setModalOpen(false)}
+      clinicName={name}
+      isRemoving={false}
+      onConfirm={handleConsultationConfirm}
+    />
+    </>
   )
 }

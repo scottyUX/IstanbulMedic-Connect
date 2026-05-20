@@ -7,17 +7,21 @@ afterEach(() => {
   cleanup();
 });
 
-// Mock Next.js router
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
+// Mock Next.js router with a stable object so all calls to useRouter() return
+// the same instance — tests and components share the same mock functions.
+vi.mock('next/navigation', () => {
+  const router = {
     push: vi.fn(),
     replace: vi.fn(),
     prefetch: vi.fn(),
     back: vi.fn(),
-  }),
-  usePathname: () => '/',
-  useSearchParams: () => new URLSearchParams(),
-}));
+  }
+  return {
+    useRouter: () => router,
+    usePathname: () => '/',
+    useSearchParams: () => new URLSearchParams(),
+  }
+});
 
 // Mock Next.js Image component
 vi.mock('next/image', () => ({

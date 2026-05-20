@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ExploreClinicsPage } from '@/components/istanbulmedic-connect/ExploreClinicsPage';
 import type { Clinic, FilterState } from '@/components/istanbulmedic-connect/types';
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false, loading: false }),
+}));
+
 // Mock next/navigation
 const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -178,7 +182,7 @@ describe('ExploreClinicsPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /Next/i }));
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/clinics?page=2');
+        expect(mockPush).toHaveBeenCalledWith('/clinics?minScore=0&page=2');
       });
     });
 
@@ -188,7 +192,7 @@ describe('ExploreClinicsPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /Previous/i }));
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/clinics?page=2');
+        expect(mockPush).toHaveBeenCalledWith('/clinics?minScore=0&page=2');
       });
     });
 
@@ -212,7 +216,7 @@ describe('ExploreClinicsPage', () => {
       fireEvent.click(highestRatedOption);
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/clinics?sort=Highest+Rated');
+        expect(mockPush).toHaveBeenCalledWith('/clinics?minScore=0&sort=Highest+Rated');
       });
     });
   });
@@ -285,6 +289,26 @@ describe('ExploreClinicsPage', () => {
 
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('treatments=Hair+Transplant'));
+      });
+    });
+
+    it('does not keep English in the URL after clearing filters', async () => {
+      const filtersWithLanguage = {
+        ...defaultFilters,
+        languages: {
+          ...defaultFilters.languages,
+          English: true,
+        },
+      };
+
+      render(<ExploreClinicsPage {...defaultProps} initialFilters={filtersWithLanguage} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Clear all/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Show results/i }));
+
+      await waitFor(() => {
+        expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('languages=English'));
       });
     });
   });

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { Search, SlidersHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -35,12 +35,6 @@ export const UnifiedFilterBar = ({
     const activeAccreditationCount = Object.values(filters.accreditations).filter(Boolean).length
     const totalActiveFilters = activeTreatmentCount + activeLanguageCount + activeAccreditationCount
 
-    const budgetLabel = useMemo(() => {
-        const [min, max] = filters.budgetRange
-        if (min === 500 && max === 12000) return "Any Budget"
-        return `$${min.toLocaleString()} – $${max.toLocaleString()}`
-    }, [filters.budgetRange])
-
     return (
         <div className={cn("w-full", className)}>
             {/* Mobile / Tablet / Desktop Unified Bar */}
@@ -56,6 +50,7 @@ export const UnifiedFilterBar = ({
                             onChange={(e) => updateFilter("searchQuery", e.target.value)}
                             placeholder="Clinic name"
                             className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
+                            data-testid="search-input"
                         />
                     </div>
                 </div>
@@ -73,6 +68,7 @@ export const UnifiedFilterBar = ({
                             onChange={(e) => updateFilter("location", e.target.value)}
                             placeholder="City or country"
                             className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
+                            data-testid="location-input"
                         />
                     </div>
                 </div>
@@ -93,6 +89,7 @@ export const UnifiedFilterBar = ({
                                     "w-full md:w-auto h-11 md:h-10 md:rounded-full md:border-gray-300 md:hover:border-black flex items-center gap-2 px-4",
                                     totalActiveFilters > 0 && "border-black bg-accent/50"
                                 )}
+                                data-testid="filter-button"
                             >
                                 <SlidersHorizontal className="h-4 w-4" />
                                 Filters

@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { getClinicInstagramData } from '@/lib/api/instagram';
+import {
+  getInstagramSignals,
+  calculateRelativePosition,
+  getStatusFromPercentile,
+  getEngagementStatusText,
+  getPostingStatusText,
+} from '@/lib/api/instagram';
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
@@ -7,351 +13,483 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { createClient } from '@/lib/supabase/server';
 
-type MockBuilder = {
-  select: Mock;
-  eq: Mock;
-  in: Mock;
-  order: Mock;
-  limit: Mock;
-  maybeSingle: Mock;
-  then: (resolve: (value: unknown) => unknown) => Promise<unknown>;
-};
+// ── Helper Function Tests ─────────────────────────────────────────────────────
 
-const createMockQueryBuilder = (
-  data: unknown = null,
-  error: unknown = null,
-  maybeSingleData: unknown = null,
-  maybeSingleError: unknown = null
-): MockBuilder => {
-  const builder = {} as MockBuilder;
+describe('calculateRelativePosition', () => {
+  it('returns 50 for empty array', () => {
+    expect(calculateRelativePosition(5, [])).toBe(50);
+  });
 
-  builder.select = vi.fn().mockReturnValue(builder);
-  builder.eq = vi.fn().mockReturnValue(builder);
-  builder.in = vi.fn().mockReturnValue(builder);
-  builder.order = vi.fn().mockReturnValue(builder);
-  builder.limit = vi.fn().mockReturnValue(builder);
-  builder.maybeSingle = vi
-    .fn()
-    .mockResolvedValue({ data: maybeSingleData, error: maybeSingleError });
-  builder.then = (resolve: (value: unknown) => unknown) =>
-    Promise.resolve({ data, error }).then(resolve);
+  it('returns 50 for single value array', () => {
+    expect(calculateRelativePosition(5, [5])).toBe(50);
+  });
 
-  return builder;
-};
+  it('returns 50 when all values are the same', () => {
+    expect(calculateRelativePosition(5, [5, 5, 5])).toBe(50);
+  });
 
-const createPostsQueryBuilder = (
-  data: unknown[] | null = null,
-  error: unknown = null
-): MockBuilder => {
-  const builder = {} as MockBuilder;
+  it('returns 0 for minimum value', () => {
+    expect(calculateRelativePosition(1, [1, 5, 10])).toBe(0);
+  });
 
-  builder.select = vi.fn().mockReturnValue(builder);
-  builder.eq = vi.fn().mockReturnValue(builder);
-  builder.in = vi.fn().mockReturnValue(builder);
-  builder.order = vi.fn().mockReturnValue(builder);
-  builder.limit = vi.fn().mockResolvedValue({ data, error });
-  builder.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
-  builder.then = (resolve: (value: unknown) => unknown) =>
-    Promise.resolve({ data, error }).then(resolve);
+  it('returns 100 for maximum value', () => {
+    expect(calculateRelativePosition(10, [1, 5, 10])).toBe(100);
+  });
 
-  return builder;
-};
+  it('returns correct position for middle value', () => {
+    // rank-based: 5 is at rank 1 of 3 values => 1/(3-1)*100 = 50%
+    expect(calculateRelativePosition(5, [1, 5, 10])).toBe(50);
+  });
 
-describe('getClinicInstagramData', () => {
+  it('filters out NaN values', () => {
+    // after filtering NaN: [1, 10]; 5 is between them at rank 0.5 => 0.5/(2-1)*100 = 50%
+    expect(calculateRelativePosition(5, [1, NaN, 10])).toBe(50);
+  });
+
+  it('filters out null values', () => {
+    // after filtering null: [1, 10]; same as above => 50%
+    expect(calculateRelativePosition(5, [1, null as unknown as number, 10])).toBe(50);
+  });
+});
+
+describe('getStatusFromPercentile', () => {
+  it('returns positive for percentile >= 40', () => {
+    expect(getStatusFromPercentile(40)).toBe('positive');
+    expect(getStatusFromPercentile(75)).toBe('positive');
+    expect(getStatusFromPercentile(100)).toBe('positive');
+  });
+
+  it('returns concern for percentile < 40', () => {
+    expect(getStatusFromPercentile(39)).toBe('concern');
+    expect(getStatusFromPercentile(20)).toBe('concern');
+    expect(getStatusFromPercentile(0)).toBe('concern');
+  });
+});
+
+describe('getEngagementStatusText', () => {
+  it('returns Very high for >= 75', () => {
+    expect(getEngagementStatusText(75)).toBe('Very high');
+    expect(getEngagementStatusText(100)).toBe('Very high');
+  });
+
+  it('returns Above average for >= 50 and < 75', () => {
+    expect(getEngagementStatusText(50)).toBe('Above average');
+    expect(getEngagementStatusText(74)).toBe('Above average');
+  });
+
+  it('returns Average for >= 40 and < 50', () => {
+    expect(getEngagementStatusText(40)).toBe('Average');
+    expect(getEngagementStatusText(49)).toBe('Average');
+  });
+
+  it('returns Below average for >= 20 and < 40', () => {
+    expect(getEngagementStatusText(20)).toBe('Below average');
+    expect(getEngagementStatusText(39)).toBe('Below average');
+  });
+
+  it('returns Very low for < 20', () => {
+    expect(getEngagementStatusText(19)).toBe('Very low');
+    expect(getEngagementStatusText(0)).toBe('Very low');
+  });
+});
+
+describe('getPostingStatusText', () => {
+  it('returns Very active for >= 75', () => {
+    expect(getPostingStatusText(75)).toBe('Very active');
+    expect(getPostingStatusText(100)).toBe('Very active');
+  });
+
+  it('returns Active for >= 50 and < 75', () => {
+    expect(getPostingStatusText(50)).toBe('Active');
+    expect(getPostingStatusText(74)).toBe('Active');
+  });
+
+  it('returns Average for >= 40 and < 50', () => {
+    expect(getPostingStatusText(40)).toBe('Average');
+    expect(getPostingStatusText(49)).toBe('Average');
+  });
+
+  it('returns Below average for >= 20 and < 40', () => {
+    expect(getPostingStatusText(20)).toBe('Below average');
+    expect(getPostingStatusText(39)).toBe('Below average');
+  });
+
+  it('returns Inactive for < 20', () => {
+    expect(getPostingStatusText(19)).toBe('Inactive');
+    expect(getPostingStatusText(0)).toBe('Inactive');
+  });
+});
+
+// ── getInstagramSignals Tests ─────────────────────────────────────────────────
+
+describe('getInstagramSignals', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('returns null when clinic has no instagram social media row', async () => {
-    const socialBuilder = createMockQueryBuilder(null, null, null, null);
-    const postsBuilder = createPostsQueryBuilder([], null);
-    const mockSupabase = {
+  const createMockSupabase = (config: {
+    profile?: { account_handle: string; follower_count: number; last_checked_at: string; business_category?: string | null } | null;
+    profileError?: Error | null;
+    facts?: Array<{ fact_key: string; fact_value: unknown }>;
+    factsError?: Error | null;
+    allClinicFacts?: Array<{ clinic_id: string; fact_key: string; fact_value: unknown }>;
+    allFactsError?: Error | null;
+    postsCount?: number;
+  }) => {
+    const mockBuilder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: config.profile,
+        error: config.profileError ?? null,
+      }),
+    };
+
+    // Track call count to return different data for different queries
+    let factsCallCount = 0;
+
+    return {
       from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'clinic_social_media') return socialBuilder;
-        if (table === 'clinic_instagram_posts') return postsBuilder;
+        if (table === 'clinic_social_media') {
+          return mockBuilder;
+        }
+        if (table === 'clinic_facts') {
+          factsCallCount++;
+          // First call is for this clinic's facts, second is for all clinics
+          if (factsCallCount === 1) {
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnThis(),
+              in: vi.fn().mockResolvedValue({
+                data: config.facts ?? [],
+                error: config.factsError ?? null,
+              }),
+            };
+          } else {
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnThis(),
+              in: vi.fn().mockResolvedValue({
+                data: config.allClinicFacts ?? [],
+                error: config.allFactsError ?? null,
+              }),
+            };
+          }
+        }
+        if (table === 'clinic_instagram_posts') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({
+              count: config.postsCount ?? 0,
+            }),
+          };
+        }
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
+  };
+
+  it('returns null when clinic has no Instagram profile', async () => {
+    const mockSupabase = createMockSupabase({ profile: null });
     (createClient as Mock).mockResolvedValue(mockSupabase);
 
-    const result = await getClinicInstagramData('clinic-1');
+    const result = await getInstagramSignals('clinic-1');
 
     expect(result).toBeNull();
   });
 
-  it('maps social profile + fact data into InstagramIntelligenceVM', async () => {
-    const socialBuilder = createMockQueryBuilder(
-      null,
-      null,
-      {
-        id: 'social-1',
-        clinic_id: 'clinic-1',
-        platform: 'instagram',
-        account_handle: 'clinicname',
-        follower_count: 1000,
-        verified: true,
+  it('returns null when profile query errors', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: null,
+      profileError: new Error('DB error'),
+    });
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+
+    const result = await getInstagramSignals('clinic-1');
+
+    expect(result).toBeNull();
+  });
+
+  it('returns signals data with correct structure', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
         last_checked_at: '2026-03-01T00:00:00Z',
-        created_at: '2026-03-01T00:00:00Z',
-        full_name: 'Clinic Name',
-        biography: 'Best clinic bio',
-        profile_pic_url: 'https://example.com/avatar.jpg',
-        external_urls: ['https://clinic.com'],
-        posts_count: 250,
-        follows_count: 120,
       },
-      null
-    );
-    const postsBuilder = createPostsQueryBuilder([], null);
-    const factsBuilder = createMockQueryBuilder(
-      [
-        { fact_key: 'instagram_avg_likes_per_post', fact_value: 45 },
-        { fact_key: 'instagram_avg_comments_per_post', fact_value: 5 },
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: 0.9 },
+        { fact_key: 'instagram_is_business', fact_value: true },
       ],
-      null
-    );
-
-    const mockSupabase = {
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'clinic_social_media') return socialBuilder;
-        if (table === 'clinic_instagram_posts') return postsBuilder;
-        if (table === 'clinic_facts') return factsBuilder;
-        throw new Error(`Unexpected table: ${table}`);
-      }),
-    };
-    (createClient as Mock).mockResolvedValue(mockSupabase);
-
-    const result = await getClinicInstagramData('clinic-1');
-
-    expect(result).toMatchObject({
-      profileUrl: 'https://instagram.com/clinicname',
-      username: 'clinicname',
-      fullName: 'Clinic Name',
-      biography: 'Best clinic bio',
-      profilePicUrl: 'https://example.com/avatar.jpg',
-      followersCount: 1000,
-      followsCount: 120,
-      postsCount: 250,
-      verified: true,
-      externalUrls: ['https://clinic.com'],
-      engagement: {
-        likesPerPost: 45,
-        commentsPerPost: 5,
-        engagementTotalPerPost: 50,
-        engagementRate: 0.05,
-      },
+      allClinicFacts: [
+        { clinic_id: 'clinic-1', fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { clinic_id: 'clinic-2', fact_key: 'instagram_engagement_rate', fact_value: 0.01 },
+        { clinic_id: 'clinic-3', fact_key: 'instagram_engagement_rate', fact_value: 0.04 },
+        { clinic_id: 'clinic-1', fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { clinic_id: 'clinic-2', fact_key: 'instagram_posts_per_month', fact_value: 2 },
+        { clinic_id: 'clinic-3', fact_key: 'instagram_posts_per_month', fact_value: 12 },
+      ],
+      postsCount: 20,
     });
-  });
-
-  it('returns profile data even if facts query fails', async () => {
-    const socialBuilder = createMockQueryBuilder(
-      null,
-      null,
-      {
-        id: 'social-1',
-        clinic_id: 'clinic-1',
-        platform: 'instagram',
-        account_handle: 'clinicname',
-        follower_count: 1000,
-        verified: false,
-        last_checked_at: '2026-03-01T00:00:00Z',
-        created_at: '2026-03-01T00:00:00Z',
-      },
-      null
-    );
-    const postsBuilder = createPostsQueryBuilder([], null);
-
-    const mockSupabase = {
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'clinic_social_media') return socialBuilder;
-        if (table === 'clinic_instagram_posts') return postsBuilder;
-        if (table === 'clinic_facts') throw new Error('facts unavailable');
-        throw new Error(`Unexpected table: ${table}`);
-      }),
-    };
     (createClient as Mock).mockResolvedValue(mockSupabase);
 
-    const result = await getClinicInstagramData('clinic-1');
+    const result = await getInstagramSignals('clinic-1');
 
     expect(result).not.toBeNull();
-    expect(result?.username).toBe('clinicname');
-    expect(result?.engagement).toBeUndefined();
+    expect(result?.username).toBe('testclinic');
+    expect(result?.followersCount).toBe(10000);
+    expect(result?.lastUpdated).toBe('2026-03-01T00:00:00Z');
+    expect(result?.signals).toHaveLength(4);
   });
 
-  it('fetches and transforms posts correctly', async () => {
-    const socialBuilder = createMockQueryBuilder(
-      null,
-      null,
-      {
-        id: 'social-1',
-        clinic_id: 'clinic-1',
-        platform: 'instagram',
-        account_handle: 'clinicname',
-        follower_count: 5000,
-        verified: true,
+  it('calculates engagement signal correctly', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
         last_checked_at: '2026-03-01T00:00:00Z',
-        created_at: '2026-03-01T00:00:00Z',
       },
-      null
-    );
-    const postsBuilder = createPostsQueryBuilder([
-      {
-        id: 'post-1',
-        clinic_id: 'clinic-1',
-        source_id: 'source-1',
-        instagram_post_id: 'ig-123',
-        short_code: 'ABC123',
-        post_type: 'Image',
-        url: 'https://instagram.com/p/ABC123',
-        caption: 'Amazing results!',
-        hashtags: ['hairtransplant', 'istanbul'],
-        first_comment_text: 'Great work!',
-        likes_count: 150,
-        comments_count: 12,
-        posted_at: '2026-02-15T10:00:00Z',
-        captured_at: '2026-03-01T00:00:00Z',
-        display_url: 'https://example.com/image.jpg',
-      },
-      {
-        id: 'post-2',
-        clinic_id: 'clinic-1',
-        source_id: 'source-1',
-        instagram_post_id: 'ig-456',
-        short_code: 'DEF456',
-        post_type: 'Video',
-        url: 'https://instagram.com/p/DEF456',
-        caption: null,
-        hashtags: [],
-        first_comment_text: null,
-        likes_count: 200,
-        comments_count: 25,
-        posted_at: '2026-02-10T10:00:00Z',
-        captured_at: '2026-03-01T00:00:00Z',
-        display_url: null,
-      },
-    ], null);
-    const factsBuilder = createMockQueryBuilder([], null);
-
-    const mockSupabase = {
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'clinic_social_media') return socialBuilder;
-        if (table === 'clinic_instagram_posts') return postsBuilder;
-        if (table === 'clinic_facts') return factsBuilder;
-        throw new Error(`Unexpected table: ${table}`);
-      }),
-    };
-    (createClient as Mock).mockResolvedValue(mockSupabase);
-
-    const result = await getClinicInstagramData('clinic-1');
-
-    expect(result).not.toBeNull();
-    expect(result?.posts).toHaveLength(2);
-    expect(result?.posts?.[0]).toMatchObject({
-      id: 'ig-123',
-      type: 'Image',
-      shortCode: 'ABC123',
-      url: 'https://instagram.com/p/ABC123',
-      caption: 'Amazing results!',
-      hashtags: ['hairtransplant', 'istanbul'],
-      likesCount: 150,
-      commentsCount: 12,
-      firstComment: 'Great work!',
-      displayUrl: 'https://example.com/image.jpg',
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: 0.9 },
+        { fact_key: 'instagram_is_business', fact_value: true },
+      ],
+      allClinicFacts: [
+        { clinic_id: 'clinic-1', fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { clinic_id: 'clinic-2', fact_key: 'instagram_engagement_rate', fact_value: 0.01 },
+        { clinic_id: 'clinic-3', fact_key: 'instagram_engagement_rate', fact_value: 0.04 },
+        { clinic_id: 'clinic-1', fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { clinic_id: 'clinic-2', fact_key: 'instagram_posts_per_month', fact_value: 2 },
+        { clinic_id: 'clinic-3', fact_key: 'instagram_posts_per_month', fact_value: 12 },
+      ],
+      postsCount: 20,
     });
-    expect(result?.posts?.[1]).toMatchObject({
-      id: 'ig-456',
-      type: 'Video',
-      likesCount: 200,
-      commentsCount: 25,
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+
+    const result = await getInstagramSignals('clinic-1');
+    const engagementSignal = result?.signals.find(s => s.id === 'engagement');
+
+    expect(engagementSignal).toBeDefined();
+    expect(engagementSignal?.metric).toBe('2.5%');
+    expect(engagementSignal?.type).toBe('percentile');
+    // 0.025 in range [0.01, 0.04] => (0.025-0.01)/(0.04-0.01) = 0.5 = 50%
+    expect(engagementSignal?.percentile).toBe(50);
+    expect(engagementSignal?.status).toBe('positive');
+    expect(engagementSignal?.statusText).toBe('Above average');
+  });
+
+  it('calculates posting activity signal correctly', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
+        last_checked_at: '2026-03-01T00:00:00Z',
+      },
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: 0.9 },
+        { fact_key: 'instagram_is_business', fact_value: true },
+      ],
+      allClinicFacts: [
+        { clinic_id: 'clinic-1', fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { clinic_id: 'clinic-1', fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { clinic_id: 'clinic-2', fact_key: 'instagram_posts_per_month', fact_value: 2 },
+        { clinic_id: 'clinic-3', fact_key: 'instagram_posts_per_month', fact_value: 12 },
+      ],
+      postsCount: 20,
     });
-  });
-
-  it('converts negative likes/comments to undefined', async () => {
-    const socialBuilder = createMockQueryBuilder(
-      null,
-      null,
-      {
-        id: 'social-1',
-        clinic_id: 'clinic-1',
-        platform: 'instagram',
-        account_handle: 'clinicname',
-        follower_count: 1000,
-        verified: false,
-        last_checked_at: '2026-03-01T00:00:00Z',
-        created_at: '2026-03-01T00:00:00Z',
-      },
-      null
-    );
-    const postsBuilder = createPostsQueryBuilder([
-      {
-        id: 'post-1',
-        clinic_id: 'clinic-1',
-        source_id: 'source-1',
-        instagram_post_id: 'ig-789',
-        short_code: 'XYZ789',
-        post_type: 'Image',
-        url: 'https://instagram.com/p/XYZ789',
-        caption: 'Hidden likes post',
-        hashtags: [],
-        first_comment_text: null,
-        likes_count: -1,
-        comments_count: -1,
-        posted_at: '2026-02-20T10:00:00Z',
-        captured_at: '2026-03-01T00:00:00Z',
-        display_url: null,
-      },
-    ], null);
-    const factsBuilder = createMockQueryBuilder([], null);
-
-    const mockSupabase = {
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'clinic_social_media') return socialBuilder;
-        if (table === 'clinic_instagram_posts') return postsBuilder;
-        if (table === 'clinic_facts') return factsBuilder;
-        throw new Error(`Unexpected table: ${table}`);
-      }),
-    };
     (createClient as Mock).mockResolvedValue(mockSupabase);
 
-    const result = await getClinicInstagramData('clinic-1');
+    const result = await getInstagramSignals('clinic-1');
+    const postingSignal = result?.signals.find(s => s.id === 'postingActivity');
 
-    expect(result).not.toBeNull();
-    expect(result?.posts).toHaveLength(1);
-    expect(result?.posts?.[0].likesCount).toBeUndefined();
-    expect(result?.posts?.[0].commentsCount).toBeUndefined();
+    expect(postingSignal).toBeDefined();
+    expect(postingSignal?.metric).toBe('8/mo');
+    // rank-based: 8 is rank 1 of [2, 8, 12] => 1/(3-1)*100 = 50%
+    expect(postingSignal?.percentile).toBe(50);
+    expect(postingSignal?.status).toBe('positive');
+    expect(postingSignal?.statusText).toBe('Active');
   });
 
-  it('returns profile data even if posts query fails', async () => {
-    const socialBuilder = createMockQueryBuilder(
-      null,
-      null,
-      {
-        id: 'social-1',
-        clinic_id: 'clinic-1',
-        platform: 'instagram',
-        account_handle: 'clinicname',
-        follower_count: 1000,
-        verified: false,
+  it('calculates comments enabled signal correctly', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
         last_checked_at: '2026-03-01T00:00:00Z',
-        created_at: '2026-03-01T00:00:00Z',
       },
-      null
-    );
-    const factsBuilder = createMockQueryBuilder([], null);
-
-    const mockSupabase = {
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === 'clinic_social_media') return socialBuilder;
-        if (table === 'clinic_instagram_posts') throw new Error('posts table unavailable');
-        if (table === 'clinic_facts') return factsBuilder;
-        throw new Error(`Unexpected table: ${table}`);
-      }),
-    };
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: 0.9 },
+        { fact_key: 'instagram_is_business', fact_value: true },
+      ],
+      allClinicFacts: [],
+      postsCount: 20,
+    });
     (createClient as Mock).mockResolvedValue(mockSupabase);
 
-    const result = await getClinicInstagramData('clinic-1');
+    const result = await getInstagramSignals('clinic-1');
+    const commentsSignal = result?.signals.find(s => s.id === 'commentsEnabled');
+
+    expect(commentsSignal).toBeDefined();
+    expect(commentsSignal?.type).toBe('boolean');
+    expect(commentsSignal?.metric).toBe('18/20 posts'); // 0.9 * 20 = 18
+    expect(commentsSignal?.status).toBe('positive');
+    expect(commentsSignal?.statusText).toBe('Enabled');
+  });
+
+  it('marks comments as concern when ratio < 0.5', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
+        last_checked_at: '2026-03-01T00:00:00Z',
+      },
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: 0.3 },
+        { fact_key: 'instagram_is_business', fact_value: true },
+      ],
+      allClinicFacts: [],
+      postsCount: 20,
+    });
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+
+    const result = await getInstagramSignals('clinic-1');
+    const commentsSignal = result?.signals.find(s => s.id === 'commentsEnabled');
+
+    expect(commentsSignal?.status).toBe('concern');
+    expect(commentsSignal?.statusText).toBe('Often disabled');
+    expect(commentsSignal?.metric).toBe('6/20 posts'); // 0.3 * 20 = 6
+  });
+
+  it('handles business account flag correctly', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
+        last_checked_at: '2026-03-01T00:00:00Z',
+      },
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: 0.9 },
+        { fact_key: 'instagram_is_business', fact_value: true },
+      ],
+      allClinicFacts: [],
+      postsCount: 20,
+    });
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+
+    const result = await getInstagramSignals('clinic-1');
+    const businessSignal = result?.signals.find(s => s.id === 'verifiedBusiness');
+
+    expect(businessSignal?.status).toBe('positive');
+    expect(businessSignal?.statusText).toBe('Business');
+  });
+
+  it('identifies creator account when has business_category but not isBusinessAccount', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
+        last_checked_at: '2026-03-01T00:00:00Z',
+        business_category: 'Hair Replacement Service',
+      },
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: 0.9 },
+        { fact_key: 'instagram_is_business', fact_value: false },
+      ],
+      allClinicFacts: [],
+      postsCount: 20,
+    });
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+
+    const result = await getInstagramSignals('clinic-1');
+    const businessSignal = result?.signals.find(s => s.id === 'verifiedBusiness');
+
+    expect(businessSignal?.status).toBe('positive'); // Creator accounts are also professional
+    expect(businessSignal?.statusText).toBe('Creator');
+  });
+
+  it('marks personal account when instagram_is_business is false', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
+        last_checked_at: '2026-03-01T00:00:00Z',
+      },
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: 0.025 },
+        { fact_key: 'instagram_posts_per_month', fact_value: 8 },
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: 0.9 },
+        // instagram_is_business not set
+      ],
+      allClinicFacts: [],
+      postsCount: 20,
+    });
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+
+    const result = await getInstagramSignals('clinic-1');
+    const businessSignal = result?.signals.find(s => s.id === 'verifiedBusiness');
+
+    expect(businessSignal?.status).toBe('concern');
+    expect(businessSignal?.statusText).toBe('Personal');
+  });
+
+  it('handles string fact values by parsing them', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
+        last_checked_at: '2026-03-01T00:00:00Z',
+      },
+      facts: [
+        { fact_key: 'instagram_engagement_rate', fact_value: '0.025' }, // string
+        { fact_key: 'instagram_posts_per_month', fact_value: '8' }, // string
+        { fact_key: 'instagram_comments_enabled_ratio', fact_value: '0.9' }, // string
+        { fact_key: 'instagram_is_business', fact_value: 'true' }, // string
+      ],
+      allClinicFacts: [
+        { clinic_id: 'clinic-1', fact_key: 'instagram_engagement_rate', fact_value: '0.025' },
+      ],
+      postsCount: 20,
+    });
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+
+    const result = await getInstagramSignals('clinic-1');
 
     expect(result).not.toBeNull();
-    expect(result?.username).toBe('clinicname');
-    expect(result?.posts).toBeUndefined();
+    expect(result?.signals.find(s => s.id === 'engagement')?.metric).toBe('2.5%');
+    expect(result?.signals.find(s => s.id === 'verifiedBusiness')?.status).toBe('positive');
+  });
+
+  it('uses current date when last_checked_at is null', async () => {
+    const mockSupabase = createMockSupabase({
+      profile: {
+        account_handle: 'testclinic',
+        follower_count: 10000,
+        last_checked_at: null as unknown as string,
+      },
+      facts: [],
+      allClinicFacts: [],
+      postsCount: 0,
+    });
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+
+    const result = await getInstagramSignals('clinic-1');
+
+    expect(result?.lastUpdated).toBeDefined();
+    // Should be a valid ISO date string
+    expect(new Date(result?.lastUpdated ?? '').toISOString()).toBe(result?.lastUpdated);
   });
 });

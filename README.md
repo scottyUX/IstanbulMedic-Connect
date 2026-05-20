@@ -8,7 +8,7 @@ A medical tourism platform connecting patients with clinics in Turkey. Built wit
 - **Database:** Supabase (PostgreSQL)
 - **Styling:** Tailwind CSS 4
 - **AI Integration:** CopilotKit
-- **Testing:** Vitest + React Testing Library
+- **Testing:** Vitest + React Testing Library + Playwright
 - **Language:** TypeScript
 
 ## Prerequisites
@@ -74,6 +74,8 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Testing
 
+### Unit & Component Tests (Vitest)
+
 ```bash
 # Run tests in watch mode
 npm test
@@ -81,13 +83,29 @@ npm test
 # Run tests once (CI mode)
 npm run test:run
 
-# Run tests with coverage (requires @vitest/coverage-v8)
+# Run tests with coverage
 npm run test:coverage
 ```
+
+### E2E Tests (Playwright)
+
+```bash
+# Run E2E tests (starts dev server automatically)
+npm run test:e2e
+
+# Run with interactive UI
+npm run test:e2e:ui
+
+# Run specific browser only
+npx playwright test --project=chromium
+```
+
+**Prerequisites:** Local Supabase must be running with seeded data (`supabase start && supabase db reset`)
 
 Test files are located in `tests/`:
 - `tests/unit/` - Unit tests for utilities and transformers
 - `tests/components/` - Component tests
+- `tests/e2e/` - End-to-end tests (Playwright)
 
 ## Available Scripts
 
@@ -97,8 +115,10 @@ Test files are located in `tests/`:
 | `npm run build` | Production build |
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
-| `npm test` | Run tests (watch mode) |
-| `npm run test:run` | Run tests once |
+| `npm test` | Run unit/component tests (watch mode) |
+| `npm run test:run` | Run unit/component tests once |
+| `npm run test:e2e` | Run E2E tests with Playwright |
+| `npm run test:e2e:ui` | Run E2E tests with interactive UI |
 | `npm run db:types` | Regenerate Supabase TypeScript types |
 
 ## Project Structure

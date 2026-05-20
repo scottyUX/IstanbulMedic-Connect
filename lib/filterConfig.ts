@@ -39,13 +39,14 @@ export type FilterConfigKey = keyof typeof FILTER_CONFIG;
  */
 export const SORT_CONFIG = {
   'Alphabetical': true,
-  'Highest Rated': true, // TODO: Needs DB view for proper sorting by clinic_facts rating
+  'Highest Rated': true,
+  'Lowest Rated': true,
 
   // Disabled - no backend support yet
   'Best Match': false,
-  'Most Transparent': false, // TODO: Enable when clinic_scores data is populated
-  'Price: Low to High': false, // TODO: Enable when clinic_pricing data is available
-  'Price: High to Low': false, // TODO: Enable when clinic_pricing data is available
+  'Most Transparent': false, // Enable when clinic_scores data is populated
+  'Price: Low to High': false, // Enable when clinic_pricing data is available
+  'Price: High to Low': false, // Enable when clinic_pricing data is available
 } as const;
 
 export type SortConfigKey = keyof typeof SORT_CONFIG;
@@ -66,13 +67,13 @@ export const FEATURE_CONFIG = {
   auth: false, // login/sign up
   compare: false,
   saveClinic: false,
-  bookConsultation: false,
+  bookConsultation: true,
   share: false, // TODO: implement copy URL to clipboard
   createProfile: false, // landing page "Create a profile" CTA
   personalizedOffers: false, // landing page "Receive Personalized Offers" step
 
   // Profile sections - disabled until real data
-  profileOverview: false,
+  profileOverview: true,
   profilePricing: false,
   profilePackages: false,
   profileDoctors: true,
@@ -80,9 +81,12 @@ export const FEATURE_CONFIG = {
   profileAIInsights: false,
   profileCommunitySignals: false,
   profileInstagram: true,
+  profileHRN: true,
+  profileRedditSignals: true,
   profileLanguages: false,
   profilePaymentMethods: false,
   profileServices: false,
+  profileRegistry: true,
 } as const;
 
 export type FeatureConfigKey = keyof typeof FEATURE_CONFIG;

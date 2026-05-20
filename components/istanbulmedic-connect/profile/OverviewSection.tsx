@@ -7,10 +7,14 @@ import { StatBlock } from "@/components/ui/stat-block"
 
 interface OverviewSectionProps {
   specialties: string[]
+  /** Reserved for future use — not currently rendered */
   yearsInOperation: number | null
+  /** Reserved for future use — not currently rendered */
   proceduresPerformed: number | null
+  /** Reserved for future use — not currently rendered */
   languages: string[]
-  description: string
+  description: string | null
+  techniques: string[]
 }
 
 export const OverviewSection = ({
@@ -19,6 +23,7 @@ export const OverviewSection = ({
   proceduresPerformed,
   languages,
   description,
+  techniques,
 }: OverviewSectionProps) => {
   return (
     <Card id="overview" variant="profile" className="scroll-mt-32">
@@ -36,13 +41,10 @@ export const OverviewSection = ({
 
         <Separator />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatBlock label="Years in operation" value={yearsInOperation ?? "Not available"} />
-          <StatBlock
-            label="Procedures performed"
-            value={proceduresPerformed !== null ? proceduresPerformed.toLocaleString() : "Not available"}
-          />
-          <StatBlock label="Languages" value={languages.length > 0 ? languages.length : "Not available"} />
+        <div className="flex flex-wrap gap-4">
+          {techniques.length > 0 && (
+            <StatBlock label="Techniques" value={techniques.join(", ")} />
+          )}
         </div>
 
         <div className="text-base leading-relaxed text-muted-foreground">{description}</div>

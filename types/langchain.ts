@@ -6,24 +6,24 @@ export interface LangchainMessage {
   role: Role;
   text: string;
   createdAt?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentState {
   conversationId?: string;
   messages: LangchainMessage[];
   lastUpdated?: string;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
 }
 
 export interface DatabaseLookupInput {
   query: string;
   table?: 'clinics' | 'users' | 'consultations' | string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 export interface DatabaseLookupResult {
-  results: Record<string, any>[];
+  results: Record<string, unknown>[];
   metadata?: {
     table?: string;
     count?: number;
