@@ -193,6 +193,9 @@ The `ExploreClinicsPage.tsx` derives its default from `SORT_CONFIG` dynamically 
 - Added `'A-Z'` case to `applies sorting correctly` asserting `order('display_name', { ascending: true })`
 - Added `'Z-A'` case asserting `order('display_name', { ascending: false })`
 
+### `tests/components/ExploreClinicsPage.test.tsx`
+- `renders page headline` — changed from `getByText(/.../)` to `getByRole('heading', { name: /.../ })` because wrapping "Transplant Clinic" in a `<span>` splits the text across nodes, breaking single-element text matching
+
 ### `tests/components/ClinicCard.test.tsx`
 - `renders specialties as tags` and `limits specialties to 4 items` changed to `it.skip` — tags section is commented out until multi-clinic-type support is added
 

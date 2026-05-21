@@ -106,7 +106,7 @@ describe('ExploreClinicsPage', () => {
   describe('Rendering', () => {
     it('renders page headline', () => {
       render(<ExploreClinicsPage {...defaultProps} />);
-      expect(screen.getByText(/Connect with a Trusted Hair Transplant Clinic/)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Connect with a Trusted Hair Transplant Clinic/i })).toBeInTheDocument();
     });
 
     it('renders total count header', () => {
