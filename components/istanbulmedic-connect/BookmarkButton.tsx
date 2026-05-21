@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { Bookmark } from "lucide-react"
-import { useRouter } from "next/navigation"
 
 import { useAuth } from "@/contexts/AuthContext"
 import { useBookmarkCount } from "@/contexts/BookmarkCountContext"
 import { cn } from "@/lib/utils"
-import { SignInPromptModal } from "@/components/istanbulmedic-connect/SignInPromptModal"
 
 interface BookmarkButtonProps {
   clinicId: string
@@ -31,34 +29,17 @@ export function BookmarkButton({
   const { bookmarkedIds, addId, removeId } = useBookmarkCount()
   const bookmarked = bookmarkedIds.has(clinicId)
   const [loading, setLoading] = useState(false)
-  const [showSignInPrompt, setShowSignInPrompt] = useState(false)
+  const [showGuestTip, setShowGuestTip] = useState(false)
   const { isAuthenticated } = useAuth()
-  const router = useRouter()
 
-  // After returning from sign-in, auto-bookmark if this clinic was the intent
   useEffect(() => {
-    if (!isAuthenticated) return
-    const intent = sessionStorage.getItem('bookmark_intent')
-    if (intent !== clinicId) return
-    sessionStorage.removeItem('bookmark_intent')
-    setLoading(true)
-    addId(clinicId)
-    fetch('/api/bookmarks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clinicId }),
-    })
-      .then((res) => { if (!res.ok) removeId(clinicId) })
-      .catch(() => removeId(clinicId))
-      .finally(() => setLoading(false))
-  }, [isAuthenticated, clinicId, addId, removeId])
+    if (!showGuestTip) return
+    const t = setTimeout(() => setShowGuestTip(false), 3000)
+    return () => clearTimeout(t)
+  }, [showGuestTip])
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!isAuthenticated) {
-      setShowSignInPrompt(true)
-      return
-    }
     if (bookmarked) {
       handleRemove()
     } else {
@@ -66,12 +47,12 @@ export function BookmarkButton({
     }
   }
 
-  const handleSignIn = () => {
-    sessionStorage.setItem('bookmark_intent', clinicId)
-    router.push(`/auth/login?next=${encodeURIComponent(window.location.pathname)}`)
-  }
-
   const handleAdd = async () => {
+    if (!isAuthenticated) {
+      addId(clinicId)
+      setShowGuestTip(true)
+      return
+    }
     setLoading(true)
     addId(clinicId)
     try {
@@ -89,6 +70,10 @@ export function BookmarkButton({
   }
 
   const handleRemove = async () => {
+    if (!isAuthenticated) {
+      removeId(clinicId)
+      return
+    }
     setLoading(true)
     removeId(clinicId)
     try {
@@ -108,7 +93,7 @@ export function BookmarkButton({
   const displayLabel = bookmarked ? (labelSaved ?? label) : label
 
   return (
-    <>
+    <span className="relative inline-flex">
       <button
         type="button"
         onClick={handleClick}
@@ -126,11 +111,11 @@ export function BookmarkButton({
         {displayLabel && <span>{displayLabel}</span>}
       </button>
 
-      <SignInPromptModal
-        open={showSignInPrompt}
-        onOpenChange={setShowSignInPrompt}
-        onSignIn={handleSignIn}
-      />
-    </>
+      {showGuestTip && (
+        <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-[#0D1E32]/90 px-2 py-0.5 text-[10px] text-white shadow-sm">
+          Sign in to save permanently
+        </span>
+      )}
+    </span>
   )
 }

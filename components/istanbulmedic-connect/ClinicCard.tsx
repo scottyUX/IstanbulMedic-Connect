@@ -67,8 +67,8 @@ export const ClinicCard = ({
   const handleConsultationClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!isAuthenticated) {
-      document.cookie = `auth_redirect_next=${encodeURIComponent(window.location.pathname)}; path=/; max-age=300`
-      router.push("/auth/login")
+      sessionStorage.setItem('consultation_intent', JSON.stringify([id]))
+      router.push(`/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`)
       return
     }
     if (!consultationRequested) {

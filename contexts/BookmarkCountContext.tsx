@@ -3,6 +3,30 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 
+const LS_KEY = 'im.bookmarks'
+
+function lsAdd(clinicId: string) {
+  try {
+    const ids: string[] = JSON.parse(localStorage.getItem(LS_KEY) ?? '[]')
+    if (!ids.includes(clinicId)) localStorage.setItem(LS_KEY, JSON.stringify([...ids, clinicId]))
+  } catch {}
+}
+
+function lsRemove(clinicId: string) {
+  try {
+    const ids: string[] = JSON.parse(localStorage.getItem(LS_KEY) ?? '[]')
+    localStorage.setItem(LS_KEY, JSON.stringify(ids.filter((id) => id !== clinicId)))
+  } catch {}
+}
+
+function lsLoad(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(LS_KEY) ?? '[]') as string[])
+  } catch {
+    return new Set()
+  }
+}
+
 interface BookmarkCountContextValue {
   count: number
   bookmarkedIds: Set<string>
@@ -21,19 +45,23 @@ export function BookmarkCountProvider({ children }: { children: React.ReactNode 
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set())
   const { isAuthenticated } = useAuth()
 
-  // Re-fetch the full bookmark list whenever auth state changes.
-  // On logout this clears the set; on login it populates it.
   useEffect(() => {
     if (!isAuthenticated) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBookmarkedIds(new Set())
+      setBookmarkedIds(lsLoad())
       return
     }
+    // Seed from LS optimistically so UI reflects locally-saved clinics
+    // immediately after sign-in while the API call is still in flight.
+    const local = lsLoad()
+    if (local.size > 0) setBookmarkedIds(local)
     fetch("/api/bookmarks")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.bookmarks) {
-          setBookmarkedIds(new Set(data.bookmarks.map((b: { clinicId: string }) => b.clinicId)))
+          const apiIds = new Set<string>(data.bookmarks.map((b: { clinicId: string }) => b.clinicId))
+          // Merge with LS in case syncLocalBookmarks is still in flight when
+          // this response arrives — avoids a stale count replacing the LS seed.
+          setBookmarkedIds(new Set<string>([...apiIds, ...lsLoad()]))
         }
       })
       .catch(() => {})
@@ -41,7 +69,8 @@ export function BookmarkCountProvider({ children }: { children: React.ReactNode 
 
   const addId = useCallback((clinicId: string) => {
     setBookmarkedIds((prev) => new Set(prev).add(clinicId))
-  }, [])
+    if (!isAuthenticated) lsAdd(clinicId)
+  }, [isAuthenticated])
 
   const removeId = useCallback((clinicId: string) => {
     setBookmarkedIds((prev) => {
@@ -49,7 +78,8 @@ export function BookmarkCountProvider({ children }: { children: React.ReactNode 
       next.delete(clinicId)
       return next
     })
-  }, [])
+    if (!isAuthenticated) lsRemove(clinicId)
+  }, [isAuthenticated])
 
   return (
     <BookmarkCountContext.Provider

@@ -6,6 +6,11 @@ import { createClient } from '@/lib/supabase/client';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import type { UserProfile } from '@/types/user';
 
+interface ConsultationResult {
+  createdNames: string[];
+  skippedNames: string[];
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
@@ -14,6 +19,10 @@ interface AuthContextType {
   loginWithGoogle: (next?: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
+  consultationResult: ConsultationResult | null;
+  clearConsultationResult: () => void;
+  bookmarkSyncCount: number;
+  clearBookmarkSyncCount: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,7 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [consultationResult, setConsultationResult] = useState<ConsultationResult | null>(null);
+  const [bookmarkSyncCount, setBookmarkSyncCount] = useState(0);
   const router = useRouter();
+  const clearConsultationResult = () => setConsultationResult(null);
+  const clearBookmarkSyncCount = () => setBookmarkSyncCount(0);
 
   // Fetch user profile from API
   const fetchUserProfile = async () => {
@@ -79,17 +92,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(session.user);
           // Fetch user profile after session check
           await fetchUserProfile();
-          // Fallback: if the cookie-based server redirect failed (e.g. cookie
-          // was blocked), check sessionStorage and redirect client-side.
-          const stored = sessionStorage.getItem('auth_redirect_next');
-          if (stored) {
-            try {
-              const { path, ts } = JSON.parse(stored);
-              const isRecent = Date.now() - ts < 2 * 60 * 1000;
-              sessionStorage.removeItem('auth_redirect_next');
-              if (isRecent) router.push(path);
-            } catch {
-              sessionStorage.removeItem('auth_redirect_next');
+          const synced = await syncLocalBookmarks();
+          if (synced > 0) setBookmarkSyncCount(synced);
+          const consultationRedirected = await syncConsultationIntent();
+          if (!consultationRedirected) {
+            // Fallback: if the cookie-based server redirect failed (e.g. cookie
+            // was blocked), check sessionStorage and redirect client-side.
+            const stored = sessionStorage.getItem('auth_redirect_next');
+            if (stored) {
+              try {
+                const { path, ts } = JSON.parse(stored);
+                const isRecent = Date.now() - ts < 2 * 60 * 1000;
+                sessionStorage.removeItem('auth_redirect_next');
+                if (isRecent) router.push(path);
+              } catch {
+                sessionStorage.removeItem('auth_redirect_next');
+              }
             }
           }
         } else {
@@ -156,6 +174,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Sync any pending localStorage qualification data to the DB
           if (event === 'SIGNED_IN') {
             syncLocalQualificationData();
+            syncLocalBookmarks().then((synced) => { if (synced > 0) setBookmarkSyncCount(synced); });
+            syncConsultationIntent();
           }
         }
       } else {
@@ -185,6 +205,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }).catch(() => {});
     } catch {
       // ignore
+    }
+  };
+
+  const syncLocalBookmarks = async (): Promise<number> => {
+    try {
+      const raw = window.localStorage.getItem('im.bookmarks');
+      if (!raw) return 0;
+      const ids: string[] = JSON.parse(raw);
+      if (!ids.length) return 0;
+      const results = await Promise.all(
+        ids.map((clinicId) =>
+          fetch('/api/bookmarks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clinicId }),
+          })
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null)
+        )
+      );
+      window.localStorage.removeItem('im.bookmarks');
+      return results.filter((r) => r?.bookmarkId != null).length;
+    } catch {
+      return 0;
+    }
+  };
+
+  const syncConsultationIntent = async (): Promise<boolean> => {
+    try {
+      const raw = sessionStorage.getItem('consultation_intent');
+      if (!raw) return false;
+      sessionStorage.removeItem('consultation_intent');
+      // Clear the redirect fallback — the OAuth callback already landed us on
+      // /profile, so leaving this set would cause a stale redirect on the next
+      // sign-in within the 2-min TTL.
+      sessionStorage.removeItem('auth_redirect_next');
+      const clinicIds: string[] = JSON.parse(raw);
+      if (!clinicIds.length) return false;
+      const res = await fetch('/api/consultations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicIds }),
+      }).catch(() => null);
+      if (res?.ok) {
+        const body = await res.json().catch(() => null);
+        setConsultationResult({
+          createdNames: body?.createdNames ?? [],
+          skippedNames: body?.skippedNames ?? [],
+        });
+        router.push('/profile?section=consultations');
+      }
+      // On API failure: intent is cleared, no redirect. The OAuth callback
+      // already landed the user on /profile — they can retry from the
+      // Consultations tab without being double-redirected.
+      return true;
+    } catch {
+      return false;
     }
   };
 
@@ -248,6 +325,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGoogle,
         logout,
         fetchUserProfile,
+        consultationResult,
+        clearConsultationResult,
+        bookmarkSyncCount,
+        clearBookmarkSyncCount,
       }}
     >
       {children}

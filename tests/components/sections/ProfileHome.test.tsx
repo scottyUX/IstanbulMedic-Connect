@@ -32,6 +32,8 @@ function setupAuth(overrides: Record<string, unknown> = {}) {
     } as unknown as ReturnType<typeof useAuth>['profile'],
     loading: false,
     loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
+    consultationResult: null, clearConsultationResult: vi.fn(),
+    bookmarkSyncCount: 0, clearBookmarkSyncCount: vi.fn(),
     ...overrides,
   })
 }
@@ -54,6 +56,8 @@ describe('ProfileHome', () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false, user: null, profile: null, loading: true,
       loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
+    consultationResult: null, clearConsultationResult: vi.fn(),
+    bookmarkSyncCount: 0, clearBookmarkSyncCount: vi.fn(),
     })
     const { container } = render(<ProfileHome onNavigate={vi.fn()} />)
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()

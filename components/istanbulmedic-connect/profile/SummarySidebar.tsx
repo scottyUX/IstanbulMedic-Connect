@@ -82,8 +82,8 @@ export const SummarySidebar = ({
 
   const handleConsultationClick = () => {
     if (!isAuthenticated) {
-      document.cookie = `auth_redirect_next=${encodeURIComponent(window.location.pathname)}; path=/; max-age=300`
-      router.push("/auth/login")
+      sessionStorage.setItem('consultation_intent', JSON.stringify([clinicId]))
+      router.push(`/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`)
       return
     }
     if (!consultationRequested) {
@@ -92,13 +92,17 @@ export const SummarySidebar = ({
   }
 
   const handleConsultationConfirm = async () => {
-    const res = await fetch("/api/consultations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clinicIds: [clinicId] }),
-    })
-    if (!res.ok) throw new Error('request failed')
-    setConsultationRequested(true)
+    try {
+      const res = await fetch("/api/consultations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinicIds: [clinicId] }),
+      })
+      if (!res.ok) throw new Error('request failed')
+      setConsultationRequested(true)
+    } catch {
+      // leave UI unchanged — user can retry
+    }
   }
 
   return (
