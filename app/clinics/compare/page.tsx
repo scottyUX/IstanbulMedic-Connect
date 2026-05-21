@@ -8,7 +8,7 @@ export const metadata = {
 }
 
 export default async function ComparePage() {
-  const { clinics } = await getClinics({ pageSize: 50, sort: "Alphabetical" })
+  const { clinics } = await getClinics({ pageSize: 50, sort: "A-Z" })
 
   return (
     <Suspense>

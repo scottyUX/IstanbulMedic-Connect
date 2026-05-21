@@ -66,7 +66,7 @@ test.describe('Clinic Discovery Flow', () => {
     await expect(page.locator('[data-testid="clinic-card"]').first()).toBeVisible();
   });
 
-  test('sorts clinics alphabetically', async ({ page }) => {
+  test('sorts clinics A-Z', async ({ page }) => {
     // Wait for initial load
     await expect(page.locator('[data-testid="clinic-card"]').first()).toBeVisible();
 
@@ -76,11 +76,25 @@ test.describe('Clinic Discovery Flow', () => {
     await page.getByRole('option', { name: 'Highest Rated' }).click();
     await expect(page).toHaveURL(/sort=Highest(\+|%20)Rated/);
 
-    // Now change back to Alphabetical
+    // Now change back to A-Z
     await sortDropdown.click();
-    await page.getByRole('option', { name: 'Alphabetical' }).click();
+    await page.getByRole('option', { name: 'A-Z' }).click();
 
-    // Alphabetical is default, so sort param may not be in URL
+    // A-Z is the default, so sort param may not be in URL
+    await expect(page.locator('[data-testid="clinic-card"]').first()).toBeVisible();
+  });
+
+  test('sorts clinics Z-A', async ({ page }) => {
+    // Wait for initial load
+    await expect(page.locator('[data-testid="clinic-card"]').first()).toBeVisible();
+
+    const sortDropdown = page.locator('[data-testid="sort-dropdown"]');
+    await sortDropdown.click();
+    await page.getByRole('option', { name: 'Z-A' }).click();
+
+    await expect(page).toHaveURL(/sort=Z-A/);
+
+    // Verify clinic cards are still visible after sorting
     await expect(page.locator('[data-testid="clinic-card"]').first()).toBeVisible();
   });
 

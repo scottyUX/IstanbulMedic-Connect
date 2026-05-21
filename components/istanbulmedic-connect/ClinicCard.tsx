@@ -7,10 +7,7 @@ import { Merriweather } from "next/font/google"
 
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  SpecialtyTag,
-  TAG_VARIANT_SEQUENCE,
-} from "@/components/ui/specialty-tag"
+// import { SpecialtyTag, TAG_VARIANT_SEQUENCE } from "@/components/ui/specialty-tag" // re-enable with tags section
 import { cn } from "@/lib/utils"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
 import { useAuth } from "@/contexts/AuthContext"
@@ -91,7 +88,7 @@ export const ClinicCard = ({
       onClick={onViewProfile}
       data-testid="clinic-card"
     >
-      <CardContent className="p-6">
+      <CardContent className="p-6 flex flex-col flex-1">
         {/* Image Section */}
         <div className="relative w-full overflow-hidden rounded-[16px] aspect-[4/3] sm:aspect-[3/2] lg:aspect-[16/9]">
           {image ? (
@@ -123,25 +120,23 @@ export const ClinicCard = ({
           )}
         </div>
 
-      {/* Tags Section */}
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        {specialties.slice(0, 4).map((specialty, index) => {
-          const variant = TAG_VARIANT_SEQUENCE[index % TAG_VARIANT_SEQUENCE.length]
-          return (
-            <SpecialtyTag
-              key={`${specialty}-${index}`}
-              label={specialty}
-              variant={variant}
-            />
-          )
-        })}
-      </div>
+      {/*
+        * Specialty tags hidden until multiple clinic types are supported.
+        * Re-enable when clinics beyond hair transplant are added to the platform.
+        *
+        * <div className="mt-5 flex flex-wrap items-center gap-2">
+        *   {specialties.slice(0, 4).map((specialty, index) => {
+        *     const variant = TAG_VARIANT_SEQUENCE[index % TAG_VARIANT_SEQUENCE.length]
+        *     return <SpecialtyTag key={`${specialty}-${index}`} label={specialty} variant={variant} />
+        *   })}
+        * </div>
+        */}
 
       {/* Clinic Name (Headline) */}
       <h3
         className={cn(
           merriweather.className,
-          "mt-4 block font-bold text-foreground leading-[140%] text-2xl line-clamp-2"
+          "mt-4 block font-bold text-foreground leading-[140%] text-2xl line-clamp-2 min-h-[4.2rem]"
         )}
       >
         {name}

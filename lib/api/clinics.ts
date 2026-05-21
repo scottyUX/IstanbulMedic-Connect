@@ -25,7 +25,8 @@ type ClinicReviewRow = Tables<'clinic_reviews'>;
 type ClinicScoreComponentRow = Tables<'clinic_score_components'>;
 
 export type ClinicSortOption =
-  | 'Alphabetical'
+  | 'A-Z'
+  | 'Z-A'
   | 'Best Match'
   | 'Highest Rated'
   | 'Lowest Rated'
@@ -516,8 +517,11 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
   // Apply sort for non-view sorts
   if (!needsViewSort) {
     switch (sort) {
-      case 'Alphabetical':
+      case 'A-Z':
         queryBuilder = queryBuilder.order('display_name', { ascending: true });
+        break;
+      case 'Z-A':
+        queryBuilder = queryBuilder.order('display_name', { ascending: false });
         break;
       case 'Price: Low to High':
         queryBuilder = queryBuilder.order('display_name', { ascending: true });

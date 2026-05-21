@@ -143,7 +143,7 @@ export const ExploreClinicsPage = ({
                 className="text-4xl font-bold leading-tight text-[#0D1E32] lg:text-6xl"
                 style={{ fontFamily: "var(--im-font-heading), serif" }}
               >
-                Connect with a Trusted Hair Transplant Clinic
+                Connect with a Trusted Hair <span className="whitespace-nowrap">Transplant Clinic</span>
               </h1>
               <p className="mt-4 text-xl text-muted-foreground max-w-3xl">
                 We know how overwhelming it can be to choose the right clinic for your hair transplant. That’s why we’re here to take the stress away—connecting you with qualified clinics in seconds, completely free and with no obligations.

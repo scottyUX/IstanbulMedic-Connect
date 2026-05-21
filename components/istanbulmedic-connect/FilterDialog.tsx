@@ -19,32 +19,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RangeValueDisplay } from "@/components/ui/range-value-display"
 import { Separator } from "@/components/ui/separator"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-
+import { cn } from "@/lib/utils"
 import { FILTER_CONFIG } from "@/lib/filterConfig"
 import type { FilterState, TreatmentType, Language, Accreditation } from "./types"
-
-// Rating filter options
-const RATING_OPTIONS = [
-    { value: "any", label: "Any" },
-    { value: "4.0", label: "4.0+" },
-    { value: "4.5", label: "4.5+" },
-    { value: "4.8", label: "4.8+" },
-] as const
-
-// Review count filter options
-const REVIEW_OPTIONS = [
-    { value: "any", label: "Any" },
-    { value: "10", label: "10+" },
-    { value: "50", label: "50+" },
-    { value: "200", label: "200+" },
-] as const
 
 interface FilterDialogProps {
     filters: FilterState
@@ -137,30 +114,39 @@ export function FilterDialog({
                         {FILTER_CONFIG.minRating && (
                             <>
                                 <section>
-                                    <h3 className="im-heading-4 mb-2">Minimum Rating</h3>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="im-heading-4">Minimum Rating</h3>
+                                        <span
+                                            data-testid="rating-filter"
+                                            className={cn(
+                                                "text-sm font-semibold px-3 py-0.5 rounded-full transition-colors",
+                                                localFilters.minRating == null
+                                                    ? "bg-muted text-muted-foreground"
+                                                    : "bg-[var(--im-color-primary)] text-white"
+                                            )}
+                                        >
+                                            {localFilters.minRating == null ? "Any" : `${localFilters.minRating.toFixed(1)}+`}
+                                        </span>
+                                    </div>
                                     <p className="im-text-body-xs im-text-muted mb-4">
                                         Filter clinics by their Google rating.
                                     </p>
-                                    <Select
-                                        value={localFilters.minRating != null ? localFilters.minRating.toFixed(1) : "any"}
-                                        onValueChange={(val) =>
-                                            setLocalFilters({
-                                                ...localFilters,
-                                                minRating: val === "any" ? null : parseFloat(val),
-                                            })
-                                        }
-                                    >
-                                        <SelectTrigger className="w-full sm:w-[200px]" data-testid="rating-filter">
-                                            <SelectValue placeholder="Any rating" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {RATING_OPTIONS.map((opt) => (
-                                                <SelectItem key={opt.value} value={opt.value} data-testid={`rating-option-${opt.value}`}>
-                                                    {opt.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="px-2">
+                                        <Slider
+                                            value={[localFilters.minRating ?? 0]}
+                                            min={0}
+                                            max={5}
+                                            step={0.1}
+                                            onValueChange={([val]) =>
+                                                setLocalFilters({ ...localFilters, minRating: val === 0 ? null : val })
+                                            }
+                                            className="w-full py-4"
+                                        />
+                                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                            <span>Any</span>
+                                            <span>5.0</span>
+                                        </div>
+                                    </div>
                                 </section>
                                 <Separator />
                             </>
@@ -170,30 +156,38 @@ export function FilterDialog({
                         {FILTER_CONFIG.minReviews && (
                             <>
                                 <section>
-                                    <h3 className="im-heading-4 mb-2">Minimum Reviews</h3>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="im-heading-4">Minimum Reviews</h3>
+                                        <span
+                                            className={cn(
+                                                "text-sm font-semibold px-3 py-0.5 rounded-full transition-colors",
+                                                localFilters.minReviews == null
+                                                    ? "bg-muted text-muted-foreground"
+                                                    : "bg-[var(--im-color-primary)] text-white"
+                                            )}
+                                        >
+                                            {localFilters.minReviews == null ? "Any" : `${localFilters.minReviews}+`}
+                                        </span>
+                                    </div>
                                     <p className="im-text-body-xs im-text-muted mb-4">
                                         Filter clinics by number of reviews.
                                     </p>
-                                    <Select
-                                        value={localFilters.minReviews?.toString() ?? "any"}
-                                        onValueChange={(val) =>
-                                            setLocalFilters({
-                                                ...localFilters,
-                                                minReviews: val === "any" ? null : parseInt(val, 10),
-                                            })
-                                        }
-                                    >
-                                        <SelectTrigger className="w-full sm:w-[200px]">
-                                            <SelectValue placeholder="Any number" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {REVIEW_OPTIONS.map((opt) => (
-                                                <SelectItem key={opt.value} value={opt.value}>
-                                                    {opt.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="px-2">
+                                        <Slider
+                                            value={[localFilters.minReviews ?? 0]}
+                                            min={0}
+                                            max={500}
+                                            step={10}
+                                            onValueChange={([val]) =>
+                                                setLocalFilters({ ...localFilters, minReviews: val === 0 ? null : val })
+                                            }
+                                            className="w-full py-4"
+                                        />
+                                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                            <span>Any</span>
+                                            <span>500+</span>
+                                        </div>
+                                    </div>
                                 </section>
                                 <Separator />
                             </>

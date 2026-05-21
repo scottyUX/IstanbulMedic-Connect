@@ -59,7 +59,7 @@ const parseSort = (value?: string | string[]): ClinicSortOption => {
     return raw as ClinicSortOption
   }
 
-  return "Alphabetical"
+  return "A-Z"
 }
 
 const buildFilters = (searchParams?: { [key: string]: string | string[] | undefined }) => {

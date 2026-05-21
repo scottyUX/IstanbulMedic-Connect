@@ -38,7 +38,8 @@ export type FilterConfigKey = keyof typeof FILTER_CONFIG;
  * Enable sort options as backend support becomes available.
  */
 export const SORT_CONFIG = {
-  'Alphabetical': true,
+  'A-Z': true,
+  'Z-A': true,
   'Highest Rated': true,
   'Lowest Rated': true,
 

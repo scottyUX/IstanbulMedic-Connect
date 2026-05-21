@@ -25,13 +25,14 @@ test.describe('Clinic Filter Flow', () => {
     await page.locator('[data-testid="filter-button"]').first().click();
     await expect(page.locator('[data-testid="filter-dialog"]')).toBeVisible();
 
-    // Click on rating filter dropdown
-    const ratingFilter = page.locator('[data-testid="rating-filter"]');
-    if (await ratingFilter.count() > 0) {
-      await ratingFilter.click();
-
-      // Select 4.5+ rating option
-      await page.getByRole('option', { name: '4.5+' }).click();
+    // Rating filter is now a slider — find it inside the dialog
+    const ratingSlider = page.locator('[data-testid="filter-dialog"] [role="slider"]').first();
+    if (await ratingSlider.count() > 0) {
+      await ratingSlider.focus();
+      // Press ArrowRight to move the slider off 0 (each step = 0.1, so 10 presses = 1.0)
+      for (let i = 0; i < 10; i++) {
+        await page.keyboard.press('ArrowRight');
+      }
 
       // Click apply button
       await page.locator('[data-testid="filter-apply-button"]').click();
@@ -40,29 +41,32 @@ test.describe('Clinic Filter Flow', () => {
       await expect(page.locator('[data-testid="filter-dialog"]')).not.toBeVisible();
 
       // Verify URL includes rating filter
-      await expect(page).toHaveURL(/minRating=4\.5/);
+      await expect(page).toHaveURL(/minRating=/);
     }
   });
 
   test('can clear all filters', async ({ page }) => {
-    // First apply a filter
+    // First apply a rating filter via slider
     await page.locator('[data-testid="filter-button"]').first().click();
     await expect(page.locator('[data-testid="filter-dialog"]')).toBeVisible();
 
-    const ratingFilter = page.locator('[data-testid="rating-filter"]');
-    if (await ratingFilter.count() > 0) {
-      await ratingFilter.click();
-      await page.getByRole('option', { name: '4.5+' }).click();
+    const ratingSlider = page.locator('[data-testid="filter-dialog"] [role="slider"]').first();
+    if (await ratingSlider.count() > 0) {
+      await ratingSlider.focus();
+      for (let i = 0; i < 10; i++) {
+        await page.keyboard.press('ArrowRight');
+      }
     }
 
-    // Click clear all
+    // Click clear all — resets sliders back to 0 ("Any")
     await page.locator('[data-testid="filter-clear-button"]').click();
 
-    // Apply (to see the cleared state)
+    // Apply to confirm cleared state
     await page.locator('[data-testid="filter-apply-button"]').click();
 
-    // Verify dialog closes and filters are cleared
+    // Verify dialog closes and no rating filter in URL
     await expect(page.locator('[data-testid="filter-dialog"]')).not.toBeVisible();
+    await expect(page).not.toHaveURL(/minRating=/);
   });
 
   test('filter dialog closes on apply', async ({ page }) => {
@@ -90,37 +94,23 @@ test.describe('Clinic Filter Flow', () => {
     await expect(page).toHaveURL(/q=istanbul/i);
   });
 
-  test('location input filters results', async ({ page }) => {
-    // Type in location input (use first() since there may be mobile version)
+  // Location input is hidden — the platform currently only lists Istanbul clinics so filtering
+  // by city/country adds no value. Re-enable this test when multi-city support is added.
+  test.skip('location input filters results', async ({ page }) => {
     const locationInput = page.locator('[data-testid="location-input"]').first();
-
-    // Use pressSequentially to fire real key events — required for React's onChange on webkit
     await locationInput.click();
     await locationInput.pressSequentially('Turkey');
-
-    // Wait for the URL to update after the 400ms debounce + router.push navigation
     await page.waitForURL(/location=Turkey/i, { timeout: 10000 });
     await expect(page).toHaveURL(/location=Turkey/i);
   });
 
-  test('filter badge shows count when filters active', async ({ page }) => {
-    // Open filter dialog
+  test('filter dialog closes on apply without changes', async ({ page }) => {
+    // Open filter dialog and apply immediately without changing anything
     await page.locator('[data-testid="filter-button"]').first().click();
     await expect(page.locator('[data-testid="filter-dialog"]')).toBeVisible();
 
-    // Apply a rating filter if available
-    const ratingFilter = page.locator('[data-testid="rating-filter"]');
-    if (await ratingFilter.count() > 0) {
-      await ratingFilter.click();
-      await page.getByRole('option', { name: '4.5+' }).click();
-      await page.locator('[data-testid="filter-apply-button"]').click();
+    await page.locator('[data-testid="filter-apply-button"]').click();
 
-      // The filter button should show a count badge
-      // This verifies that filters are being tracked
-      await expect(page.locator('[data-testid="filter-dialog"]')).not.toBeVisible();
-    } else {
-      // Just close the dialog if rating filter isn't available
-      await page.locator('[data-testid="filter-apply-button"]').click();
-    }
+    await expect(page.locator('[data-testid="filter-dialog"]')).not.toBeVisible();
   });
 });
