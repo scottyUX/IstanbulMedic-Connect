@@ -86,10 +86,17 @@ function ForumBullet({ count, label }: { count: number; label: string }) {
 
 // ── Reddit section ─────────────────────────────────────────────────────────
 
-function RedditSection({ reddit, loading }: { reddit: RedditSignals | null; loading: boolean }) {
+function RedditSection({ reddit, loading, score }: { reddit: RedditSignals | null; loading: boolean; score: number | null }) {
   return (
     <div className="space-y-2">
-      <SectionHeader>Reddit</SectionHeader>
+      <div className="flex items-center justify-between">
+        <SectionHeader>Reddit</SectionHeader>
+        {score != null && (
+          <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-orange-700">
+            {score.toFixed(1)}/10
+          </span>
+        )}
+      </div>
 
       {loading ? (
         <span className="text-xs text-muted-foreground">—</span>
@@ -131,10 +138,17 @@ function RedditSection({ reddit, loading }: { reddit: RedditSignals | null; load
 
 // ── HRN section ───────────────────────────────────────────────────────────
 
-function HRNSection({ hrn, loading }: { hrn: HRNSignalsData | null; loading: boolean }) {
+function HRNSection({ hrn, loading, score }: { hrn: HRNSignalsData | null; loading: boolean; score: number | null }) {
   return (
     <div className="space-y-2">
-      <SectionHeader>Hair Restoration Network</SectionHeader>
+      <div className="flex items-center justify-between">
+        <SectionHeader>Hair Restoration Network</SectionHeader>
+        {score != null && (
+          <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-teal-700">
+            {score.toFixed(1)}/10
+          </span>
+        )}
+      </div>
 
       {loading ? (
         <span className="text-xs text-muted-foreground">—</span>
@@ -318,7 +332,14 @@ export function AllSourcesView({ clinic, onDeselect, accentClass }: AllSourcesVi
 
       {/* ── Google Places ─────────────────────────────────────── */}
       <div className="space-y-1">
-        <SectionHeader>Google Places</SectionHeader>
+        <div className="flex items-center justify-between">
+          <SectionHeader>Google Places</SectionHeader>
+          {clinic.googleScore != null && (
+            <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-yellow-700">
+              {clinic.googleScore.toFixed(1)}/10
+            </span>
+          )}
+        </div>
         {typeof clinic.rating === "number" ? (
           <div className="flex items-center gap-1.5">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -347,14 +368,21 @@ export function AllSourcesView({ clinic, onDeselect, accentClass }: AllSourcesVi
       </div>
 
       {/* ── Reddit ────────────────────────────────────────────── */}
-      <RedditSection reddit={signals?.reddit ?? null} loading={loading} />
+      <RedditSection reddit={signals?.reddit ?? null} loading={loading} score={clinic.redditScore ?? null} />
 
       {/* ── HRN ───────────────────────────────────────────────── */}
-      <HRNSection hrn={signals?.hrn ?? null} loading={loading} />
+      <HRNSection hrn={signals?.hrn ?? null} loading={loading} score={clinic.hrnScore ?? null} />
 
       {/* ── Instagram ─────────────────────────────────────────── */}
       <div className="space-y-1">
-        <SectionHeader>Instagram</SectionHeader>
+        <div className="flex items-center justify-between">
+          <SectionHeader>Instagram</SectionHeader>
+          {clinic.instagramScore != null && (
+            <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-fuchsia-700">
+              {clinic.instagramScore.toFixed(1)}/10
+            </span>
+          )}
+        </div>
         {loading ? (
           <span className="text-xs text-muted-foreground">—</span>
         ) : signals?.instagram ? (

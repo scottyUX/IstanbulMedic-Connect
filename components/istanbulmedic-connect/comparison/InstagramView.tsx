@@ -65,7 +65,12 @@ export function InstagramView({ clinic, onDeselect, accentClass }: InstagramView
           Instagram Score
         </p>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold tabular-nums text-muted-foreground/40">—</span>
+          <span className={cn(
+            "text-3xl font-bold tabular-nums",
+            clinic.instagramScore != null ? accentClass : "text-muted-foreground/40"
+          )}>
+            {clinic.instagramScore != null ? clinic.instagramScore.toFixed(1) : "—"}
+          </span>
           <span className="text-sm text-muted-foreground">/ 10</span>
           {!loading && engInfo && (
             <span className={cn("ml-auto text-xs font-medium", engInfo.colorClass)}>{engInfo.label}</span>

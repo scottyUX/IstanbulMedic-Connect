@@ -76,14 +76,14 @@ export function HRNView({ clinic, onDeselect, accentClass }: HRNViewProps) {
         </div>
       </div>
 
-      {/* HRN Score */}
+      {/* HRN Score — from clinic_source_scores.summary_score */}
       <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
         <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           HRN Score
         </p>
         <div className="flex items-baseline gap-2">
-          <span className={cn("text-3xl font-bold tabular-nums", hrn?.hrnScore !== undefined ? accentClass : "text-muted-foreground/40")}>
-            {hrn?.hrnScore !== undefined ? hrn.hrnScore.toFixed(1) : "—"}
+          <span className={cn("text-3xl font-bold tabular-nums", clinic.hrnScore != null ? accentClass : "text-muted-foreground/40")}>
+            {clinic.hrnScore != null ? clinic.hrnScore.toFixed(1) : "—"}
           </span>
           <span className="text-sm text-muted-foreground">/ 10</span>
           <Popover>
@@ -105,11 +105,6 @@ export function HRNView({ clinic, onDeselect, accentClass }: HRNViewProps) {
               </p>
             </PopoverContent>
           </Popover>
-          {hrn?.hrnScoreBreakdown?.confidenceTier === "low" && (
-            <span className="ml-auto rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700">
-              Low confidence
-            </span>
-          )}
         </div>
       </div>
 

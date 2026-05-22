@@ -69,8 +69,10 @@ export interface ClinicListItem {
   rating?: number;
   reviewCount?: number;
   aiInsight?: string;
+  googleScore?: number | null;
   redditScore?: number | null;
   hrnScore?: number | null;
+  instagramScore?: number | null;
 }
 
 export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
@@ -745,29 +747,42 @@ export async function getClinicCities(): Promise<string[]> {
 
 /**
  * Fetches per-source scores for a list of clinics (used by comparison pages).
- * Returns a map of clinicId → { instagram, reddit, hrn }.
+ * Reads from clinic_source_scores (summary_score 0–100) and converts to 0–10.
+ * Returns a map of clinicId → { googleScore, redditScore, hrnScore, instagramScore }.
  */
 export async function getClinicSourceScores(
   clinicIds: string[]
-): Promise<Map<string, { redditScore: number | null; hrnScore: number | null }>> {
+): Promise<Map<string, { googleScore: number | null; redditScore: number | null; hrnScore: number | null; instagramScore: number | null }>> {
   if (clinicIds.length === 0) return new Map()
 
   const supabase = await createClient()
 
-  const { data } = await supabase
-    .from('clinic_forum_profiles')
-    .select('clinic_id, score, forum_source')
+  const { data, error } = await supabase
+    .from('clinic_source_scores')
+    .select('clinic_id, source_name, summary_score')
     .in('clinic_id', clinicIds)
-    .in('forum_source', ['reddit', 'hrn'])
+    .in('source_name', ['google', 'reddit', 'hrn', 'instagram'])
+    .eq('is_current', true)
 
-  const result = new Map<string, { redditScore: number | null; hrnScore: number | null }>()
-  for (const id of clinicIds) result.set(id, { redditScore: null, hrnScore: null })
+  if (error) {
+    console.error('[getClinicSourceScores] query failed:', error.message)
+    // Return all-null map rather than crashing the page
+  }
+
+  const result = new Map<string, { googleScore: number | null; redditScore: number | null; hrnScore: number | null; instagramScore: number | null }>()
+  for (const id of clinicIds) result.set(id, { googleScore: null, redditScore: null, hrnScore: null, instagramScore: null })
 
   for (const row of data ?? []) {
     const entry = result.get(row.clinic_id)
     if (!entry) continue
-    if (row.forum_source === 'reddit') entry.redditScore = row.score ?? null
-    if (row.forum_source === 'hrn') entry.hrnScore = row.score ?? null
+    // summary_score is 0–100; divide by 10 for consistent /10 display.
+    // Treat 0 as null (placeholder row, no real data) so the UI shows — instead of 0.0.
+    if (row.summary_score === 0) continue
+    const score = row.summary_score / 10
+    if (row.source_name === 'google')    entry.googleScore    = score
+    if (row.source_name === 'reddit')    entry.redditScore    = score
+    if (row.source_name === 'hrn')       entry.hrnScore       = score
+    if (row.source_name === 'instagram') entry.instagramScore = score
   }
 
   return result

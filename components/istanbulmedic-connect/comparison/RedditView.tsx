@@ -72,14 +72,14 @@ export function RedditView({ clinic, onDeselect, accentClass }: RedditViewProps)
         </div>
       </div>
 
-      {/* Reddit Score */}
+      {/* Reddit Score — from clinic_source_scores.summary_score */}
       <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
         <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Reddit Score
         </p>
         <div className="flex items-baseline gap-2">
-          <span className={cn("text-3xl font-bold tabular-nums", loading || !reddit?.score ? "text-muted-foreground/40" : accentClass)}>
-            {loading ? "—" : reddit?.score != null ? reddit.score.toFixed(1) : "—"}
+          <span className={cn("text-3xl font-bold tabular-nums", clinic.redditScore != null ? accentClass : "text-muted-foreground/40")}>
+            {clinic.redditScore != null ? clinic.redditScore.toFixed(1) : "—"}
           </span>
           <span className="text-sm text-muted-foreground">/ 10</span>
           <Popover>

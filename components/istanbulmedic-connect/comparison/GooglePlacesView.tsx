@@ -99,6 +99,19 @@ export function GooglePlacesView({ clinic, onDeselect, accentClass }: GooglePlac
         </div>
       </div>
 
+      {/* Google Score — from clinic_source_scores.summary_score */}
+      <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Google Score
+        </p>
+        <div className="flex items-baseline gap-2">
+          <span className={cn("text-3xl font-bold tabular-nums", clinic.googleScore != null ? accentClass : "text-muted-foreground/40")}>
+            {clinic.googleScore != null ? clinic.googleScore.toFixed(1) : "—"}
+          </span>
+          <span className="text-sm text-muted-foreground">/ 10</span>
+        </div>
+      </div>
+
       {/* Rating summary */}
       <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

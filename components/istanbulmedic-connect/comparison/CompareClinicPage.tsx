@@ -85,15 +85,15 @@ function ClinicRow({
         </div>
         {(() => {
           const score =
-            source === "google_places" ? (clinic.rating ?? null) :
-            source === "instagram"     ? null :
+            source === "google_places" ? (clinic.googleScore    ?? null) :
+            source === "instagram"     ? (clinic.instagramScore ?? null) :
             source === "reddit"        ? (clinic.redditScore    ?? null) :
             source === "hrn"           ? (process.env.NEXT_PUBLIC_USE_MOCK_HRN === "true"
                 ? getMockHRNSignals(clinic.id, clinic.name)?.hrnScore ?? null
                 : clinic.hrnScore ?? null) :
             (clinic.trustScore > 0 ? clinic.trustScore / 10 : null)
 
-          const denom = source === "google_places" ? "/5" : "/10"
+          const denom = "/10"
 
           const colorClass =
             source === "google_places" ? "bg-yellow-50 text-yellow-700" :
@@ -202,12 +202,13 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
 
   const sortedClinics = useMemo(() => {
     const sorted = [...clinics]
-    if (sortBy === "Alphabetical" || source === "instagram") {
+    if (sortBy === "Alphabetical") {
       sorted.sort((a, b) => a.name.localeCompare(b.name))
     } else {
       const getScore = (c: ClinicListItem): number => {
-        if (source === "google_places") return c.rating ?? 0
-        if (source === "reddit")        return c.redditScore ?? 0
+        if (source === "google_places") return c.googleScore    ?? 0
+        if (source === "instagram")     return c.instagramScore ?? 0
+        if (source === "reddit")        return c.redditScore    ?? 0
         if (source === "hrn")           return (
           process.env.NEXT_PUBLIC_USE_MOCK_HRN === "true"
             ? getMockHRNSignals(c.id, c.name)?.hrnScore ?? 0
