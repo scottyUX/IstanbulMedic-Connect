@@ -86,7 +86,6 @@ export default function ProfileDashboard() {
 
   useEffect(() => {
     const section = searchParams.get('section') as DashboardSection | null
-    if (section && NAV.some(n => n.id === section)) setActive(section)
     if (section) {
       const url = new URL(window.location.href)
       url.searchParams.delete('section')
@@ -96,10 +95,13 @@ export default function ProfileDashboard() {
 
   useEffect(() => {
     if (consultationResult) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBannerResult(consultationResult)
       clearConsultationResult()
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActive('consultations')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consultationResult])
 
   useEffect(() => {

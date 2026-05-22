@@ -3,7 +3,6 @@
 import { CheckCircle2 } from "lucide-react"
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { StatBlock } from "@/components/ui/stat-block"
 
 interface TransparencyItem {

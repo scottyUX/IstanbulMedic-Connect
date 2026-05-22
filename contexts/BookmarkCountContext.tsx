@@ -47,6 +47,7 @@ export function BookmarkCountProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (!isAuthenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBookmarkedIds(lsLoad())
       return
     }
