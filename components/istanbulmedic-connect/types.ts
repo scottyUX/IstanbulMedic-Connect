@@ -12,6 +12,7 @@ export interface Clinic {
   rating?: number
   reviewCount?: number
   aiInsight?: string
+  isMinistryVerified?: boolean
 }
 
 export type Language = "English" | "Turkish" | "Arabic" | "German"
