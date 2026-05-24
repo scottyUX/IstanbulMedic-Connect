@@ -113,6 +113,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
       record.source === "turkish_ministry_of_health" &&
       record.license_status === "active"
   )
+  const hasActiveMOHRecord = isMinistryVerified
 
   // Build AI insights from score components (no fake defaults)
   const aiInsights = clinic.scoreComponents.map((sc) => sc.explanation)
@@ -315,7 +316,7 @@ const communitySignals = {
               scoreComponents={clinic.scoreComponents}
               sourceScores={clinic.sourceScores}
             />
-            {FEATURE_CONFIG.profileRegistry && (
+            {FEATURE_CONFIG.profileRegistry && !hasActiveMOHRecord && (
               <RegistrySection
                 registryRecords={registryRecords}
                 complianceHistory={complianceHistory}
