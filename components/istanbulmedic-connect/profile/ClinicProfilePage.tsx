@@ -26,6 +26,7 @@ import {
 } from "@/lib/transformers/clinic"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
 import type { RegistryRecord, ComplianceEvent } from "./RegistrySection"
+import { RegistrySection } from "./RegistrySection"
 
 type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
 type CommunitySentiment = "Positive" | "Neutral" | "Negative"
@@ -49,7 +50,7 @@ const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
 }
 
 
-export const ClinicProfilePage = ({ clinic, registryRecords }: ClinicProfilePageProps) => {
+export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }: ClinicProfilePageProps) => {
   // Transform database data to component format
 
   // Get languages from clinic_languages
