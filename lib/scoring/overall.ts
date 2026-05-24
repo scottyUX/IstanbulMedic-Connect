@@ -5,10 +5,10 @@
 //   overall_score = 0.60 * reputation_score + 0.40 * evidence_transparency_score
 //
 // Bands:
-//   A = 81–100
-//   B = 61–80
-//   C = 41–60
-//   D = 0–40
+//   A = 70–100
+//   B = 60–69
+//   C = 40–59
+//   D = 0–39
 
 export type ScoreBand = "A" | "B" | "C" | "D";
 

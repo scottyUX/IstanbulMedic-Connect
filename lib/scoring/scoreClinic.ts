@@ -17,7 +17,7 @@ import { computeReputationScore } from "./pillars/reputation";
 import { computeEvidenceTransparencyScore } from "./pillars/evidenceTransparency";
 import { computeOverallScore } from "./overall";
 
-const SCORE_VERSION = "v1.5";
+const SCORE_VERSION = "v1.0";
 
 export async function scoreClinic(
   supabase: SupabaseClient,
@@ -255,11 +255,9 @@ export async function scoreClinic(
   }
 
   // --- clinic_score_components (pillars) ---
-  await supabase.from("clinic_score_components").delete().eq("clinic_id", clinicId);
-
   const { error: componentsError } = await supabase
     .from("clinic_score_components")
-    .insert([
+    .upsert([
       {
         clinic_id:     clinicId,
         component_key: "reputation",
@@ -274,9 +272,9 @@ export async function scoreClinic(
         weight:        overall.evidence_transparency_weight,
         explanation:   "",
       },
-    ]);
-
-  if (componentsError) throw new Error(`Components insert failed: ${componentsError.message}`);
+    ], { onConflict: "clinic_id,component_key" });
+ 
+  if (componentsError) throw new Error(`Components upsert failed: ${componentsError.message}`);
 
   // --- clinic_scores (overall) ---
   const { error: overallError } = await supabase

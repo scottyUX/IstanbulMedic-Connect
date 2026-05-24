@@ -51,10 +51,21 @@ function computeRepairPenalty(repairMentions: number, totalThreads: number): num
   return Math.round(Math.min(adjusted * 200, 100));
 }
 
+/**
+ * Detect missing sentiment data.
+ * Missing = null sentiment OR very low confidence (< 0.3) OR no mentions at all.
+ * A confident zero is genuine neutral sentiment, not missing data.
+ */
+function isSentimentMissing(data: RedditRawData): boolean {
+  if (data.sentiment_score === null) return true;
+  if ((data.confidence_score ?? 0) < 0.3) return true;
+  if (data.mention_count === 0) return true;
+  return false;
+}
+
 export function computeRedditMetrics(data: RedditRawData): RedditMetrics {
-  const sentimentMissing = data.sentiment_score === 0 && (data.confidence_score ?? 0) > 0.8;
   return {
-    reddit_sentiment_score: sentimentMissing ? 50 : normalizeSentiment(data.sentiment_score),
+    reddit_sentiment_score:     isSentimentMissing(data) ? 50 : normalizeSentiment(data.sentiment_score),
     reddit_caution_penalty:     computeRepairPenalty(data.repair_mention_count, data.thread_count),
     reddit_volume_score:        normalizeCount(data.thread_count),
     reddit_unique_voices_score: normalizeCount(data.unique_authors_count ?? 0),
