@@ -25,7 +25,6 @@ import {
   type OpeningHoursJson,
 } from "@/lib/transformers/clinic"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
-import { RegistrySection } from "./RegistrySection"
 import type { RegistryRecord, ComplianceEvent } from "./RegistrySection"
 
 type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
@@ -50,7 +49,7 @@ const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
 }
 
 
-export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }: ClinicProfilePageProps) => {
+export const ClinicProfilePage = ({ clinic, registryRecords }: ClinicProfilePageProps) => {
   // Transform database data to component format
 
   // Get languages from clinic_languages
@@ -107,6 +106,12 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
     })
     .map((m) => m.url)
   const heroImages = imageMedia
+
+  const isMinistryVerified = registryRecords.some(
+    (record) =>
+      record.source === "turkish_ministry_of_health" &&
+      record.license_status === "active"
+  )
 
   // Build AI insights from score components (no fake defaults)
   const aiInsights = clinic.scoreComponents.map((sc) => sc.explanation)
@@ -253,6 +258,7 @@ const communitySignals = {
         transparencyScore={clinic.trustScore}
         rating={clinic.rating ?? null}
         reviewCount={clinic.totalReviewCount}
+        isMinistryVerified={isMinistryVerified}
       />
 
       {/* Section Navigation */}
