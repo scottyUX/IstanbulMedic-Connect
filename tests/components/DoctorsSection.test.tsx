@@ -92,11 +92,10 @@ describe('DoctorsSection', () => {
     expect(screen.getByText('Dr. Mehmet Yilmaz')).toBeInTheDocument();
   });
 
-  it('renders placeholder when no photo', () => {
+  it('renders empty placeholder when no photo', () => {
     const doctors = [createDoctor({ name: 'Dr. Mehmet Yilmaz', photo: null })];
     render(<DoctorsSection doctors={doctors} />);
-    expect(screen.getByText('DM')).toBeInTheDocument();
-    expect(screen.getByText('No photo uploaded')).toBeInTheDocument();
+    expect(screen.queryByText('No photo uploaded')).not.toBeInTheDocument();
   });
 
   it('renders photo when provided', () => {
@@ -204,7 +203,7 @@ describe('DoctorsSection', () => {
       render(<DoctorsSection doctors={[]} />);
 
       expect(screen.getByTestId('doctors-not-disclosed')).toBeInTheDocument();
-      expect(screen.getByText(/has not publicly disclosed/i)).toBeInTheDocument();
+      expect(screen.getByText(/isn't available yet/i)).toBeInTheDocument();
     });
 
     it('mixed team renders State A when at least one member is verified', () => {

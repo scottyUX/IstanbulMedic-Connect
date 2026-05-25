@@ -67,12 +67,7 @@ export const DoctorCard = ({ doctor, className }: DoctorCardProps) => {
             className="object-cover object-top grayscale hover:grayscale-0 transition-all duration-500"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-muted/40 text-center">
-            <div>
-              <div className="text-3xl font-semibold text-foreground/80">{initials}</div>
-              <div className="mt-1 text-xs text-muted-foreground">No photo uploaded</div>
-            </div>
-          </div>
+          <div className="flex h-full w-full items-center justify-center bg-muted/40" />
         )}
       </div>
 

@@ -35,7 +35,7 @@ export const DoctorsSection = ({ doctors }: DoctorsSectionProps) => {
             className="rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center"
           >
             <p className="text-base text-muted-foreground">
-              This clinic has not publicly disclosed an operating surgeon. We
+              Doctor information for this clinic isn&apos;t available yet. We
               recommend asking the clinic directly before booking.
             </p>
           </div>
