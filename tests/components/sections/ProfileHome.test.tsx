@@ -106,12 +106,13 @@ describe('ProfileHome', () => {
     expect(screen.getByText('Consultations')).toBeInTheDocument()
   })
 
-  it('Consultations card shows "Coming soon" badge and is clickable', async () => {
+  it('Consultations card is visible and clickable', async () => {
     setupAuth()
     render(<ProfileHome onNavigate={vi.fn()} />)
-    await waitFor(() => screen.getByText('Coming soon'))
+    await waitFor(() => screen.getByText('Consultations'))
     const consultationsCard = screen.getByText('Consultations').closest('button')!
     expect(consultationsCard).not.toBeDisabled()
+    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
   })
 
   it('calls onNavigate when a card is clicked', async () => {
