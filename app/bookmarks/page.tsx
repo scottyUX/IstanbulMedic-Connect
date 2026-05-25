@@ -297,10 +297,18 @@ export default function BookmarksPage() {
                 {/* Actions */}
                 <div className="flex shrink-0 items-center gap-3">
                   {clinic.consultationRequested ? (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Check className="h-3.5 w-3.5 text-[#3EBBB7]" />
-                      Requested
-                    </span>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Check className="h-3.5 w-3.5 text-[#3EBBB7]" />
+                        Requested
+                      </span>
+                      <Link
+                        href="/profile?section=consultations"
+                        className="text-[10px] text-slate-400 hover:text-[#3EBBB7] hover:underline transition-colors"
+                      >
+                        Manage →
+                      </Link>
+                    </div>
                   ) : (
                     <button
                       type="button"

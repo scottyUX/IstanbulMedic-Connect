@@ -16,6 +16,7 @@ interface ConsultationConfirmModalProps {
   onOpenChange: (open: boolean) => void
   clinicName: string
   isRemoving: boolean
+  isCancelling?: boolean
   onConfirm: () => Promise<void>
 }
 
@@ -24,6 +25,7 @@ export function ConsultationConfirmModal({
   onOpenChange,
   clinicName,
   isRemoving,
+  isCancelling = false,
   onConfirm,
 }: ConsultationConfirmModalProps) {
   const [submitting, setSubmitting] = useState(false)
@@ -45,6 +47,12 @@ export function ConsultationConfirmModal({
     }
   }
 
+  const title = isRemoving ? "Remove Bookmark" : isCancelling ? "Cancel Request" : "Request Free Consultation"
+  const confirmLabel = submitting
+    ? isCancelling ? "Cancelling…" : "Requesting…"
+    : isRemoving ? "Remove" : isCancelling ? "Cancel Request" : "Request Consultation"
+  const dismissLabel = isCancelling ? "Keep Request" : "Cancel"
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -53,9 +61,7 @@ export function ConsultationConfirmModal({
         onPointerDownOutside={submitting ? (e) => e.preventDefault() : undefined}
       >
         <DialogHeader className="flex flex-row items-center justify-between space-y-0">
-          <DialogTitle>
-            {isRemoving ? "Remove Bookmark" : "Request Free Consultation"}
-          </DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogClose
             disabled={submitting}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-30"
@@ -69,6 +75,10 @@ export function ConsultationConfirmModal({
           {isRemoving ? (
             <p>
               Remove <span className="font-semibold text-foreground">{clinicName}</span> from your saved clinics?
+            </p>
+          ) : isCancelling ? (
+            <p>
+              Cancel your consultation request with <span className="font-semibold text-foreground">{clinicName}</span>? The team will be notified.
             </p>
           ) : (
             <>
@@ -89,15 +99,15 @@ export function ConsultationConfirmModal({
             disabled={submitting}
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {dismissLabel}
           </Button>
           <Button
-            variant={isRemoving ? "destructive" : "teal-primary"}
+            variant={isRemoving || isCancelling ? "destructive" : "teal-primary"}
             className="flex-1"
             disabled={submitting}
             onClick={handleConfirm}
           >
-            {submitting ? "Requesting…" : isRemoving ? "Remove" : "Request Consultation"}
+            {confirmLabel}
           </Button>
         </div>
       </DialogContent>

@@ -23,14 +23,19 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('consultations')
-    .select('clinic_id')
+    .select('id, clinic_id')
     .eq('user_id', userRow.id)
     .eq('status', 'pending')
 
   if (error) {
     console.error('GET /api/consultations/pending-ids error:', error)
-    return NextResponse.json({ pendingClinicIds: [] })
+    return NextResponse.json({ pendingClinicIds: [], pendingConsultations: {} })
   }
 
-  return NextResponse.json({ pendingClinicIds: (data ?? []).map((r) => r.clinic_id) })
+  const rows = data ?? []
+  const pendingClinicIds = rows.map((r) => r.clinic_id)
+  const pendingConsultations: Record<string, string> = {}
+  for (const r of rows) pendingConsultations[r.clinic_id] = r.id
+
+  return NextResponse.json({ pendingClinicIds, pendingConsultations })
 }
