@@ -29,6 +29,16 @@ describe('HeroSection', () => {
     expect(screen.getByText('Istanbul Hair Clinic')).toBeInTheDocument();
   });
 
+  it('renders Ministry of Health verification badge when verified', () => {
+    render(<HeroSection {...defaultProps} isMinistryVerified />);
+    expect(screen.getByText('Verified by Turkish Ministry of Health')).toBeInTheDocument();
+  });
+
+  it('does not render Ministry of Health verification badge by default', () => {
+    render(<HeroSection {...defaultProps} />);
+    expect(screen.queryByText('Verified by Turkish Ministry of Health')).not.toBeInTheDocument();
+  });
+
   it('renders location', () => {
     render(<HeroSection {...defaultProps} />);
     expect(screen.getByText('Istanbul, Turkey')).toBeInTheDocument();

@@ -23,6 +23,7 @@ type ClinicTeamRow = Tables<'clinic_team'>;
 type ClinicPackageRow = Tables<'clinic_packages'>;
 type ClinicReviewRow = Tables<'clinic_reviews'>;
 type ClinicScoreComponentRow = Tables<'clinic_score_components'>;
+type ClinicRegistryRecordRow = Tables<'clinic_registry_records'>;
 
 export type ClinicSortOption =
   | 'Alphabetical'
@@ -69,6 +70,7 @@ export interface ClinicListItem {
   rating?: number;
   reviewCount?: number;
   aiInsight?: string;
+  isMinistryVerified?: boolean;
 }
 
 export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
@@ -102,6 +104,21 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   /** Reddit community signals (null if no Reddit data exists) */
   redditSignals: ClinicForumProfile | null;
   techniques: string[] | null;
+  sourceScores: ClinicSourceScore[]
+}
+
+export interface ClinicSourceScore {
+  id: string
+  clinic_id: string
+  source_name: string
+  score_version: string
+  summary_score: number
+  confidence_score: number | null
+  metrics_json: Record<string, number>
+  breakdown_json: Record<string, unknown>
+  explanation: string | null
+  computed_at: string
+  is_current: boolean
 }
 
 const normalizeString = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -122,6 +139,7 @@ type ClinicMediaPartial = Pick<ClinicMediaRow, 'url' | 'is_primary' | 'display_o
 type ClinicFactPartial = Pick<ClinicFactRow, 'fact_key' | 'fact_value'>;
 type ClinicGooglePlacesPartial = Pick<ClinicGooglePlacesRow, 'rating' | 'user_ratings_total'>;
 type ClinicScrapedDataPartial = { description: string | null; techniques: string[] | null };
+type ClinicRegistryRecordPartial = Pick<ClinicRegistryRecordRow, 'source' | 'license_status'>;
 
 type ClinicListQueryRow = {
   id: string;
@@ -136,6 +154,7 @@ type ClinicListQueryRow = {
   clinic_facts?: ClinicFactPartial[] | null;
   clinic_google_places?: ClinicGooglePlacesPartial[] | ClinicGooglePlacesPartial | null;
   clinic_scraped_data?:  ClinicScrapedDataPartial | ClinicScrapedDataPartial[] | null;
+  clinic_registry_records?: ClinicRegistryRecordPartial[] | null;
 };
 
 const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
@@ -198,6 +217,15 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     ? clinic.clinic_scraped_data[0]
     : clinic.clinic_scraped_data;
 
+  const registryRecords = Array.isArray(clinic.clinic_registry_records)
+    ? clinic.clinic_registry_records
+    : [];
+  const isMinistryVerified = registryRecords.some(
+    (record) =>
+      record.source === 'turkish_ministry_of_health' &&
+      record.license_status === 'active'
+  );
+
   return {
     id: clinic.id,
     name: clinic.display_name,
@@ -212,6 +240,7 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
     rating: googlePlaces?.rating ?? undefined,
     reviewCount: googlePlaces?.user_ratings_total ?? undefined,
     aiInsight: undefined,
+    isMinistryVerified,
   };
 };
 
@@ -491,6 +520,10 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
         rating,
         user_ratings_total
       ),
+      clinic_registry_records (
+        source,
+        license_status
+      ),
       clinic_scraped_data!clinic_id (*)
     `,
       { count: needsViewSort ? undefined : 'exact' }
@@ -586,7 +619,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
       clinic_team (*),
       clinic_packages (*),
       clinic_reviews (*, sources (source_name, source_type)),
-      clinic_scraped_data!clinic_id (*)
+      clinic_scraped_data!clinic_id (*),
+      clinic_source_scores (*)
     `)
     .eq('id', clinicId)
     .single();
@@ -718,6 +752,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     hrnSignals,
     redditSignals,
     techniques: scrapedData?.techniques ?? null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sourceScores: ((clinic as any).clinic_source_scores as ClinicSourceScore[]) ?? [],
   };
 }
 
