@@ -5,8 +5,8 @@ import { Star, Trophy } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Select,
   SelectContent,
@@ -15,12 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Search, X } from "lucide-react"
-import { cn } from "@/lib/utils"
-import {
-  type ReviewSource,
-  REVIEW_SOURCE_ICON,
-  REVIEW_SOURCE_LABEL,
-} from "@/lib/review-sources"
+import { GoogleIcon } from "@/components/icons/GoogleIcon"
 
 export interface Review {
   author: string
@@ -28,7 +23,7 @@ export interface Review {
   date: string
   text: string
   verified: boolean
-  source: ReviewSource
+  source: string
 }
 
 interface ReviewsSectionProps {
@@ -66,6 +61,21 @@ export const sortReviews = (reviews: Review[], sortBy: SortOption): Review[] => 
   }
 }
 
+function StarBar({ stars, count, total }: { stars: number; count: number; total: number }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="flex w-14 shrink-0 items-center justify-end gap-0.5 text-muted-foreground">
+        {stars} <Star className="h-2.5 w-2.5 fill-[#FFD700] text-[#FFD700]" />
+      </span>
+      <div className="flex-1 rounded-full bg-muted/30 overflow-hidden h-2">
+        <div className="h-full rounded-full bg-[#FFD700]" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="w-8 text-right font-medium text-foreground">{pct}%</span>
+    </div>
+  )
+}
+
 export const ReviewsSection = ({
   averageRating,
   totalReviews,
@@ -75,16 +85,19 @@ export const ReviewsSection = ({
   const [modalSortBy, setModalSortBy] = useState<SortOption>("most_recent")
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Initial 4 reviews always sorted by most recent (for transparency)
   const initialReviewsSorted = sortReviews(reviews, "most_recent")
-  // Modal reviews: filter by search (text only), then sort
   const modalReviewsFiltered = searchQuery.trim()
     ? reviews.filter((r) => r.text.toLowerCase().includes(searchQuery.toLowerCase()))
     : reviews
   const modalReviewsSorted = sortReviews(modalReviewsFiltered, modalSortBy)
 
-  // Get unique sources present in reviews
-  const uniqueSources = Array.from(new Set(reviews.map(r => r.source)))
+  const starCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  for (const r of reviews) {
+    const s = Math.round(r.rating)
+    if (s >= 1 && s <= 5) starCounts[s]++
+  }
+
+  const isPatientFavorite = averageRating !== null && averageRating >= 4.5 && totalReviews >= 5
 
   const toggleReviewExpanded = (reviewKey: string) => {
     setExpandedReviews(prev => {
@@ -108,183 +121,139 @@ export const ReviewsSection = ({
     return { text: text.slice(0, REVIEW_TRUNCATE_LENGTH) + "...", isTruncated: true }
   }
 
+  const visibleReviews = initialReviewsSorted.slice(0, 4)
+
   return (
-    <div id="reviews" className="py-8 border-t border-border/60 scroll-mt-32">
-      {/* Rating Header */}
-      <div className="flex flex-col items-center justify-center text-center mb-16 pt-4">
-        <div className="flex items-center justify-center mb-4 relative">
-          <span className="text-[8rem] font-bold leading-none tracking-tighter text-foreground select-none">
-            {averageRating !== null ? averageRating.toFixed(2) : "—"}
-          </span>
-          {/* Only show trophy if clinic qualifies as patient favorite */}
-          {averageRating !== null && averageRating >= 4.5 && totalReviews >= 5 && (
-            <div className="absolute -top-8 -right-16 rotate-12 bg-[#FFD700]/10 p-3 rounded-full hidden sm:block">
-              <Trophy className="h-10 w-10 text-[#FFD700] fill-[#FFD700]" />
+    <Card id="reviews" variant="profile" className="scroll-mt-32">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="im-heading-2 text-foreground">Google Reviews</h2>
+            {averageRating !== null ? (
+              <div className="flex items-center gap-2 mt-2">
+                <GoogleIcon className="h-4 w-4" />
+                <span className="text-2xl font-bold text-foreground">{averageRating.toFixed(1)}</span>
+                <div className="flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={
+                        i < Math.round(averageRating)
+                          ? "h-4 w-4 fill-[#FFD700] text-[#FFD700]"
+                          : "h-4 w-4 text-neutral-300"
+                      }
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">· {totalReviews} review{totalReviews === 1 ? "" : "s"}</span>
+              </div>
+            ) : (
+              <p className="text-base text-muted-foreground mt-1">No Google reviews yet.</p>
+            )}
+          </div>
+
+          {isPatientFavorite && (
+            <div className="flex items-center gap-2 shrink-0 rounded-full bg-[#FFD700]/10 px-4 py-2">
+              <Trophy className="h-5 w-5 text-[#FFD700] fill-[#FFD700]" />
+              <span className="text-sm font-semibold text-foreground">Patient Favorite</span>
             </div>
           )}
         </div>
+      </CardHeader>
 
-        {/* Patient Favorite badge - only show if clinic qualifies */}
-        {averageRating !== null && averageRating >= 4.5 && totalReviews >= 5 ? (
-          <div className="flex flex-col items-center gap-2 mb-10">
-            <div className="text-2xl font-bold text-foreground">Patient Favorite</div>
-            <p className="text-base text-muted-foreground max-w-sm text-center">
-              One of the top highly rated clinics for patient outcomes and service quality.
-            </p>
+      <CardContent className="space-y-8">
+        {/* Review Grid */}
+        {visibleReviews.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
+            {visibleReviews.map((review, idx) => {
+              const reviewKey = `${review.author}-${review.date}-${idx}`
+              const { text: displayText, isTruncated, canCollapse } = truncateText(review.text, reviewKey)
+
+              return (
+                <div key={reviewKey} className="flex flex-col gap-3">
+                  <div className="flex items-center gap-4 mb-1">
+                    <div className="h-10 w-10 rounded-full bg-neutral-200 flex items-center justify-center text-base font-medium text-neutral-600 shrink-0">
+                      {review.author.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-base text-foreground">{review.author}</div>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <GoogleIcon className="h-3.5 w-3.5" />
+                        <span className="text-foreground/80 font-medium">Google Reviews</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, starIdx) => (
+                        <Star
+                          key={starIdx}
+                          className={
+                            starIdx < review.rating
+                              ? "h-3 w-3 fill-[#FFD700] text-[#FFD700]"
+                              : "h-3 w-3 text-neutral-300"
+                          }
+                        />
+                      ))}
+                    </div>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="font-medium text-muted-foreground">{review.date}</span>
+                    {review.verified && (
+                      <>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">Verified</span>
+                      </>
+                    )}
+                  </div>
+
+                  <p className="text-foreground leading-relaxed">{displayText}</p>
+
+                  {(isTruncated || canCollapse) && (
+                    <button
+                      type="button"
+                      className="text-foreground font-semibold underline underline-offset-2 self-start hover:text-neutral-600 transition-colors"
+                      onClick={() => toggleReviewExpanded(reviewKey)}
+                    >
+                      {isTruncated ? "Show more" : "Show less"}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 mb-10">
-            <div className="text-2xl font-bold text-foreground">Patient Reviews</div>
-            <p className="text-base text-muted-foreground max-w-sm text-center">
-              {totalReviews > 0
-                ? `Based on ${totalReviews} patient review${totalReviews === 1 ? "" : "s"}.`
-                : "No reviews yet. Be the first to share your experience."}
-            </p>
-          </div>
+          <p className="text-muted-foreground">No Google reviews yet.</p>
         )}
-      </div>
 
-      {/* Source Tabs */}
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="mb-6 flex h-auto w-fit flex-wrap gap-2 rounded-full border-0 bg-transparent p-0">
-          <TabsTrigger
-            value="all"
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/50",
-              "data-[state=active]:border-transparent data-[state=active]:bg-[#17375B] data-[state=active]:text-white data-[state=active]:hover:bg-[#17375B]"
-            )}
-          >
-            All
-          </TabsTrigger>
-          {uniqueSources.map((source) => (
-            <TabsTrigger
-              key={source}
-              value={source}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/50",
-                "data-[state=active]:border-transparent data-[state=active]:bg-[#17375B] data-[state=active]:text-white data-[state=active]:hover:bg-[#17375B] [&[data-state=active]_svg]:!text-white"
-              )}
-            >
-              {REVIEW_SOURCE_ICON[source]}
-              {REVIEW_SOURCE_LABEL[source]}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {["all", ...uniqueSources].map((source) => {
-          const filteredReviews =
-            source === "all"
-              ? initialReviewsSorted
-              : initialReviewsSorted.filter((r) => r.source === source)
-          const visibleReviews = filteredReviews.slice(0, 4)
-
-          return (
-            <TabsContent key={source} value={source} className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
-                {visibleReviews.map((review, idx) => {
-                  const reviewKey = `${review.author}-${review.date}-${idx}`
-                  const { text: displayText, isTruncated, canCollapse } = truncateText(review.text, reviewKey)
-
-                  return (
-                    <div key={reviewKey} className="flex flex-col gap-3">
-                      <div className="flex items-center gap-4 mb-1">
-                        <div className="h-12 w-12 rounded-full bg-neutral-200 flex items-center justify-center text-lg font-medium text-neutral-600">
-                          {review.author.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-base text-foreground">{review.author}</div>
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              {REVIEW_SOURCE_ICON[review.source]}
-                              <span className="text-foreground/80 font-medium">{REVIEW_SOURCE_LABEL[review.source]}</span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-sm text-foreground">
-                        <div className="flex gap-0.5">
-                          {Array.from({ length: 5 }).map((_, starIdx) => (
-                            <Star
-                              key={starIdx}
-                              className={
-                                starIdx < review.rating
-                                  ? "h-3 w-3 fill-[#FFD700] text-[#FFD700]"
-                                  : "h-3 w-3 text-neutral-300"
-                              }
-                            />
-                          ))}
-                        </div>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="font-medium text-muted-foreground">{review.date}</span>
-                        {review.verified && (
-                          <>
-                            <span className="text-muted-foreground">·</span>
-                            <span className="text-muted-foreground">Verified</span>
-                          </>
-                        )}
-                      </div>
-
-                      <p className="text-foreground leading-relaxed">
-                        {displayText}
-                      </p>
-
-                      {(isTruncated || canCollapse) && (
-                        <button
-                          type="button"
-                          className="text-foreground font-semibold underline underline-offset-2 self-start hover:text-neutral-600 transition-colors"
-                          onClick={() => toggleReviewExpanded(reviewKey)}
-                        >
-                          {isTruncated ? "Show more" : "Show less"}
-                        </button>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {filteredReviews.length === 0 && (
-                <div className="py-8 text-center text-muted-foreground">
-                  No reviews found for this source.
-                </div>
-              )}
-            </TabsContent>
-          )
-        })}
-      </Tabs>
-
-      {/* Show All Reviews Modal */}
-      <div className="mt-10">
+        {/* Show All Reviews Modal */}
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold border-black/80 hover:bg-neutral-50 rounded-lg">
-              Show all {totalReviews} reviews
+            <Button variant="outline" size="lg" className="h-12 px-8 text-base font-semibold border-black/80 hover:bg-neutral-50 rounded-lg">
+              View more Google reviews
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-5xl h-[80vh] p-0 gap-0 overflow-hidden sm:rounded-2xl flex flex-col border-0 shadow-2xl">
             <div className="hidden">
               <DialogTitle>All Reviews</DialogTitle>
             </div>
-            {/* Custom Close Button */}
             <DialogClose className="absolute left-4 top-4 z-50 rounded-full bg-background p-2 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </DialogClose>
 
             <div className="flex flex-col md:flex-row h-full">
-              {/* Left Sidebar - Fixed Stats */}
+              {/* Left Sidebar */}
               <div className="hidden md:flex w-1/3 flex-col p-8 border-r border-border/40 bg-muted/5 h-full overflow-y-auto">
-                {/* Only show trophy badge if clinic qualifies as patient favorite */}
-                {averageRating !== null && averageRating >= 4.5 && totalReviews >= 5 ? (
+                {isPatientFavorite ? (
                   <>
                     <div className="flex items-center gap-4 mb-8 mt-4">
                       <Trophy className="h-16 w-16 text-[#FFD700] fill-[#FFD700]" />
                       <div className="bg-[#FFD700] text-black text-3xl font-bold px-4 py-2 rounded-xl">
-                        {averageRating.toFixed(2)}
+                        {averageRating!.toFixed(1)}
                       </div>
                     </div>
-
-                    <div className="mb-8">
+                    <div className="mb-6">
                       <h3 className="text-2xl font-bold text-foreground mb-2">Patient Favorite</h3>
                       <p className="text-muted-foreground leading-relaxed">
                         One of the most loved highly rated clinics for patient outcomes and service quality on Istanbul Medic.
@@ -293,45 +262,36 @@ export const ReviewsSection = ({
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-4 mb-8 mt-4">
-                      <Star className="h-16 w-16 text-muted-foreground" />
-                      <div className="bg-muted text-foreground text-3xl font-bold px-4 py-2 rounded-xl">
-                        {averageRating !== null ? averageRating.toFixed(2) : "—"}
+                    <div className="flex items-center gap-3 mb-6 mt-4">
+                      <GoogleIcon className="h-8 w-8" />
+                      <div className="text-4xl font-bold text-foreground">
+                        {averageRating !== null ? averageRating.toFixed(1) : "—"}
                       </div>
                     </div>
-
-                    <div className="mb-8">
-                      <h3 className="text-2xl font-bold text-foreground mb-2">Patient Reviews</h3>
+                    <div className="mb-6">
+                      <h3 className="text-2xl font-bold text-foreground mb-2">Google Reviews</h3>
                       <p className="text-muted-foreground leading-relaxed">
                         {totalReviews > 0
-                          ? `Reviews from ${totalReviews} patient${totalReviews === 1 ? "" : "s"}.`
+                          ? `${totalReviews} review${totalReviews === 1 ? "" : "s"} from Google.`
                           : "No reviews yet."}
                       </p>
                     </div>
                   </>
                 )}
 
-                {/* Source breakdown */}
-                {uniqueSources.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Sources</h4>
-                    {uniqueSources.map((source) => {
-                      const count = reviews.filter(r => r.source === source).length
-                      return (
-                        <div key={source} className="flex items-center gap-3">
-                          <div className="shrink-0">{REVIEW_SOURCE_ICON[source]}</div>
-                          <span className="text-sm text-foreground">{REVIEW_SOURCE_LABEL[source]}</span>
-                          <span className="text-sm text-muted-foreground ml-auto">{count}</span>
-                        </div>
-                      )
-                    })}
+                {/* Star distribution */}
+                {totalReviews > 0 && (
+                  <div className="space-y-2.5">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Rating breakdown</h4>
+                    {[5, 4, 3, 2, 1].map((s) => (
+                      <StarBar key={s} stars={s} count={starCounts[s]} total={reviews.length} />
+                    ))}
                   </div>
                 )}
               </div>
 
               {/* Right Content - Scrollable Reviews */}
               <div className="flex-1 flex flex-col h-full bg-background">
-                {/* Sticky Header inside Right Col */}
                 <div className="p-6 md:p-8 pb-4 border-b border-border/40 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
                   <h2 className="text-2xl font-bold mb-6 pl-8 md:pl-0">
                     {searchQuery.trim()
@@ -363,7 +323,6 @@ export const ReviewsSection = ({
                   </div>
                 </div>
 
-                {/* Scrollable List */}
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 pt-4">
                   {modalReviewsSorted.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -387,8 +346,8 @@ export const ReviewsSection = ({
                             <div>
                               <div className="font-semibold text-base text-foreground">{review.author}</div>
                               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                {REVIEW_SOURCE_ICON[review.source]}
-                                <span className="font-medium text-foreground/80">{REVIEW_SOURCE_LABEL[review.source]}</span>
+                                <GoogleIcon className="h-3.5 w-3.5" />
+                                <span className="font-medium text-foreground/80">Google Reviews</span>
                                 <span>·</span>
                                 <span>{review.date}</span>
                               </div>
@@ -415,7 +374,7 @@ export const ReviewsSection = ({
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
