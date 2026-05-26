@@ -12,6 +12,7 @@ export interface Clinic {
   rating?: number
   reviewCount?: number
   aiInsight?: string
+  isMinistryVerified?: boolean
 }
 
 export type Language = "English" | "Turkish" | "Arabic" | "German"
@@ -28,4 +29,5 @@ export interface FilterState {
   aiMatchScore: number
   minRating: number | null      // null = "Any"
   minReviews: number | null     // null = "Any"
+  minTrustScore: number | null  // null = "Any"
 }

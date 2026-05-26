@@ -10,6 +10,7 @@ export const FILTER_CONFIG = {
   location: true,
   minRating: true,
   minReviews: true,
+  minTrustScore: true,
 
   // Disabled - no data yet
   budgetRange: false,
@@ -42,6 +43,8 @@ export const SORT_CONFIG = {
   'Z-A': true,
   'Highest Rated': true,
   'Lowest Rated': true,
+  'Highest Trust': true,
+  'Lowest Trust': true,
 
   // Disabled - no backend support yet
   'Best Match': false,

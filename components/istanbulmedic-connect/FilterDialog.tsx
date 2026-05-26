@@ -78,6 +78,7 @@ export function FilterDialog({
             aiMatchScore: 0,
             minRating: null,
             minReviews: null,
+            minTrustScore: null,
         })
     }
 
@@ -186,6 +187,63 @@ export function FilterDialog({
                                         <div className="flex justify-between text-xs text-muted-foreground mt-1">
                                             <span>Any</span>
                                             <span>500+</span>
+                                        </div>
+                                    </div>
+                                </section>
+                                <Separator />
+                            </>
+                        )}
+
+                        {/* Minimum Trust Score */}
+                        {FILTER_CONFIG.minTrustScore && (
+                            <>
+                                <section>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="im-heading-4">Minimum Trust Score</h3>
+                                        <span
+                                            className={cn(
+                                                "text-sm font-semibold px-3 py-0.5 rounded-full transition-colors",
+                                                localFilters.minTrustScore == null
+                                                    ? "bg-muted text-muted-foreground"
+                                                    : "bg-[var(--im-color-primary)] text-white"
+                                            )}
+                                        >
+                                            {localFilters.minTrustScore == null ? "Any" : `${localFilters.minTrustScore}+`}
+                                        </span>
+                                    </div>
+                                    <p className="im-text-body-xs im-text-muted mb-4">
+                                        Filter by our trust score based on verified sources.
+                                    </p>
+                                    <div className="px-2">
+                                        {/* Band checkpoints: C(40–59) B(60–79) A(80–100) */}
+                                        <div className="relative mb-1">
+                                            {[
+                                                { label: "C", pct: 50 },
+                                                { label: "B", pct: 60 },
+                                                { label: "A", pct: 70 },
+                                            ].map(({ label, pct }) => (
+                                                <span
+                                                    key={label}
+                                                    className="absolute -translate-x-1/2 text-xs font-medium text-muted-foreground"
+                                                    style={{ left: `${pct}%` }}
+                                                >
+                                                    {label}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <Slider
+                                            value={[localFilters.minTrustScore ?? 0]}
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            onValueChange={([val]) =>
+                                                setLocalFilters({ ...localFilters, minTrustScore: val === 0 ? null : val })
+                                            }
+                                            className="w-full py-4"
+                                        />
+                                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                            <span>0</span>
+                                            <span>100</span>
                                         </div>
                                     </div>
                                 </section>

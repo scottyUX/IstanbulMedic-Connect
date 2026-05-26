@@ -2,12 +2,14 @@
 
 import Image from "next/image"
 import { useId, useState } from "react"
-import { MapPin, Star, Check } from "lucide-react"
+import { Check, MapPin, ShieldCheck, Star } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
+import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent } from "@/components/ui/card"
 // import { SpecialtyTag, TAG_VARIANT_SEQUENCE } from "@/components/ui/specialty-tag" // re-enable with tags section
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
 import { useAuth } from "@/contexts/AuthContext"
@@ -27,10 +29,12 @@ interface ClinicCardProps {
   image: string | null
   specialties: string[]
   trustScore: number
+  trustBand?: 'A' | 'B' | 'C' | 'D' | null
   description: string | null
   rating?: number
   reviewCount?: number
   aiInsight?: string
+  isMinistryVerified?: boolean
   onViewProfile: () => void
 }
 
@@ -40,16 +44,21 @@ export const ClinicCard = ({
   location,
   image,
   specialties: _specialties,
+  trustScore,
+  trustBand,
   description,
   rating,
   reviewCount,
   aiInsight,
+  isMinistryVerified = false,
   onViewProfile,
 }: ClinicCardProps) => {
   const compareId = useId()
   const [isCompared, setIsCompared] = useState(false)
   const [consultationRequested, setConsultationRequested] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const [verificationTooltipOpen, setVerificationTooltipOpen] = useState(false)
+  const [trustTooltipOpen, setTrustTooltipOpen] = useState(false)
   const { isAuthenticated } = useAuth()
   const router = useRouter()
 
@@ -134,9 +143,10 @@ export const ClinicCard = ({
 
       {/* Clinic Name (Headline) */}
       <h3
+        data-clinic-name
         className={cn(
           merriweather.className,
-          "mt-4 block font-bold text-foreground leading-[140%] text-2xl line-clamp-2 min-h-[4.2rem]"
+          "mt-4 block font-bold text-foreground leading-[140%] text-2xl line-clamp-2"
         )}
       >
         {name}
@@ -173,13 +183,77 @@ export const ClinicCard = ({
           ) : (
             <div className="text-sm text-muted-foreground">No reviews yet</div>
           )}
+          {trustScore > 0 && (
+            <Popover open={trustTooltipOpen} onOpenChange={setTrustTooltipOpen}>
+              <PopoverAnchor asChild>
+                <div
+                  className="flex cursor-help items-center gap-1 text-sm text-muted-foreground"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseEnter={() => setTrustTooltipOpen(true)}
+                  onMouseLeave={() => setTrustTooltipOpen(false)}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#3EBBB7]" aria-hidden />
+                  <span>Trust <span className="font-medium text-foreground">{trustScore}</span>/100{trustBand ? <span className="ml-1 font-semibold text-[#3EBBB7]">({trustBand})</span> : null}</span>
+                </div>
+              </PopoverAnchor>
+              <PopoverContent
+                role="tooltip"
+                side="top"
+                align="start"
+                sideOffset={6}
+                collisionPadding={12}
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                className="w-64 px-3 py-2 text-xs leading-snug"
+              >
+                This is our computed trust score. See more details on the clinic page.
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
 
-        {/* Right: Compare + Consultation text link */}
+        {/* Right: Ministry verified + Compare + Consultation */}
         <div
           className="flex shrink-0 flex-col items-end gap-2"
           onClick={(e) => e.stopPropagation()}
         >
+          {isMinistryVerified && (
+            <Popover
+              open={verificationTooltipOpen}
+              onOpenChange={setVerificationTooltipOpen}
+            >
+              <PopoverAnchor asChild>
+                <button
+                  type="button"
+                  className="group/verification inline-flex cursor-help items-center rounded-full text-left"
+                  aria-label="Ministry verified"
+                  onMouseEnter={() => setVerificationTooltipOpen(true)}
+                  onMouseLeave={() => setVerificationTooltipOpen(false)}
+                  onFocus={() => setVerificationTooltipOpen(true)}
+                  onBlur={() => setVerificationTooltipOpen(false)}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Badge
+                    variant="outline"
+                    className="gap-1.5 border-[#3EBBB7]/40 bg-[#3EBBB7]/10 px-2.5 py-1 text-xs font-medium text-[#17375B] transition-colors group-hover/verification:bg-[#3EBBB7]/15 group-focus-visible/verification:ring-2 group-focus-visible/verification:ring-[#3EBBB7]/40 group-focus-visible/verification:ring-offset-2"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 text-[#3EBBB7]" aria-hidden />
+                    Ministry verified
+                  </Badge>
+                </button>
+              </PopoverAnchor>
+              <PopoverContent
+                role="tooltip"
+                side="bottom"
+                align="end"
+                sideOffset={8}
+                collisionPadding={12}
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                className="w-60 px-3 py-2 text-xs leading-snug"
+              >
+                We found this clinic in Turkey&apos;s official health registry.
+              </PopoverContent>
+            </Popover>
+          )}
           {FEATURE_CONFIG.compare && (
             <div className="flex items-center gap-2">
               <Checkbox

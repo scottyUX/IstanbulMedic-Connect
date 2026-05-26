@@ -4,6 +4,7 @@ import {
   getClinicById,
   getClinicCities,
   getServiceCategories,
+  getClinicSourceScores,
 } from '@/lib/api/clinics';
 
 // Mock the Supabase server client
@@ -69,6 +70,7 @@ describe('getClinics', () => {
     clinic_languages: [{ language: 'English' }, { language: 'Turkish' }],
     clinic_credentials: [{ credential_name: 'JCI Accredited', credential_type: 'accreditation' }],
     clinic_media: [{ url: 'https://example.com/img.jpg', is_primary: true, display_order: 0, media_type: 'image' }],
+    clinic_registry_records: [],
   };
 
   it('returns empty result when no clinics found', async () => {
@@ -101,7 +103,38 @@ describe('getClinics', () => {
       specialties: expect.arrayContaining(['Hair Transplant']),
       languages: expect.arrayContaining(['English', 'Turkish']),
       accreditations: expect.arrayContaining(['JCI']),
+      isMinistryVerified: false,
     });
+  });
+
+  it('marks list item as Ministry verified for active Turkish Ministry registry records', async () => {
+    const verifiedClinicRow = {
+      ...sampleClinicRow,
+      clinic_registry_records: [
+        { source: 'turkish_ministry_of_health', license_status: 'active' },
+      ],
+    };
+    const mockBuilder = createMockQueryBuilder([verifiedClinicRow], null, 1);
+    mockSupabase.from.mockReturnValue(mockBuilder);
+
+    const result = await getClinics({});
+
+    expect(result.clinics[0].isMinistryVerified).toBe(true);
+  });
+
+  it('does not mark list item as Ministry verified for inactive registry records', async () => {
+    const inactiveClinicRow = {
+      ...sampleClinicRow,
+      clinic_registry_records: [
+        { source: 'turkish_ministry_of_health', license_status: 'expired' },
+      ],
+    };
+    const mockBuilder = createMockQueryBuilder([inactiveClinicRow], null, 1);
+    mockSupabase.from.mockReturnValue(mockBuilder);
+
+    const result = await getClinics({});
+
+    expect(result.clinics[0].isMinistryVerified).toBe(false);
   });
 
   it('applies pagination correctly', async () => {
@@ -120,8 +153,8 @@ describe('getClinics', () => {
     mockSupabase.from.mockReturnValue(mockBuilder);
 
     // Test max clamping
-    await getClinics({ pageSize: 100 });
-    expect(mockBuilder.range).toHaveBeenCalledWith(0, 49); // max is 50
+    await getClinics({ pageSize: 600 });
+    expect(mockBuilder.range).toHaveBeenCalledWith(0, 499); // max is 500
 
     vi.clearAllMocks();
     mockSupabase.from.mockReturnValue(mockBuilder);
@@ -748,5 +781,117 @@ describe('mapClinicRow (tested via getClinics)', () => {
 
     // Should pick the image, not the video
     expect(result.clinics[0].image).toBe('https://example.com/img.jpg');
+  });
+});
+
+// ─── getClinicSourceScores ─────────────────────────────────────────────────
+
+describe('getClinicSourceScores', () => {
+  let mockSupabase: ReturnType<typeof createMockSupabase>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSupabase = createMockSupabase();
+    (createClient as Mock).mockResolvedValue(mockSupabase);
+  });
+
+  it('returns an empty map for an empty clinicIds array without querying the DB', async () => {
+    const result = await getClinicSourceScores([]);
+    expect(result.size).toBe(0);
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it('initialises all four scores as null when no rows are returned', async () => {
+    const builder = createMockQueryBuilder([], null);
+    mockSupabase.from.mockReturnValue(builder);
+
+    const result = await getClinicSourceScores(['clinic-1', 'clinic-2']);
+
+    expect(result.get('clinic-1')).toEqual({
+      googleScore: null,
+      redditScore: null,
+      hrnScore: null,
+      instagramScore: null,
+    });
+    expect(result.get('clinic-2')).toEqual({
+      googleScore: null,
+      redditScore: null,
+      hrnScore: null,
+      instagramScore: null,
+    });
+  });
+
+  it('maps each source_name to the correct score field and divides summary_score by 10', async () => {
+    const rows = [
+      { clinic_id: 'clinic-1', source_name: 'google',    summary_score: 80 },
+      { clinic_id: 'clinic-1', source_name: 'reddit',    summary_score: 65 },
+      { clinic_id: 'clinic-1', source_name: 'hrn',       summary_score: 70 },
+      { clinic_id: 'clinic-1', source_name: 'instagram', summary_score: 55 },
+    ];
+    const builder = createMockQueryBuilder(rows, null);
+    mockSupabase.from.mockReturnValue(builder);
+
+    const result = await getClinicSourceScores(['clinic-1']);
+    const scores = result.get('clinic-1');
+
+    expect(scores?.googleScore).toBeCloseTo(8.0);
+    expect(scores?.redditScore).toBeCloseTo(6.5);
+    expect(scores?.hrnScore).toBeCloseTo(7.0);
+    expect(scores?.instagramScore).toBeCloseTo(5.5);
+  });
+
+  it('treats summary_score of 0 as null (placeholder row)', async () => {
+    const rows = [
+      { clinic_id: 'clinic-1', source_name: 'reddit',    summary_score: 0 },
+      { clinic_id: 'clinic-1', source_name: 'instagram', summary_score: 60 },
+    ];
+    const builder = createMockQueryBuilder(rows, null);
+    mockSupabase.from.mockReturnValue(builder);
+
+    const result = await getClinicSourceScores(['clinic-1']);
+    const scores = result.get('clinic-1');
+
+    expect(scores?.redditScore).toBeNull();
+    expect(scores?.instagramScore).toBeCloseTo(6.0);
+  });
+
+  it('handles multiple clinics independently', async () => {
+    const rows = [
+      { clinic_id: 'clinic-1', source_name: 'google', summary_score: 90 },
+      { clinic_id: 'clinic-2', source_name: 'google', summary_score: 50 },
+    ];
+    const builder = createMockQueryBuilder(rows, null);
+    mockSupabase.from.mockReturnValue(builder);
+
+    const result = await getClinicSourceScores(['clinic-1', 'clinic-2']);
+
+    expect(result.get('clinic-1')?.googleScore).toBeCloseTo(9.0);
+    expect(result.get('clinic-2')?.googleScore).toBeCloseTo(5.0);
+    // Clinic with no row for a source gets null, not the other clinic's value
+    expect(result.get('clinic-1')?.redditScore).toBeNull();
+  });
+
+  it('returns all-null scores on DB error rather than throwing', async () => {
+    const builder = createMockQueryBuilder(null, { message: 'connection refused' });
+    mockSupabase.from.mockReturnValue(builder);
+
+    const result = await getClinicSourceScores(['clinic-1']);
+
+    expect(result.get('clinic-1')).toEqual({
+      googleScore: null,
+      redditScore: null,
+      hrnScore: null,
+      instagramScore: null,
+    });
+  });
+
+  it('queries clinic_source_scores with is_current = true filter', async () => {
+    const builder = createMockQueryBuilder([], null);
+    mockSupabase.from.mockReturnValue(builder);
+
+    await getClinicSourceScores(['clinic-1']);
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('clinic_source_scores');
+    expect(builder.eq).toHaveBeenCalledWith('is_current', true);
   });
 });

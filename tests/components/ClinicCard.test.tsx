@@ -41,6 +41,28 @@ describe('ClinicCard', () => {
     expect(screen.getByText('Test Clinic')).toBeInTheDocument();
   });
 
+  it('renders Ministry verification badge when verified', () => {
+    render(<ClinicCard {...defaultProps} isMinistryVerified />);
+    expect(screen.getByText('Ministry verified')).toBeInTheDocument();
+  });
+
+  it('explains Ministry verification without opening the clinic card', () => {
+    const onViewProfile = vi.fn();
+    render(<ClinicCard {...defaultProps} isMinistryVerified onViewProfile={onViewProfile} />);
+
+    const badge = screen.getByRole('button', { name: /ministry verified/i });
+    fireEvent.mouseEnter(badge);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/official health registry/i);
+
+    fireEvent.click(badge);
+    expect(onViewProfile).not.toHaveBeenCalled();
+  });
+
+  it('does not render Ministry verification badge by default', () => {
+    render(<ClinicCard {...defaultProps} />);
+    expect(screen.queryByText('Ministry verified')).not.toBeInTheDocument();
+  });
+
   it('renders location with icon', () => {
     render(<ClinicCard {...defaultProps} />);
     expect(screen.getByText('Istanbul, Turkey')).toBeInTheDocument();
