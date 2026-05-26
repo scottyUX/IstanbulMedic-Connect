@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import { ExternalLink, GraduationCap, ShieldCheck } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -58,20 +57,7 @@ export const DoctorCard = ({ doctor, className }: DoctorCardProps) => {
         className
       )}
     >
-      <div className="shrink-0 relative w-full md:w-48 aspect-square overflow-hidden rounded-2xl bg-neutral-100 shadow-sm">
-        {doctor.photo ? (
-          <Image
-            src={doctor.photo}
-            alt={doctor.name ?? "Doctor"}
-            fill
-            className="object-cover object-top grayscale hover:grayscale-0 transition-all duration-500"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-muted/40" />
-        )}
-      </div>
-
-      <div className="flex flex-col justify-center min-w-0 flex-1 gap-4">
+<div className="flex flex-col justify-center min-w-0 flex-1 gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h3 className="im-heading-3 text-foreground">{doctor.name ?? "Doctor"}</h3>
