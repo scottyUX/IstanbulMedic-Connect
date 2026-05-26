@@ -4,7 +4,7 @@ import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/pr
 import { getInstagramSignals } from './instagram';
 import type { HRNSignalsData } from '@/components/istanbulmedic-connect/profile/HRNSignalsCard';
 import { getHRNSignals } from './hrn';
-import { getForumSignals, type ClinicForumProfile } from './forumSignals';
+import { getRedditSignals, type RedditSignalsData } from './reddit';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -109,7 +109,7 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   /** HRN forum signals (null if no threads attributed to this clinic) */
   hrnSignals: HRNSignalsData | null;
   /** Reddit community signals (null if no Reddit data exists) */
-  redditSignals: ClinicForumProfile | null;
+  redditSignals: RedditSignalsData | null;
   techniques: string[] | null;
   sourceScores: ClinicSourceScore[]
 }
@@ -722,14 +722,12 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     });
   const imageUrl = imageMedia[0]?.url ?? null;
 
-  // Fetch Instagram and HRN signals in parallel (both return null if no data)
-  const [instagramSignals, hrnSignals] = await Promise.all([
+  // Fetch Instagram, HRN, and Reddit signals in parallel
+  const [instagramSignals, hrnSignals, redditSignals] = await Promise.all([
     getInstagramSignals(clinic.id),
     getHRNSignals(clinic.id, clinic.display_name),
+    getRedditSignals(clinic.id),
   ]);
-
-  // Fetch Reddit signals data (returns null if no Reddit profile exists)
-  const redditSignals = await getForumSignals(clinic.id, 'reddit');
 
   const scrapedData = Array.isArray(clinic.clinic_scraped_data)
     ? clinic.clinic_scraped_data[0]
