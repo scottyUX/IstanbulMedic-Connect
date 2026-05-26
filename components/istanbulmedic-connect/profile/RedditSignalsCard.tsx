@@ -149,7 +149,7 @@ function ThreadItem({ thread }: { thread: RedditThread }) {
 
 // ── Thread modal ──────────────────────────────────────────────────────────────
 
-type ModalVariant = "all" | "repair"
+type ModalVariant = "all" | "repair" | "longterm"
 
 interface ThreadModalProps {
   variant: ModalVariant
@@ -171,6 +171,12 @@ function ThreadModal({ variant, threads, clinicName = "", onClose }: ThreadModal
       subtitle: null,
       icon: <Wrench className="h-5 w-5 text-amber-600" />,
       notice: "These threads involve hair transplant repair procedures. Some were repairs performed at this clinic; others were repairs needed after treatment elsewhere. Read each thread directly for full context.",
+    },
+    longterm: {
+      title: `${threads.length} Thread${threads.length === 1 ? "" : "s"} with 6+ Month Follow-ups`,
+      subtitle: null,
+      icon: <CalendarCheck className="h-5 w-5 text-emerald-600" />,
+      notice: null,
     },
   }[variant]
 
@@ -243,7 +249,8 @@ export function RedditSignalsCard({ data }: { data: RedditSignalsData }) {
   const negPct = sentTotal > 0 ? 100 - posPct - mixPct : 0
 
   const threadCount = data.threadCount
-  const longtermCount = data.allThreads.filter(t => t.hasLongTermFollowup).length
+  const longtermThreads = data.allThreads.filter(t => t.hasLongTermFollowup)
+  const longtermCount = longtermThreads.length
   const repairCount = data.repairThreads.length
 
   const followupPct = threadCount > 0 ? Math.round((longtermCount / threadCount) * 100) : 0
@@ -368,6 +375,14 @@ export function RedditSignalsCard({ data }: { data: RedditSignalsData }) {
                 <span className="font-medium">{followupPct}%</span> have 6+ month follow-ups
                 <span className="text-muted-foreground"> ({longtermCount}/{threadCount})</span>
               </span>
+              {longtermCount > 0 && (
+                <button
+                  onClick={() => setOpenModal("longterm")}
+                  className="text-xs font-medium text-primary hover:underline flex-shrink-0"
+                >
+                  See context →
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-3 px-4 py-2.5 bg-muted/20 border-t border-border/40">
@@ -439,6 +454,13 @@ export function RedditSignalsCard({ data }: { data: RedditSignalsData }) {
         </CardContent>
       </Card>
 
+      {openModal === "longterm" && (
+        <ThreadModal
+          variant="longterm"
+          threads={longtermThreads}
+          onClose={() => setOpenModal(null)}
+        />
+      )}
       {openModal === "repair" && (
         <ThreadModal
           variant="repair"
