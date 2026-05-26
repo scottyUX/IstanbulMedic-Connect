@@ -208,6 +208,9 @@ describe('ClinicProfilePage', () => {
           credentials: 'ISHRS Member',
           years_experience: 15,
           doctor_involvement_level: 'high',
+          external_ids: {},
+          last_verified_at: null,
+          name_normalized: null,
         },
       ],
     });
@@ -459,6 +462,9 @@ describe('ClinicProfilePage', () => {
           credentials: '',
           years_experience: 10,
           doctor_involvement_level: 'high',
+          external_ids: {},
+          last_verified_at: null,
+          name_normalized: null,
         },
         {
           id: 'team-2',
@@ -469,6 +475,9 @@ describe('ClinicProfilePage', () => {
           credentials: '',
           years_experience: 5,
           doctor_involvement_level: 'low',
+          external_ids: {},
+          last_verified_at: null,
+          name_normalized: null,
         },
       ],
     });
