@@ -40,8 +40,8 @@ test.describe('Clinic Filter Flow', () => {
       // Verify dialog closes
       await expect(page.locator('[data-testid="filter-dialog"]')).not.toBeVisible();
 
-      // Verify URL includes rating filter
-      await expect(page).toHaveURL(/minRating=/);
+      // Verify URL includes a non-zero rating filter (e.g. minRating=1.0)
+      await expect(page).toHaveURL(/minRating=[1-9]/);
     }
   });
 

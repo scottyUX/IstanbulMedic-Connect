@@ -39,7 +39,7 @@ export const ClinicCard = ({
   name,
   location,
   image,
-  specialties,
+  specialties: _specialties,
   description,
   rating,
   reviewCount,
