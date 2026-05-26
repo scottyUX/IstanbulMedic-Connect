@@ -70,6 +70,7 @@ describe('getClinics', () => {
     clinic_languages: [{ language: 'English' }, { language: 'Turkish' }],
     clinic_credentials: [{ credential_name: 'JCI Accredited', credential_type: 'accreditation' }],
     clinic_media: [{ url: 'https://example.com/img.jpg', is_primary: true, display_order: 0, media_type: 'image' }],
+    clinic_registry_records: [],
   };
 
   it('returns empty result when no clinics found', async () => {
@@ -102,7 +103,38 @@ describe('getClinics', () => {
       specialties: expect.arrayContaining(['Hair Transplant']),
       languages: expect.arrayContaining(['English', 'Turkish']),
       accreditations: expect.arrayContaining(['JCI']),
+      isMinistryVerified: false,
     });
+  });
+
+  it('marks list item as Ministry verified for active Turkish Ministry registry records', async () => {
+    const verifiedClinicRow = {
+      ...sampleClinicRow,
+      clinic_registry_records: [
+        { source: 'turkish_ministry_of_health', license_status: 'active' },
+      ],
+    };
+    const mockBuilder = createMockQueryBuilder([verifiedClinicRow], null, 1);
+    mockSupabase.from.mockReturnValue(mockBuilder);
+
+    const result = await getClinics({});
+
+    expect(result.clinics[0].isMinistryVerified).toBe(true);
+  });
+
+  it('does not mark list item as Ministry verified for inactive registry records', async () => {
+    const inactiveClinicRow = {
+      ...sampleClinicRow,
+      clinic_registry_records: [
+        { source: 'turkish_ministry_of_health', license_status: 'expired' },
+      ],
+    };
+    const mockBuilder = createMockQueryBuilder([inactiveClinicRow], null, 1);
+    mockSupabase.from.mockReturnValue(mockBuilder);
+
+    const result = await getClinics({});
+
+    expect(result.clinics[0].isMinistryVerified).toBe(false);
   });
 
   it('applies pagination correctly', async () => {
