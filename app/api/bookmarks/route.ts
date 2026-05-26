@@ -77,7 +77,6 @@ export async function GET() {
   const bookmarks = (data ?? []).map((b) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const clinic = b.clinics as any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const googlePlaces = Array.isArray(clinic?.clinic_google_places)
       ? clinic.clinic_google_places[0]
       : clinic?.clinic_google_places

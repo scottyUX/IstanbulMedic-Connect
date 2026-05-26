@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
  * context with each message.
  */
 const UserContextProvider = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile } = useAuth();
 
   // Expose user context to CopilotKit agent
   useCopilotReadable({

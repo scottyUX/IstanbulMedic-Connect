@@ -144,7 +144,7 @@ const LeilaGenUI = () => {
       });
     },
     // @ts-expect-error - CopilotKit accepts null returns in render functions
-    render: ({ status, args, result }) => {
+    render: ({ status, result }) => {
       if (status === "complete" && result) {
         try {
           const data = typeof result === "string" ? JSON.parse(result) : result;
@@ -214,7 +214,7 @@ const LeilaGenUI = () => {
       });
     },
     // @ts-expect-error - CopilotKit accepts null returns in render functions
-    render: ({ status, args, result }) => {
+    render: ({ status, result }) => {
       if (status === "complete" && result) {
         try {
           const data = typeof result === "string" ? JSON.parse(result) : result;
@@ -227,7 +227,7 @@ const LeilaGenUI = () => {
               recoveryTime={data.recoveryTime}
             />
           );
-        } catch (e) {
+        } catch {
           return <div className="text-red-600">Error displaying treatment information</div>;
         }
       }
@@ -254,12 +254,12 @@ const LeilaGenUI = () => {
       return JSON.stringify({ purpose: purpose || "Upload Your Scalp Photos" });
     },
     // @ts-expect-error - CopilotKit accepts null returns in render functions
-    render: ({ status, args, result }) => {
+    render: ({ status, result }) => {
       if (status === "complete" && result) {
         try {
           const data = typeof result === "string" ? JSON.parse(result) : result;
           return <PhotoUploadWidget purpose={data.purpose} />;
-        } catch (e) {
+        } catch {
           return <PhotoUploadWidget />;
         }
       }

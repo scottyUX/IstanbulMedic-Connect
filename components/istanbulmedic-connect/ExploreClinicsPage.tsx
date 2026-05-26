@@ -4,6 +4,7 @@ import { Search, GitCompareArrows } from "lucide-react"
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 
 import { ClinicCard } from "@/components/istanbulmedic-connect/ClinicCard"
 import { UnifiedFilterBar } from "@/components/istanbulmedic-connect/UnifiedFilterBar"
@@ -92,6 +93,19 @@ export const ExploreClinicsPage = ({
   initialSort,
 }: ExploreClinicsPageProps) => {
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
+  const [pendingConsultationIds, setPendingConsultationIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    fetch('/api/consultations/pending-ids')
+      .then((res) => res.ok ? res.json() : { pendingClinicIds: [] })
+      .then(({ pendingClinicIds }: { pendingClinicIds: string[] }) => {
+        setPendingConsultationIds(new Set(pendingClinicIds))
+      })
+      .catch(() => {/* leave empty — non-critical, UI degrades gracefully */})
+  }, [isAuthenticated])
+
   const normalizedInitialSort = ENABLED_SORT_OPTIONS.includes(initialSort)
     ? initialSort
     : DEFAULT_SORT_OPTION
@@ -227,6 +241,7 @@ export const ExploreClinicsPage = ({
                 rating={clinic.rating}
                 reviewCount={clinic.reviewCount}
                 aiInsight={clinic.aiInsight}
+                initialConsultationRequested={pendingConsultationIds.has(clinic.id)}
                 isMinistryVerified={clinic.isMinistryVerified}
                 onViewProfile={() => router.push(`/clinics/${clinic.id}`)}
               />

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { MapPin, Clock } from 'lucide-react'
 import { Merriweather } from 'next/font/google'
 import { cn } from '@/lib/utils'
+import { ConsultationConfirmModal } from '@/components/istanbulmedic-connect/ConsultationConfirmModal'
 
 const merriweather = Merriweather({ subsets: ['latin'], weight: ['700'] })
 
@@ -20,6 +21,14 @@ interface Consultation {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  if (status === 'cancelled') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-400 border border-slate-200">
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+        Cancelled
+      </span>
+    )
+  }
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-600 border border-amber-200">
       <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
@@ -39,6 +48,7 @@ function formatDate(iso: string) {
 export default function ProfileConsultations() {
   const [consultations, setConsultations] = useState<Consultation[]>([])
   const [loading, setLoading] = useState(true)
+  const [cancelTarget, setCancelTarget] = useState<Consultation | null>(null)
 
   useEffect(() => {
     fetch('/api/consultations')
@@ -47,6 +57,15 @@ export default function ProfileConsultations() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  const handleCancel = async () => {
+    if (!cancelTarget) return
+    const res = await fetch(`/api/consultations/${cancelTarget.id}`, { method: 'PATCH' })
+    if (!res.ok) throw new Error('cancel failed')
+    setConsultations((prev) =>
+      prev.map((c) => c.id === cancelTarget.id ? { ...c, status: 'cancelled' } : c)
+    )
+  }
 
   return (
     <div>
@@ -100,7 +119,7 @@ export default function ProfileConsultations() {
             <tbody className="divide-y divide-slate-100">
               {consultations.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 max-w-0 w-full">
                     <div className="flex items-center gap-3">
                       <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-slate-100">
                         {c.clinicImage ? (
@@ -142,8 +161,19 @@ export default function ProfileConsultations() {
                   <td className="hidden px-4 py-3 text-slate-500 sm:table-cell">
                     {formatDate(c.createdAt)}
                   </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={c.status} />
+                  <td className="px-4 py-3 w-40">
+                    <div className="flex flex-col items-start gap-1">
+                      <StatusBadge status={c.status} />
+                      {c.status === 'pending' && (
+                        <button
+                          type="button"
+                          onClick={() => setCancelTarget(c)}
+                          className="text-xs text-slate-400 hover:text-red-500 transition-colors whitespace-nowrap"
+                        >
+                          Cancel request
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -151,6 +181,15 @@ export default function ProfileConsultations() {
           </table>
         </div>
       )}
+
+      <ConsultationConfirmModal
+        open={cancelTarget !== null}
+        onOpenChange={(open) => { if (!open) setCancelTarget(null) }}
+        clinicName={cancelTarget?.clinicName ?? ''}
+        isRemoving={false}
+        isCancelling={true}
+        onConfirm={handleCancel}
+      />
     </div>
   )
 }

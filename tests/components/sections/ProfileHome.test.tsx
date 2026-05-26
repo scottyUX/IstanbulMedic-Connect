@@ -32,6 +32,8 @@ function setupAuth(overrides: Record<string, unknown> = {}) {
     } as unknown as ReturnType<typeof useAuth>['profile'],
     loading: false,
     loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
+    consultationResult: null, clearConsultationResult: vi.fn(),
+    bookmarkSyncCount: 0, clearBookmarkSyncCount: vi.fn(),
     ...overrides,
   })
 }
@@ -54,6 +56,8 @@ describe('ProfileHome', () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false, user: null, profile: null, loading: true,
       loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
+    consultationResult: null, clearConsultationResult: vi.fn(),
+    bookmarkSyncCount: 0, clearBookmarkSyncCount: vi.fn(),
     })
     const { container } = render(<ProfileHome onNavigate={vi.fn()} />)
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
@@ -102,12 +106,13 @@ describe('ProfileHome', () => {
     expect(screen.getByText('Consultations')).toBeInTheDocument()
   })
 
-  it('Consultations card shows "Coming soon" badge and is clickable', async () => {
+  it('Consultations card is visible and clickable', async () => {
     setupAuth()
     render(<ProfileHome onNavigate={vi.fn()} />)
-    await waitFor(() => screen.getByText('Coming soon'))
+    await waitFor(() => screen.getByText('Consultations'))
     const consultationsCard = screen.getByText('Consultations').closest('button')!
     expect(consultationsCard).not.toBeDisabled()
+    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
   })
 
   it('calls onNavigate when a card is clicked', async () => {
