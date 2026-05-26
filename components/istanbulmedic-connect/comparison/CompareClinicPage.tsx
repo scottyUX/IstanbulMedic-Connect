@@ -200,6 +200,14 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
   const [leftId,  setLeftId]  = useState<string | null>(searchParams.get("left")  ?? null)
   const [rightId, setRightId] = useState<string | null>(searchParams.get("right") ?? null)
   const isMounted = useRef(false)
+
+  // Scroll to top instantly on mount. The root layout always renders a Footer
+  // below this component, making the body taller than 100vh and leaving the
+  // window scroll position from the previous page intact on navigation.
+  // The html element also has scroll-smooth, so we force instant behaviour.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
   const rawSort = searchParams.get("sort")
   const [sortBy, setSortBy] = useState<"Alphabetical" | "Highest Rated" | "Lowest Rated">(
     rawSort === "highest" ? "Highest Rated" : rawSort === "lowest" ? "Lowest Rated" : "Alphabetical"
