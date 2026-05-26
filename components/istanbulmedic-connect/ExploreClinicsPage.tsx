@@ -159,7 +159,7 @@ export const ExploreClinicsPage = ({
     }
 
     equalize()
-    const ro = new ResizeObserver(equalize)
+    const ro = new ResizeObserver((_entries, _observer) => { equalize() })
     ro.observe(grid)
     return () => ro.disconnect()
   }, [clinics])
