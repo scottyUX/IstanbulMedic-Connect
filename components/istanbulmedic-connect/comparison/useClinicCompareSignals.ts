@@ -241,7 +241,7 @@ export function useClinicCompareSignals(clinicId: string | null, clinicName = ""
         })
         setLoadedId(clinicId)
       })
-      .catch(() => { if (!cancelled) setLoadedId(clinicId) })
+      .catch(() => { if (!cancelled) { setData(null); setLoadedId(clinicId) } })
 
     return () => { cancelled = true }
   }, [clinicId, clinicName])

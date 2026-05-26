@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { MapPin } from "lucide-react"
@@ -40,6 +40,12 @@ const SOURCE_VIEWS: Record<SourceId, typeof AllSourcesView> = {
 interface CompareClinicPageProps {
   clinics: ClinicListItem[]
   source: SourceId
+}
+
+function resolveHRNScore(clinic: ClinicListItem): number | null {
+  if (process.env.NEXT_PUBLIC_USE_MOCK_HRN === "true")
+    return getMockHRNSignals(clinic.id, clinic.name)?.hrnScore ?? null
+  return clinic.hrnScore ?? null
 }
 
 // ─── Compact clinic row in the selection list ──────────────────────────────
@@ -88,9 +94,7 @@ function ClinicRow({
             source === "google_places" ? (clinic.googleScore    ?? null) :
             source === "instagram"     ? (clinic.instagramScore ?? null) :
             source === "reddit"        ? (clinic.redditScore    ?? null) :
-            source === "hrn"           ? (process.env.NEXT_PUBLIC_USE_MOCK_HRN === "true"
-                ? getMockHRNSignals(clinic.id, clinic.name)?.hrnScore ?? null
-                : clinic.hrnScore ?? null) :
+            source === "hrn"           ? resolveHRNScore(clinic) :
             (clinic.trustScore > 0 ? clinic.trustScore / 10 : null)
 
           const denom = "/10"
@@ -195,6 +199,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
 
   const [leftId,  setLeftId]  = useState<string | null>(searchParams.get("left")  ?? null)
   const [rightId, setRightId] = useState<string | null>(searchParams.get("right") ?? null)
+  const isMounted = useRef(false)
   const rawSort = searchParams.get("sort")
   const [sortBy, setSortBy] = useState<"Alphabetical" | "Highest Rated" | "Lowest Rated">(
     rawSort === "highest" ? "Highest Rated" : rawSort === "lowest" ? "Lowest Rated" : "Alphabetical"
@@ -209,11 +214,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
         if (source === "google_places") return c.googleScore    ?? 0
         if (source === "instagram")     return c.instagramScore ?? 0
         if (source === "reddit")        return c.redditScore    ?? 0
-        if (source === "hrn")           return (
-          process.env.NEXT_PUBLIC_USE_MOCK_HRN === "true"
-            ? getMockHRNSignals(c.id, c.name)?.hrnScore ?? 0
-            : c.hrnScore ?? 0
-        )
+        if (source === "hrn")           return resolveHRNScore(c) ?? 0
         return c.trustScore / 10
       }
       sorted.sort((a, b) =>
@@ -236,6 +237,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
   }, [router, currentRoute])
 
   useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return }
     syncUrl(leftId, rightId, sortBy)
   }, [leftId, rightId, sortBy, syncUrl])
 

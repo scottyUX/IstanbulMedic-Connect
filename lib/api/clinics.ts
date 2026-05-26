@@ -757,6 +757,9 @@ export async function getClinicSourceScores(
 
   const supabase = await createClient()
 
+  const result = new Map<string, { googleScore: number | null; redditScore: number | null; hrnScore: number | null; instagramScore: number | null }>()
+  for (const id of clinicIds) result.set(id, { googleScore: null, redditScore: null, hrnScore: null, instagramScore: null })
+
   const { data, error } = await supabase
     .from('clinic_source_scores')
     .select('clinic_id, source_name, summary_score')
@@ -766,11 +769,8 @@ export async function getClinicSourceScores(
 
   if (error) {
     console.error('[getClinicSourceScores] query failed:', error.message)
-    // Return all-null map rather than crashing the page
+    return result
   }
-
-  const result = new Map<string, { googleScore: number | null; redditScore: number | null; hrnScore: number | null; instagramScore: number | null }>()
-  for (const id of clinicIds) result.set(id, { googleScore: null, redditScore: null, hrnScore: null, instagramScore: null })
 
   for (const row of data ?? []) {
     const entry = result.get(row.clinic_id)

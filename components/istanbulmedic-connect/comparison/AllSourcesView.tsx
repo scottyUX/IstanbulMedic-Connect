@@ -89,7 +89,7 @@ function ForumBullet({ count, label }: { count: number; label: string }) {
 function RedditSection({ reddit, loading, score }: { reddit: RedditSignals | null; loading: boolean; score: number | null }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <SectionHeader>Reddit</SectionHeader>
         {score != null && (
           <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-orange-700">
@@ -141,7 +141,7 @@ function RedditSection({ reddit, loading, score }: { reddit: RedditSignals | nul
 function HRNSection({ hrn, loading, score }: { hrn: HRNSignalsData | null; loading: boolean; score: number | null }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <SectionHeader>Hair Restoration Network</SectionHeader>
         {score != null && (
           <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-teal-700">
@@ -332,7 +332,7 @@ export function AllSourcesView({ clinic, onDeselect, accentClass }: AllSourcesVi
 
       {/* ── Google Places ─────────────────────────────────────── */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <SectionHeader>Google Places</SectionHeader>
           {clinic.googleScore != null && (
             <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-yellow-700">
@@ -371,11 +371,11 @@ export function AllSourcesView({ clinic, onDeselect, accentClass }: AllSourcesVi
       <RedditSection reddit={signals?.reddit ?? null} loading={loading} score={clinic.redditScore ?? null} />
 
       {/* ── HRN ───────────────────────────────────────────────── */}
-      <HRNSection hrn={signals?.hrn ?? null} loading={loading} score={clinic.hrnScore ?? null} />
+      <HRNSection hrn={signals?.hrn ?? null} loading={loading} score={clinic.hrnScore ?? signals?.hrn?.hrnScore ?? null} />
 
       {/* ── Instagram ─────────────────────────────────────────── */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <SectionHeader>Instagram</SectionHeader>
           {clinic.instagramScore != null && (
             <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-fuchsia-700">

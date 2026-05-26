@@ -56,6 +56,8 @@ export function HRNView({ clinic, onDeselect, accentClass }: HRNViewProps) {
     [clinic.id, clinic.name]
   )
 
+  const displayScore = clinic.hrnScore ?? hrn?.hrnScore ?? null
+
   return (
     <div className="flex flex-col gap-4 p-4 overflow-y-auto h-full">
 
@@ -82,8 +84,8 @@ export function HRNView({ clinic, onDeselect, accentClass }: HRNViewProps) {
           HRN Score
         </p>
         <div className="flex items-baseline gap-2">
-          <span className={cn("text-3xl font-bold tabular-nums", clinic.hrnScore != null ? accentClass : "text-muted-foreground/40")}>
-            {clinic.hrnScore != null ? clinic.hrnScore.toFixed(1) : "—"}
+          <span className={cn("text-3xl font-bold tabular-nums", displayScore != null ? accentClass : "text-muted-foreground/40")}>
+            {displayScore != null ? displayScore.toFixed(1) : "—"}
           </span>
           <span className="text-sm text-muted-foreground">/ 10</span>
           <Popover>

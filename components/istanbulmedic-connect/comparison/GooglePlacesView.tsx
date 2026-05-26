@@ -160,26 +160,6 @@ export function GooglePlacesView({ clinic, onDeselect, accentClass }: GooglePlac
         )}
       </div>
 
-      {/* Trust score */}
-      {clinic.trustScore > 0 && (
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-            Trust Score
-          </p>
-          <div className="flex items-baseline gap-2">
-            <span className={cn("text-3xl font-bold tabular-nums", accentClass)}>
-              {clinic.trustScore}
-            </span>
-            <span className="text-sm text-muted-foreground">/ 100</span>
-            {clinic.trustBand && (
-              <span className="ml-auto rounded-full bg-[var(--im-color-primary)]/10 px-3 py-0.5 text-xs font-bold text-[var(--im-color-primary)]">
-                Band {clinic.trustBand}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Most Recent Google Reviews

@@ -23,11 +23,15 @@ vi.mock('next/navigation', () => ({
 }))
 
 // Stub out the client-side signals hook — we test score cards (server data) here,
-// not the live signal fetch
+// not the live signal fetch. mockCompareSignals can be overridden per-test.
+const { mockCompareSignals } = vi.hoisted(() => ({
+  mockCompareSignals: vi.fn((_id: unknown, _name: unknown): { data: unknown; loading: boolean } => ({ data: null, loading: false })),
+}))
+
 vi.mock(
   '@/components/istanbulmedic-connect/comparison/useClinicCompareSignals',
   () => ({
-    useClinicCompareSignals: () => ({ data: null, loading: false }),
+    useClinicCompareSignals: (id: unknown, name: unknown) => mockCompareSignals(id, name),
   })
 )
 
@@ -161,6 +165,23 @@ describe('HRNView', () => {
     const dashes = screen.getAllByText('—')
     expect(dashes.length).toBeGreaterThan(0)
   })
+
+  it('falls back to mock hrnScore when clinic.hrnScore is null and mock flag is on', async () => {
+    const { getMockHRNSignals } = await import('@/lib/api/hrn.mock')
+    vi.mocked(getMockHRNSignals).mockReturnValueOnce({
+      clinicName: 'Test Clinic', totalThreads: 10, lastUpdated: '2026-01-01T00:00:00Z',
+      photoThreads: 3, longTermFollowups: 2, repairCases: 0,
+      sentiment: { positive: 7, mixed: 2, negative: 1 },
+      topTopics: ['density'], photoThreadsList: [], allThreads: [],
+      hrnScore: 7.8,
+    })
+    const prev = process.env.NEXT_PUBLIC_USE_MOCK_HRN
+    process.env.NEXT_PUBLIC_USE_MOCK_HRN = 'true'
+    const { HRNView } = await import('@/components/istanbulmedic-connect/comparison/HRNView')
+    render(<HRNView clinic={{ ...baseClinic, hrnScore: null }} onDeselect={noop} accentClass="text-blue-600" />)
+    expect(screen.getByText('7.8')).toBeInTheDocument()
+    process.env.NEXT_PUBLIC_USE_MOCK_HRN = prev
+  })
 })
 
 // ── InstagramView ─────────────────────────────────────────────────────────────
@@ -191,6 +212,28 @@ describe('InstagramView', () => {
     )
     const dashes = screen.getAllByText('—')
     expect(dashes.length).toBeGreaterThan(0)
+  })
+})
+
+// ── AllSourcesView — HRN score fallback ──────────────────────────────────────
+
+describe('AllSourcesView — HRN score fallback', () => {
+  beforeEach(() => { vi.clearAllMocks(); mockCompareSignals.mockReset() })
+
+  it('shows hrn score from signals when clinic.hrnScore is null', async () => {
+    mockCompareSignals.mockReturnValue({
+      data: {
+        hrn: { hrnScore: 6.3, totalThreads: 8, photoThreads: 2, longTermFollowups: 1,
+               repairCases: 0, sentiment: { positive: 5, mixed: 2, negative: 1 },
+               topTopics: [], photoThreadsList: [], allThreads: [],
+               clinicName: 'Test Clinic', lastUpdated: '2026-01-01T00:00:00Z' },
+        reddit: null, googlePlaces: null, instagram: null, registryRecords: [], extraImages: [],
+      },
+      loading: false,
+    })
+    const { AllSourcesView } = await import('@/components/istanbulmedic-connect/comparison/AllSourcesView')
+    render(<AllSourcesView clinic={{ ...baseClinic, hrnScore: null }} onDeselect={noop} accentClass="text-blue-600" />)
+    expect(screen.getByText('6.3/10')).toBeInTheDocument()
   })
 })
 
