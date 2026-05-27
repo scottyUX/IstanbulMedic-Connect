@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useId, useState } from "react"
-import { Check, MapPin, ShieldCheck, Star } from "lucide-react"
+import { Check, MapPin, ShieldCheck, Star, Trophy } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
 import { Badge } from "@/components/ui/badge"
@@ -36,6 +36,7 @@ interface ClinicCardProps {
   rating?: number
   reviewCount?: number
   aiInsight?: string
+  trustBand?: "A" | "B" | "C" | "D" | null
   isMinistryVerified?: boolean
   onViewProfile: () => void
 }
@@ -50,6 +51,7 @@ export const ClinicCard = ({
   rating,
   reviewCount,
   aiInsight,
+  trustBand = null,
   isMinistryVerified = false,
   onViewProfile,
 }: ClinicCardProps) => {
@@ -110,6 +112,13 @@ export const ClinicCard = ({
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-[16px] bg-muted/40 text-sm text-muted-foreground">
               No clinic photo uploaded
+            </div>
+          )}
+          {/* Patient Favorite badge — top-left overlay */}
+          {trustBand === "A" && (
+            <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur-sm px-2.5 py-1 shadow-sm">
+              <Trophy className="h-3.5 w-3.5 text-[#FFD700] fill-[#FFD700]" />
+              <span className="text-xs font-semibold text-foreground">Patient Favorite</span>
             </div>
           )}
           {/* Bookmark icon — top-right overlay */}

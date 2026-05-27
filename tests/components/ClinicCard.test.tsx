@@ -63,6 +63,21 @@ describe('ClinicCard', () => {
     expect(screen.queryByText('Ministry verified')).not.toBeInTheDocument();
   });
 
+  it('shows Patient Favorite badge when trustBand is A', () => {
+    render(<ClinicCard {...defaultProps} trustBand="A" />);
+    expect(screen.getByText('Patient Favorite')).toBeInTheDocument();
+  });
+
+  it('does not show Patient Favorite badge when trustBand is B', () => {
+    render(<ClinicCard {...defaultProps} trustBand="B" />);
+    expect(screen.queryByText('Patient Favorite')).not.toBeInTheDocument();
+  });
+
+  it('does not show Patient Favorite badge when trustBand is not provided', () => {
+    render(<ClinicCard {...defaultProps} />);
+    expect(screen.queryByText('Patient Favorite')).not.toBeInTheDocument();
+  });
+
   it('renders location with icon', () => {
     render(<ClinicCard {...defaultProps} />);
     expect(screen.getByText('Istanbul, Turkey')).toBeInTheDocument();

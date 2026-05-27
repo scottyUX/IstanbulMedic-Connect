@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Star, Trophy } from "lucide-react"
+import { Star } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,6 +30,7 @@ interface ReviewsSectionProps {
   averageRating: number | null
   totalReviews: number
   reviews: Review[]
+  googleScore?: number | null
 }
 
 const REVIEW_TRUNCATE_LENGTH = 250
@@ -80,6 +81,7 @@ export const ReviewsSection = ({
   averageRating,
   totalReviews,
   reviews,
+  googleScore = null,
 }: ReviewsSectionProps) => {
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set())
   const [modalSortBy, setModalSortBy] = useState<SortOption>("most_recent")
@@ -96,8 +98,6 @@ export const ReviewsSection = ({
     const s = Math.round(r.rating)
     if (s >= 1 && s <= 5) starCounts[s]++
   }
-
-  const isPatientFavorite = averageRating !== null && averageRating >= 4.5 && totalReviews >= 5
 
   const toggleReviewExpanded = (reviewKey: string) => {
     setExpandedReviews(prev => {
@@ -150,14 +150,15 @@ export const ReviewsSection = ({
             ) : (
               <p className="text-base text-muted-foreground mt-1">No Google reviews yet.</p>
             )}
+            {googleScore !== null && (
+              <div className="flex items-center gap-2 mt-3">
+                <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">IM Score</span>
+                <span className="rounded-md bg-[#17375B]/10 px-2.5 py-0.5 text-sm font-bold text-[#17375B]">{(googleScore / 10).toFixed(1)}</span>
+                <span className="text-xs text-muted-foreground">/ 10</span>
+              </div>
+            )}
           </div>
 
-          {isPatientFavorite && (
-            <div className="flex items-center gap-2 shrink-0 rounded-full bg-[#FFD700]/10 px-4 py-2">
-              <Trophy className="h-5 w-5 text-[#FFD700] fill-[#FFD700]" />
-              <span className="text-sm font-semibold text-foreground">Patient Favorite</span>
-            </div>
-          )}
         </div>
       </CardHeader>
 
@@ -245,39 +246,22 @@ export const ReviewsSection = ({
             <div className="flex flex-col md:flex-row h-full">
               {/* Left Sidebar */}
               <div className="hidden md:flex w-1/3 flex-col p-8 border-r border-border/40 bg-muted/5 h-full overflow-y-auto">
-                {isPatientFavorite ? (
-                  <>
-                    <div className="flex items-center gap-4 mb-8 mt-4">
-                      <Trophy className="h-16 w-16 text-[#FFD700] fill-[#FFD700]" />
-                      <div className="bg-[#FFD700] text-black text-3xl font-bold px-4 py-2 rounded-xl">
-                        {averageRating!.toFixed(1)}
-                      </div>
+                <>
+                  <div className="flex items-center gap-3 mb-6 mt-4">
+                    <GoogleIcon className="h-8 w-8" />
+                    <div className="text-4xl font-bold text-foreground">
+                      {averageRating !== null ? averageRating.toFixed(1) : "—"}
                     </div>
-                    <div className="mb-6">
-                      <h3 className="text-2xl font-bold text-foreground mb-2">Patient Favorite</h3>
-                      <p className="text-muted-foreground leading-relaxed">
-                        One of the most loved highly rated clinics for patient outcomes and service quality on Istanbul Medic.
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3 mb-6 mt-4">
-                      <GoogleIcon className="h-8 w-8" />
-                      <div className="text-4xl font-bold text-foreground">
-                        {averageRating !== null ? averageRating.toFixed(1) : "—"}
-                      </div>
-                    </div>
-                    <div className="mb-6">
-                      <h3 className="text-2xl font-bold text-foreground mb-2">Google Reviews</h3>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {totalReviews > 0
-                          ? `${totalReviews} review${totalReviews === 1 ? "" : "s"} from Google.`
-                          : "No reviews yet."}
-                      </p>
-                    </div>
-                  </>
-                )}
+                  </div>
+                  <div className="mb-6">
+                    <h3 className="text-2xl font-bold text-foreground mb-2">Google Reviews</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {totalReviews > 0
+                        ? `${totalReviews} review${totalReviews === 1 ? "" : "s"} from Google.`
+                        : "No reviews yet."}
+                    </p>
+                  </div>
+                </>
 
                 {/* Star distribution */}
                 {totalReviews > 0 && (

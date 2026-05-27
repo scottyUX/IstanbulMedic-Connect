@@ -258,6 +258,7 @@ const communitySignals = {
         location={clinic.location}
         images={heroImages}
         transparencyScore={clinic.trustScore}
+        trustBand={clinic.trustBand}
         rating={clinic.rating ?? null}
         reviewCount={clinic.totalReviewCount}
         isMinistryVerified={isMinistryVerified}
@@ -349,6 +350,7 @@ const communitySignals = {
             averageRating={clinic.rating ?? null}
             totalReviews={clinic.totalReviewCount}
             reviews={allReviews}
+            googleScore={clinic.sourceScores?.find((s) => s.source_name === "google" && s.is_current)?.summary_score ?? null}
           />
 
           {FEATURE_CONFIG.profileCommunitySignals && (

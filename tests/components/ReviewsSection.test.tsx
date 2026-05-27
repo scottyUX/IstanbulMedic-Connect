@@ -61,19 +61,16 @@ describe('ReviewsSection', () => {
     expect(container.textContent).toContain('25 reviews');
   });
 
-  it('shows Patient Favorite badge for high rating with enough reviews', () => {
-    render(<ReviewsSection {...defaultProps} averageRating={4.8} totalReviews={10} />);
-    expect(screen.getByText('Patient Favorite')).toBeInTheDocument();
+  it('shows IM Score when googleScore prop is provided', () => {
+    const { container } = render(<ReviewsSection {...defaultProps} googleScore={78} />);
+    expect(container.textContent).toContain('IM Score');
+    expect(container.textContent).toContain('7.8');
+    expect(container.textContent).toContain('/ 10');
   });
 
-  it('does not show Patient Favorite for lower rating', () => {
-    render(<ReviewsSection {...defaultProps} averageRating={4.0} totalReviews={10} />);
-    expect(screen.queryByText('Patient Favorite')).not.toBeInTheDocument();
-  });
-
-  it('does not show Patient Favorite when not enough reviews', () => {
-    render(<ReviewsSection {...defaultProps} averageRating={4.8} totalReviews={3} />);
-    expect(screen.queryByText('Patient Favorite')).not.toBeInTheDocument();
+  it('does not show IM Score when googleScore is not provided', () => {
+    const { container } = render(<ReviewsSection {...defaultProps} />);
+    expect(container.textContent).not.toContain('IM Score');
   });
 
   it('shows no reviews message when totalReviews is 0', () => {

@@ -14,6 +14,7 @@ interface HeroSectionProps {
   location: string
   images: string[]
   transparencyScore: number
+  trustBand?: "A" | "B" | "C" | "D" | null
   rating: number | null
   reviewCount: number
   isMinistryVerified?: boolean
@@ -24,6 +25,7 @@ export const HeroSection = ({
   location,
   images,
   transparencyScore,
+  trustBand = null,
   rating,
   reviewCount,
   isMinistryVerified = false,
@@ -138,8 +140,8 @@ export const HeroSection = ({
             </div>
           </div>
 
-          {/* Patient Favorite Banner - only show if clinic qualifies (rating >= 4.8 with at least 100 reviews) */}
-          {rating !== null && rating >= 4.8 && reviewCount >= 100 && (
+          {/* Patient Favorite Banner - only show if clinic has Band A trust score */}
+          {trustBand === "A" && (
             <div className="border border-border/60 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-background shadow-sm">
 
               {/* Left: Badge */}
@@ -160,35 +162,24 @@ export const HeroSection = ({
                   One of the most loved clinics on Istanbul Medic Connect
                 </p>
                 <p className="text-muted-foreground">
-                  Rated highly for hygiene, outcome, and service.
+                  Awarded our highest trust rating — Band A.
                 </p>
               </div>
 
               {/* Right: Stats */}
               <div className="flex items-center gap-6 shrink-0 md:border-l md:pl-6 border-border/60">
                 <div className="text-center">
-                  <div className="im-heading-3 text-foreground">{rating.toFixed(2)}</div>
+                  <div className="im-heading-3 text-foreground">{transparencyScore}</div>
+                  <div className="text-sm text-muted-foreground mt-1">IM Score</div>
+                </div>
+                <div className="h-10 w-px bg-border/60 hidden md:block"></div>
+                <div className="text-center">
+                  <div className="im-heading-3 text-foreground">{rating !== null ? rating.toFixed(1) : "—"}</div>
                   <div className="flex gap-0.5 mt-1 justify-center">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star key={i} className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />
                     ))}
                   </div>
-                </div>
-                <div className="h-10 w-px bg-border/60 hidden md:block"></div>
-                <div className="text-center">
-                  <div className="im-heading-3 text-foreground">{reviewCount}</div>
-                  <Button
-                    variant="link"
-                    className="h-auto p-0 text-sm text-foreground hover:text-[#3EBBB7] underline-offset-4 mt-1"
-                    onClick={() => {
-                      const reviewsSection = document.getElementById("reviews")
-                      if (reviewsSection) {
-                        reviewsSection.scrollIntoView({ behavior: "smooth", block: "start" })
-                      }
-                    }}
-                  >
-                    Reviews
-                  </Button>
                 </div>
               </div>
 
