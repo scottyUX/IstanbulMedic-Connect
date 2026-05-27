@@ -16,6 +16,16 @@ const LoginPageClient = () => {
   const [manualError, setManualError] = useState<string | null>(null)
   const [devEmail, setDevEmail] = useState("")
   const [devPassword, setDevPassword] = useState("")
+  const [savedClinicCount, setSavedClinicCount] = useState(0)
+
+  useEffect(() => {
+    try {
+      const ids: string[] = JSON.parse(localStorage.getItem('im.bookmarks') ?? '[]')
+      setSavedClinicCount(ids.length)
+    } catch {
+      // ignore
+    }
+  }, [])
 
   const next = searchParams.get("next") ?? "/profile"
 
@@ -73,6 +83,12 @@ const LoginPageClient = () => {
             <h2 className="text-lg font-semibold text-[#0D1E32] mb-1">Welcome</h2>
             <p className="text-slate-500 text-sm">Sign in to access your profile. New users will have an account created automatically.</p>
           </div>
+
+          {savedClinicCount > 0 && (
+            <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+              You have {savedClinicCount} saved clinic{savedClinicCount !== 1 ? 's' : ''} — sign in to keep them linked to your account.
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">

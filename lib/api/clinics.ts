@@ -70,6 +70,10 @@ export interface ClinicListItem {
   rating?: number;
   reviewCount?: number;
   aiInsight?: string;
+  googleScore?: number | null;
+  redditScore?: number | null;
+  hrnScore?: number | null;
+  instagramScore?: number | null;
   isMinistryVerified?: boolean;
 }
 
@@ -250,7 +254,7 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
 export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResult> {
   const supabase = await createClient();
 
-  const pageSize = Math.max(1, Math.min(query.pageSize ?? 12, 50));
+  const pageSize = Math.max(1, Math.min(query.pageSize ?? 12, 500));
   const page = Math.max(1, query.page ?? 1);
   const sort = query.sort ?? 'Best Match';
   // These sorts require the view for proper ORDER BY
@@ -775,6 +779,49 @@ export async function getClinicCities(): Promise<string[]> {
 
   const cities = [...new Set(data?.map((c) => c.primary_city) || [])];
   return cities.sort();
+}
+
+/**
+ * Fetches per-source scores for a list of clinics (used by comparison pages).
+ * Reads from clinic_source_scores (summary_score 0–100) and converts to 0–10.
+ * Returns a map of clinicId → { googleScore, redditScore, hrnScore, instagramScore }.
+ */
+export async function getClinicSourceScores(
+  clinicIds: string[]
+): Promise<Map<string, { googleScore: number | null; redditScore: number | null; hrnScore: number | null; instagramScore: number | null }>> {
+  if (clinicIds.length === 0) return new Map()
+
+  const supabase = await createClient()
+
+  const result = new Map<string, { googleScore: number | null; redditScore: number | null; hrnScore: number | null; instagramScore: number | null }>()
+  for (const id of clinicIds) result.set(id, { googleScore: null, redditScore: null, hrnScore: null, instagramScore: null })
+
+  const { data, error } = await supabase
+    .from('clinic_source_scores')
+    .select('clinic_id, source_name, summary_score')
+    .in('clinic_id', clinicIds)
+    .in('source_name', ['google', 'reddit', 'hrn', 'instagram'])
+    .eq('is_current', true)
+
+  if (error) {
+    console.error('[getClinicSourceScores] query failed:', error.message)
+    return result
+  }
+
+  for (const row of data ?? []) {
+    const entry = result.get(row.clinic_id)
+    if (!entry) continue
+    // summary_score is 0–100; divide by 10 for consistent /10 display.
+    // Treat 0 as null (placeholder row, no real data) so the UI shows — instead of 0.0.
+    if (row.summary_score === 0) continue
+    const score = row.summary_score / 10
+    if (row.source_name === 'google')    entry.googleScore    = score
+    if (row.source_name === 'reddit')    entry.redditScore    = score
+    if (row.source_name === 'hrn')       entry.hrnScore       = score
+    if (row.source_name === 'instagram') entry.instagramScore = score
+  }
+
+  return result
 }
 
 /**

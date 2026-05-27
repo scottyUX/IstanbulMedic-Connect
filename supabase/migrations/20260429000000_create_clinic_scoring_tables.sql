@@ -41,3 +41,9 @@ create index idx_clinic_source_scores_source_name
 create index idx_clinic_source_scores_current
   on public.clinic_source_scores(source_name, clinic_id)
   where is_current = true;
+
+-- Allow unauthenticated (anon) and authenticated users to read scores.
+-- Required for the comparison pages, which query this table from the browser.
+-- Without this grant, Supabase RLS silently returns empty rows for logged-out users.
+grant select on table "public"."clinic_source_scores" to "anon";
+grant select on table "public"."clinic_source_scores" to "authenticated";

@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useId, useState } from "react"
+import { useId, useState, useEffect } from "react"
 import { Check, MapPin, ShieldCheck, Star, Trophy } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
@@ -37,6 +37,7 @@ interface ClinicCardProps {
   reviewCount?: number
   aiInsight?: string
   trustBand?: "A" | "B" | "C" | "D" | null
+  initialConsultationRequested?: boolean
   isMinistryVerified?: boolean
   onViewProfile: () => void
 }
@@ -52,12 +53,19 @@ export const ClinicCard = ({
   reviewCount,
   aiInsight,
   trustBand = null,
+  initialConsultationRequested,
   isMinistryVerified = false,
   onViewProfile,
 }: ClinicCardProps) => {
   const compareId = useId()
   const [isCompared, setIsCompared] = useState(false)
-  const [consultationRequested, setConsultationRequested] = useState(false)
+  const [consultationRequested, setConsultationRequested] = useState(initialConsultationRequested ?? false)
+
+  // Sync when parent resolves pending status asynchronously after first render
+  useEffect(() => {
+    if (initialConsultationRequested) setConsultationRequested(true)
+  }, [initialConsultationRequested])
+
   const [modalOpen, setModalOpen] = useState(false)
   const [verificationTooltipOpen, setVerificationTooltipOpen] = useState(false)
   const { isAuthenticated } = useAuth()
@@ -66,8 +74,8 @@ export const ClinicCard = ({
   const handleConsultationClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!isAuthenticated) {
-      document.cookie = `auth_redirect_next=${encodeURIComponent(window.location.pathname)}; path=/; max-age=300`
-      router.push("/auth/login")
+      sessionStorage.setItem('consultation_intent', JSON.stringify([id]))
+      router.push(`/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`)
       return
     }
     if (!consultationRequested) {

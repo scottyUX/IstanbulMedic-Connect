@@ -1,6 +1,6 @@
 import { Suspense } from "react"
-import { getClinics } from "@/lib/api/clinics"
-import { CompareClinicPage } from "@/components/istanbulmedic-connect/CompareClinicPage"
+import { getClinics, getClinicSourceScores } from "@/lib/api/clinics"
+import { CompareClinicPage } from "@/components/istanbulmedic-connect/comparison/CompareClinicPage"
 
 export const metadata = {
   title: "Compare Clinics | IstanbulMedic Connect",
@@ -8,11 +8,13 @@ export const metadata = {
 }
 
 export default async function ComparePage() {
-  const { clinics } = await getClinics({ pageSize: 50, sort: "Alphabetical" })
+  const { clinics } = await getClinics({ pageSize: 500, sort: "Alphabetical" })
+  const scores = await getClinicSourceScores(clinics.map(c => c.id))
+  const enriched = clinics.map(c => ({ ...c, ...scores.get(c.id) }))
 
   return (
     <Suspense>
-      <CompareClinicPage clinics={clinics} />
+      <CompareClinicPage clinics={enriched} source="all" />
     </Suspense>
   )
 }
