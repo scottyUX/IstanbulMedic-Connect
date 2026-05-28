@@ -91,6 +91,7 @@ describe('ClinicProfilePage', () => {
     packages: [],
     reviews: [],
     scoreComponents: [],
+    sourceScores: [],
     yearsInOperation: null,
     proceduresPerformed: null,
     totalReviewCount: 0,
