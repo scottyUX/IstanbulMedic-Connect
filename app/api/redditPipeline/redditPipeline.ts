@@ -208,6 +208,9 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
       continue
     }
 
+    // Pass 1: upsert all posts, collect threadIds for comment processing.
+    const upsertedPosts: Array<{ threadId: string; post: RawRedditPost }> = []
+
     for (const post of posts) {
       const { threadId, isNew } = await upsertThread(supabase, post, sourceId)
       if (!threadId) continue
@@ -221,17 +224,23 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
         result.signalRowsInserted += inserted
       }
 
-      // Fetch and store comments for posts above the upvote threshold
-      if (includeComments) {
-        const comments = await fetchPostComments(subreddit, post.id, commentsPerPost)
+      if (includeComments) upsertedPosts.push({ threadId, post })
+    }
 
-        // Read parent's clinic_id once for the whole batch — not per comment
-        const { data: parentHub } = await supabase
-          .from('forum_thread_index')
-          .select('clinic_id')
-          .eq('id', threadId)
-          .single()
-        const parentClinicId: string | null = parentHub?.clinic_id ?? null
+    // Pass 2: batch-fetch clinic_ids for all posts in one query, then process comments.
+    if (includeComments && upsertedPosts.length > 0) {
+      const allThreadIds = upsertedPosts.map(p => p.threadId)
+      const { data: hubs } = await supabase
+        .from('forum_thread_index')
+        .select('id, clinic_id')
+        .in('id', allThreadIds)
+      const clinicIdMap = new Map<string, string | null>(
+        (hubs ?? []).map(h => [h.id, h.clinic_id])
+      )
+
+      for (const { threadId, post } of upsertedPosts) {
+        const comments = await fetchPostComments(subreddit, post.id, commentsPerPost)
+        const parentClinicId = clinicIdMap.get(threadId) ?? null
 
         for (const comment of comments) {
           const commentPost: RawRedditPost = {

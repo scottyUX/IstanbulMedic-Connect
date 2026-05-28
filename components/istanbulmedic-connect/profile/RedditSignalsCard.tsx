@@ -370,7 +370,7 @@ export function RedditSignalsCard({ data }: { data: RedditSignalsData }) {
             </div>
 
             <div className="flex items-center gap-3 px-4 py-2.5 bg-background border-t border-border/40">
-              <CalendarCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+              <CalendarCheck className={cn("h-4 w-4 flex-shrink-0", longtermCount === 0 ? "text-amber-500" : "text-emerald-500")} />
               <span className="text-sm text-foreground flex-1">
                 <span className="font-medium">{followupPct}%</span> have 6+ month follow-ups
                 <span className="text-muted-foreground"> ({longtermCount}/{threadCount})</span>
