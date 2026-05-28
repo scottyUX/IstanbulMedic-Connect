@@ -170,7 +170,7 @@ export const HeroSection = ({
               <div className="flex items-center gap-6 shrink-0 md:border-l md:pl-6 border-border/60">
                 <div className="text-center">
                   <div className="im-heading-3 text-foreground">{transparencyScore}</div>
-                  <div className="text-sm text-muted-foreground mt-1">IM Score</div>
+                  <div className="text-sm text-muted-foreground mt-1">Trust Score</div>
                 </div>
                 <div className="h-10 w-px bg-border/60 hidden md:block"></div>
                 <div className="text-center">
@@ -180,6 +180,22 @@ export const HeroSection = ({
                       <Star key={i} className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />
                     ))}
                   </div>
+                </div>
+                <div className="h-10 w-px bg-border/60 hidden md:block"></div>
+                <div className="text-center">
+                  <div className="im-heading-3 text-foreground">{reviewCount}</div>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-sm text-foreground hover:text-[#3EBBB7] underline-offset-4 mt-1"
+                    onClick={() => {
+                      const reviewsSection = document.getElementById("reviews")
+                      if (reviewsSection) {
+                        reviewsSection.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }
+                    }}
+                  >
+                    Reviews
+                  </Button>
                 </div>
               </div>
 

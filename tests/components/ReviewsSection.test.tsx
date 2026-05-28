@@ -61,16 +61,16 @@ describe('ReviewsSection', () => {
     expect(container.textContent).toContain('25 reviews');
   });
 
-  it('shows IM Score when googleScore prop is provided', () => {
+  it('shows Google Signal Score when googleScore prop is provided', () => {
     const { container } = render(<ReviewsSection {...defaultProps} googleScore={78} />);
-    expect(container.textContent).toContain('IM Score');
+    expect(container.textContent).toContain('Google Signal Score');
     expect(container.textContent).toContain('7.8');
     expect(container.textContent).toContain('/ 10');
   });
 
-  it('does not show IM Score when googleScore is not provided', () => {
+  it('does not show Google Signal Score when googleScore is not provided', () => {
     const { container } = render(<ReviewsSection {...defaultProps} />);
-    expect(container.textContent).not.toContain('IM Score');
+    expect(container.textContent).not.toContain('Google Signal Score');
   });
 
   it('shows no reviews message when totalReviews is 0', () => {

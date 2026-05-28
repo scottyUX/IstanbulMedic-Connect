@@ -152,7 +152,7 @@ export const ReviewsSection = ({
             )}
             {googleScore !== null && (
               <div className="flex items-center gap-2 mt-3">
-                <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">IM Score</span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Google Signal Score</span>
                 <span className="rounded-md bg-[#17375B]/10 px-2.5 py-0.5 text-sm font-bold text-[#17375B]">{(googleScore / 10).toFixed(1)}</span>
                 <span className="text-xs text-muted-foreground">/ 10</span>
               </div>
@@ -230,14 +230,12 @@ export const ReviewsSection = ({
         {/* Show All Reviews Modal */}
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="outline" size="lg" className="h-12 px-8 text-base font-semibold border-black/80 hover:bg-neutral-50 rounded-lg">
+            <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold border-black/80 hover:bg-neutral-50 rounded-lg">
               View more Google reviews
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-5xl h-[80vh] p-0 gap-0 overflow-hidden sm:rounded-2xl flex flex-col border-0 shadow-2xl">
-            <div className="hidden">
-              <DialogTitle>All Reviews</DialogTitle>
-            </div>
+            <DialogTitle className="sr-only">All Reviews</DialogTitle>
             <DialogClose className="absolute left-4 top-4 z-50 rounded-full bg-background p-2 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
@@ -264,12 +262,15 @@ export const ReviewsSection = ({
                 </>
 
                 {/* Star distribution */}
-                {totalReviews > 0 && (
+                {reviews.length > 0 && (
                   <div className="space-y-2.5">
                     <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Rating breakdown</h4>
                     {[5, 4, 3, 2, 1].map((s) => (
                       <StarBar key={s} stars={s} count={starCounts[s]} total={reviews.length} />
                     ))}
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Based on {reviews.length} stored review{reviews.length === 1 ? "" : "s"}.
+                    </p>
                   </div>
                 )}
               </div>

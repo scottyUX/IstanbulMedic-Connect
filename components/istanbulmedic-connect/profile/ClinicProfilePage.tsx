@@ -361,7 +361,9 @@ const communitySignals = {
           )}
 
           {FEATURE_CONFIG.profileInstagram && clinic.instagramSignals && (
-            <InstagramSignalsCard data={clinic.instagramSignals} />
+            <div id="instagram-intel">
+              <InstagramSignalsCard data={clinic.instagramSignals} />
+            </div>
           )}
 
           {FEATURE_CONFIG.profileHRN && clinic.hrnSignals && (
