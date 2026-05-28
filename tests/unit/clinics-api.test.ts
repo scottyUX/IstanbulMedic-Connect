@@ -260,6 +260,20 @@ describe('getClinics', () => {
     vi.clearAllMocks();
     mockSupabase.from.mockReturnValue(mockBuilder);
 
+    // Test A-Z sort
+    await getClinics({ sort: 'A-Z' });
+    expect(mockBuilder.order).toHaveBeenCalledWith('display_name', { ascending: true });
+
+    vi.clearAllMocks();
+    mockSupabase.from.mockReturnValue(mockBuilder);
+
+    // Test Z-A sort
+    await getClinics({ sort: 'Z-A' });
+    expect(mockBuilder.order).toHaveBeenCalledWith('display_name', { ascending: false });
+
+    vi.clearAllMocks();
+    mockSupabase.from.mockReturnValue(mockBuilder);
+
     // Test Price: Low to High sort - does not use view
     await getClinics({ sort: 'Price: Low to High' });
     expect(mockBuilder.order).toHaveBeenCalledWith('display_name', { ascending: true });

@@ -45,11 +45,9 @@ export function RedditView({ clinic, onDeselect, accentClass }: RedditViewProps)
 
   const dist = reddit?.sentimentDistribution ?? {}
   const distTotal = (Object.values(dist) as number[]).reduce((s, n) => s + n, 0)
-  const sentimentScore = reddit?.sentimentScore ?? null
-  const sentimentTotal = distTotal > 0 ? distTotal : sentimentScore != null ? 100 : 0
-  const pos = distTotal > 0 ? (dist.positive ?? 0) : Math.round((sentimentScore ?? 0) * 100)
-  const neu = distTotal > 0 ? (dist.neutral  ?? 0) : 0
-  const neg = distTotal > 0 ? (dist.negative ?? 0) : Math.round((1 - (sentimentScore ?? 0)) * 100)
+  const pos = dist.positive ?? 0
+  const neu = dist.neutral  ?? 0
+  const neg = dist.negative ?? 0
 
   return (
     <div className="flex flex-col gap-4 p-4 overflow-y-auto h-full">
@@ -132,14 +130,14 @@ export function RedditView({ clinic, onDeselect, accentClass }: RedditViewProps)
         </p>
         {loading ? (
           <span className="text-xs text-muted-foreground">—</span>
-        ) : sentimentTotal > 0 ? (
+        ) : distTotal > 0 ? (
           <div className="space-y-1.5">
-            <SentimentRow color="bg-emerald-500"      label="Positive" count={pos} total={sentimentTotal} />
-            <SentimentRow color="bg-muted-foreground/30" label="Neutral"  count={neu} total={sentimentTotal} />
-            <SentimentRow color="bg-rose-400"         label="Negative" count={neg} total={sentimentTotal} />
+            <SentimentRow color="bg-emerald-500"         label="Positive" count={pos} total={distTotal} />
+            <SentimentRow color="bg-muted-foreground/30" label="Neutral"  count={neu} total={distTotal} />
+            <SentimentRow color="bg-rose-400"            label="Negative" count={neg} total={distTotal} />
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">No data yet</p>
+          <p className="text-xs text-muted-foreground">No breakdown available</p>
         )}
       </div>
 

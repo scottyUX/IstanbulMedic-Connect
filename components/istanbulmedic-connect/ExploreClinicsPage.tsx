@@ -2,7 +2,7 @@
 
 import { Search, GitCompareArrows } from "lucide-react"
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -72,6 +72,10 @@ const buildQueryString = (filters: FilterState, sortBy: ClinicSortOption, page: 
     params.set("minReviews", String(filters.minReviews))
   }
 
+  if (filters.minTrustScore !== null) {
+    params.set("minTrustScore", String(filters.minTrustScore))
+  }
+
   if (sortBy && sortBy !== DEFAULT_SORT_OPTION) {
     params.set("sort", sortBy)
   }
@@ -112,6 +116,7 @@ export const ExploreClinicsPage = ({
   const [filters, setFilters] = useState<FilterState>(initialFilters)
   const [sortBy, setSortBy] = useState<ClinicSortOption>(normalizedInitialSort)
   const isFirstRender = useRef(true)
+  const gridRef = useRef<HTMLDivElement>(null)
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
   const rangeStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1
@@ -146,6 +151,33 @@ export const ExploreClinicsPage = ({
 
   const clinics = useMemo(() => initialClinics, [initialClinics])
 
+  useLayoutEffect(() => {
+    const grid = gridRef.current
+    if (!grid) return
+
+    const equalize = () => {
+      const names = Array.from(grid.querySelectorAll<HTMLElement>('[data-clinic-name]'))
+      names.forEach(el => { el.style.minHeight = '' })
+
+      const rows = new Map<number, HTMLElement[]>()
+      names.forEach(el => {
+        const top = Math.round(el.getBoundingClientRect().top)
+        if (!rows.has(top)) rows.set(top, [])
+        rows.get(top)!.push(el)
+      })
+
+      rows.forEach(rowEls => {
+        const maxH = Math.max(...rowEls.map(el => el.getBoundingClientRect().height))
+        rowEls.forEach(el => { el.style.minHeight = `${maxH}px` })
+      })
+    }
+
+    equalize()
+    const ro = new ResizeObserver((_entries, _observer) => { equalize() })
+    ro.observe(grid)
+    return () => ro.disconnect()
+  }, [clinics])
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Hero Banner */}
@@ -158,7 +190,7 @@ export const ExploreClinicsPage = ({
                 className="text-4xl font-bold leading-tight text-[#0D1E32] lg:text-6xl"
                 style={{ fontFamily: "var(--im-font-heading), serif" }}
               >
-                Connect with a Trusted Hair Transplant Clinic
+                Connect with a Trusted Hair <span className="whitespace-nowrap">Transplant Clinic</span>
               </h1>
               <p className="mt-4 text-xl text-muted-foreground max-w-3xl">
                 We know how overwhelming it can be to choose the right clinic for your hair transplant. That’s why we’re here to take the stress away—connecting you with qualified clinics in seconds, completely free and with no obligations.
@@ -226,7 +258,7 @@ export const ExploreClinicsPage = ({
         </Link>
 
         {/* Clinic Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" data-testid="clinics-grid">
+        <div ref={gridRef} className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" data-testid="clinics-grid">
           {clinics.length > 0 ? (
             clinics.map((clinic) => (
               <ClinicCard
@@ -237,6 +269,7 @@ export const ExploreClinicsPage = ({
                 image={clinic.image}
                 specialties={clinic.specialties}
                 trustScore={clinic.trustScore}
+                trustBand={clinic.trustBand}
                 description={clinic.description}
                 rating={clinic.rating}
                 reviewCount={clinic.reviewCount}

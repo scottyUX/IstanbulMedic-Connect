@@ -4,7 +4,7 @@ import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/pr
 import { getInstagramSignals } from './instagram';
 import type { HRNSignalsData } from '@/components/istanbulmedic-connect/profile/HRNSignalsCard';
 import { getHRNSignals } from './hrn';
-import { getForumSignals, type ClinicForumProfile } from './forumSignals';
+import { getRedditSignals, type RedditSignalsData } from './reddit';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -26,10 +26,13 @@ type ClinicScoreComponentRow = Tables<'clinic_score_components'>;
 type ClinicRegistryRecordRow = Tables<'clinic_registry_records'>;
 
 export type ClinicSortOption =
-  | 'Alphabetical'
+  | 'A-Z'
+  | 'Z-A'
   | 'Best Match'
   | 'Highest Rated'
   | 'Lowest Rated'
+  | 'Highest Trust'
+  | 'Lowest Trust'
   | 'Most Transparent'
   | 'Price: Low to High'
   | 'Price: High to Low';
@@ -106,7 +109,7 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   /** HRN forum signals (null if no threads attributed to this clinic) */
   hrnSignals: HRNSignalsData | null;
   /** Reddit community signals (null if no Reddit data exists) */
-  redditSignals: ClinicForumProfile | null;
+  redditSignals: RedditSignalsData | null;
   techniques: string[] | null;
   sourceScores: ClinicSourceScore[]
 }
@@ -258,7 +261,7 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
   const page = Math.max(1, query.page ?? 1);
   const sort = query.sort ?? 'Best Match';
   // These sorts require the view for proper ORDER BY
-  const needsViewSort = sort === 'Highest Rated' || sort === 'Lowest Rated' || sort === 'Best Match' || sort === 'Most Transparent';
+  const needsViewSort = sort === 'Highest Rated' || sort === 'Lowest Rated' || sort === 'Best Match' || sort === 'Most Transparent' || sort === 'Highest Trust' || sort === 'Lowest Trust';
 
   const searchQuery = normalizeString(query.searchQuery);
   const locationQuery = normalizeString(query.location);
@@ -462,6 +465,18 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
           .order('google_review_count', { ascending: true, nullsFirst: false })
           .order('display_name', { ascending: true });
         break;
+      case 'Highest Trust':
+        viewQuery = viewQuery
+          .order('overall_score', { ascending: false, nullsFirst: false })
+          .order('google_rating', { ascending: false, nullsFirst: false })
+          .order('display_name', { ascending: true });
+        break;
+      case 'Lowest Trust':
+        viewQuery = viewQuery
+          .order('overall_score', { ascending: true, nullsFirst: false })
+          .order('google_rating', { ascending: true, nullsFirst: false })
+          .order('display_name', { ascending: true });
+        break;
       case 'Best Match':
       case 'Most Transparent':
         viewQuery = viewQuery
@@ -553,8 +568,11 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
   // Apply sort for non-view sorts
   if (!needsViewSort) {
     switch (sort) {
-      case 'Alphabetical':
+      case 'A-Z':
         queryBuilder = queryBuilder.order('display_name', { ascending: true });
+        break;
+      case 'Z-A':
+        queryBuilder = queryBuilder.order('display_name', { ascending: false });
         break;
       case 'Price: Low to High':
         queryBuilder = queryBuilder.order('display_name', { ascending: true });
@@ -704,14 +722,12 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     });
   const imageUrl = imageMedia[0]?.url ?? null;
 
-  // Fetch Instagram and HRN signals in parallel (both return null if no data)
-  const [instagramSignals, hrnSignals] = await Promise.all([
+  // Fetch Instagram, HRN, and Reddit signals in parallel
+  const [instagramSignals, hrnSignals, redditSignals] = await Promise.all([
     getInstagramSignals(clinic.id),
     getHRNSignals(clinic.id, clinic.display_name),
+    getRedditSignals(clinic.id),
   ]);
-
-  // Fetch Reddit signals data (returns null if no Reddit profile exists)
-  const redditSignals = await getForumSignals(clinic.id, 'reddit');
 
   const scrapedData = Array.isArray(clinic.clinic_scraped_data)
     ? clinic.clinic_scraped_data[0]

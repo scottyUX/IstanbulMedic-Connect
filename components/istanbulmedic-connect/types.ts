@@ -29,4 +29,5 @@ export interface FilterState {
   aiMatchScore: number
   minRating: number | null      // null = "Any"
   minReviews: number | null     // null = "Any"
+  minTrustScore: number | null  // null = "Any"
 }

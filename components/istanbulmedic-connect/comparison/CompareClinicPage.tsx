@@ -209,14 +209,16 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
   const rawSort = searchParams.get("sort")
-  const [sortBy, setSortBy] = useState<"Alphabetical" | "Highest Rated" | "Lowest Rated">(
-    rawSort === "highest" ? "Highest Rated" : rawSort === "lowest" ? "Lowest Rated" : "Alphabetical"
+  const [sortBy, setSortBy] = useState<"A-Z" | "Z-A" | "Highest Rated" | "Lowest Rated">(
+    rawSort === "highest" ? "Highest Rated" : rawSort === "lowest" ? "Lowest Rated" : rawSort === "za" ? "Z-A" : "A-Z"
   )
 
   const sortedClinics = useMemo(() => {
     const sorted = [...clinics]
-    if (sortBy === "Alphabetical") {
+    if (sortBy === "A-Z") {
       sorted.sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sortBy === "Z-A") {
+      sorted.sort((a, b) => b.name.localeCompare(a.name))
     } else {
       const getScore = (c: ClinicListItem): number => {
         if (source === "google_places") return c.googleScore    ?? 0
@@ -238,6 +240,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
     const params = new URLSearchParams()
     if (left)  params.set("left",  left)
     if (right) params.set("right", right)
+    if (sort === "Z-A")           params.set("sort", "za")
     if (sort === "Highest Rated") params.set("sort", "highest")
     if (sort === "Lowest Rated")  params.set("sort", "lowest")
     const qs = params.toString()
@@ -293,7 +296,8 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Alphabetical">Alphabetical</SelectItem>
+                  <SelectItem value="A-Z">A-Z</SelectItem>
+                  <SelectItem value="Z-A">Z-A</SelectItem>
                   <SelectItem value="Highest Rated">Highest Rated</SelectItem>
                   <SelectItem value="Lowest Rated">Lowest Rated</SelectItem>
                 </SelectContent>

@@ -8,7 +8,7 @@ export const metadata = {
 }
 
 export default async function CompareHRNPage() {
-  const { clinics } = await getClinics({ pageSize: 500, sort: "Alphabetical" })
+  const { clinics } = await getClinics({ pageSize: 500, sort: "A-Z" })
   const scores = await getClinicSourceScores(clinics.map(c => c.id))
   const enriched = clinics.map(c => ({ ...c, ...scores.get(c.id) }))
 

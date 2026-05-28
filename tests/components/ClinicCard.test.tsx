@@ -79,14 +79,15 @@ describe('ClinicCard', () => {
     expect(screen.getByText(/Trust 85/)).toBeInTheDocument();
   });
 
-  it('renders specialties as tags', () => {
+  // Specialty tags are hidden until multiple clinic types are added to the platform.
+  // Re-enable these tests when the tags section is uncommented in ClinicCard.tsx.
+  it.skip('renders specialties as tags', () => {
     render(<ClinicCard {...defaultProps} />);
-    // SpecialtyTag component renders as lowercase 'transplant'
     expect(screen.getByText(/Hair transplant/i)).toBeInTheDocument();
     expect(screen.getByText(/Dental/i)).toBeInTheDocument();
   });
 
-  it('limits specialties to 4 items', () => {
+  it.skip('limits specialties to 4 items', () => {
     const manySpecialties = ['Spec 1', 'Spec 2', 'Spec 3', 'Spec 4', 'Spec 5', 'Spec 6'];
     render(<ClinicCard {...defaultProps} specialties={manySpecialties} />);
 
