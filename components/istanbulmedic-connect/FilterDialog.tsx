@@ -218,7 +218,7 @@ export function FilterDialog({
                                         {/* Band checkpoints: C(40–59) B(60–79) A(80–100) */}
                                         <div className="relative mb-1">
                                             {[
-                                                { label: "C", pct: 50 },
+                                                { label: "C", pct: 40 },
                                                 { label: "B", pct: 60 },
                                                 { label: "A", pct: 70 },
                                             ].map(({ label, pct }) => (
