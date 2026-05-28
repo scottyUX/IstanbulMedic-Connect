@@ -41,7 +41,7 @@ export function ConsultationConfirmModal({
       await onConfirm()
       onOpenChange(false)
     } catch {
-      // onConfirm handles its own UI state on failure; we just stop submitting
+      onOpenChange(false)
     } finally {
       setSubmitting(false)
     }
