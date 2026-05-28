@@ -92,9 +92,9 @@ describe('HeroSection', () => {
     expect(screen.getByText('Awarded our highest trust rating — Band A.')).toBeInTheDocument();
   });
 
-  it('shows IM Score in banner stats when trustBand is A', () => {
+  it('shows Trust Score in banner stats when trustBand is A', () => {
     render(<HeroSection {...defaultProps} trustBand="A" transparencyScore={85} />);
-    expect(screen.getByText('IM Score')).toBeInTheDocument();
+    expect(screen.getByText('Trust Score')).toBeInTheDocument();
   });
 
   it('does not show Patient Favorite banner when trustBand is B', () => {
