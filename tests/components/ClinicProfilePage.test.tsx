@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ClinicProfilePage } from '@/components/istanbulmedic-connect/profile/ClinicProfilePage';
 import type { ClinicDetail } from '@/lib/api/clinics';
+import type { RegistryRecord } from '@/components/istanbulmedic-connect/profile/RegistrySection';
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ isAuthenticated: false, loading: false }),
@@ -90,6 +91,7 @@ describe('ClinicProfilePage', () => {
     packages: [],
     reviews: [],
     scoreComponents: [],
+    sourceScores: [],
     yearsInOperation: null,
     proceduresPerformed: null,
     totalReviewCount: 0,
@@ -104,6 +106,52 @@ describe('ClinicProfilePage', () => {
     const clinic = createMinimalClinic({ name: 'Istanbul Hair Center' });
     render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
     expect(screen.getByText('Istanbul Hair Center')).toBeInTheDocument();
+  });
+
+  // TODO: Unskip once development branch MoH badge feature is merged
+  it.skip('shows Turkish Ministry of Health verification as a hero badge instead of a registry section', () => {
+    const clinic = createMinimalClinic({ name: 'Istanbul Hair Center' });
+    const registryRecord: RegistryRecord = {
+      id: 'reg-1',
+      source: 'turkish_ministry_of_health',
+      license_number: 'MOH-42',
+      license_status: 'active',
+      licensed_since: '2018-03-15',
+      expires_at: null,
+      authorized_specialties: ['Hair Transplant'],
+      registered_legal_name: 'Istanbul Hair Center LLC',
+      registered_address: 'Istanbul, Turkey',
+      registry_url: null,
+      last_verified_at: '2026-01-10T00:00:00Z',
+    };
+
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[registryRecord]} complianceHistory={[]} />);
+
+    expect(screen.getByText('Verified by Turkish Ministry of Health')).toBeInTheDocument();
+    expect(screen.queryByText('Official Registry')).not.toBeInTheDocument();
+    expect(screen.queryByText('MOH-42')).not.toBeInTheDocument();
+  });
+
+  // TODO: Unskip once development branch MoH badge feature is merged
+  it.skip('does not show Ministry of Health badge for inactive registry records', () => {
+    const clinic = createMinimalClinic();
+    const registryRecord: RegistryRecord = {
+      id: 'reg-1',
+      source: 'turkish_ministry_of_health',
+      license_number: 'MOH-42',
+      license_status: 'expired',
+      licensed_since: null,
+      expires_at: null,
+      authorized_specialties: null,
+      registered_legal_name: null,
+      registered_address: null,
+      registry_url: null,
+      last_verified_at: '2026-01-10T00:00:00Z',
+    };
+
+    render(<ClinicProfilePage clinic={clinic} registryRecords={[registryRecord]} complianceHistory={[]} />);
+
+    expect(screen.queryByText('Verified by Turkish Ministry of Health')).not.toBeInTheDocument();
   });
 
   it('renders clinic location', () => {
@@ -210,6 +258,7 @@ describe('ClinicProfilePage', () => {
           doctor_involvement_level: 'high',
           last_verified_at: null,
           external_ids: {},
+          name_normalized: null,
           qualifications: [],
         },
       ],
@@ -464,6 +513,7 @@ describe('ClinicProfilePage', () => {
           doctor_involvement_level: 'high',
           last_verified_at: null,
           external_ids: {},
+          name_normalized: null,
           qualifications: [],
         },
         {
@@ -477,6 +527,7 @@ describe('ClinicProfilePage', () => {
           doctor_involvement_level: 'low',
           last_verified_at: null,
           external_ids: {},
+          name_normalized: null,
           qualifications: [],
         },
       ],

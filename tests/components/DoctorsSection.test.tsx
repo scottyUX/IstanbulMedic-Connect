@@ -98,11 +98,11 @@ describe('DoctorsSection', () => {
     expect(screen.queryByText('No photo uploaded')).not.toBeInTheDocument();
   });
 
-  it('renders photo when provided', () => {
+  it('renders doctor name when photo is provided', () => {
     const doctors = [createDoctor({ name: 'Dr. Mehmet Yilmaz', photo: '/doctor.jpg' })];
     render(<DoctorsSection doctors={doctors} />);
-    const img = screen.getByRole('img', { name: /Dr\. Mehmet Yilmaz/i });
-    expect(img).toHaveAttribute('src', '/doctor.jpg');
+    expect(screen.getByText('Dr. Mehmet Yilmaz')).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
   describe('three render states', () => {
