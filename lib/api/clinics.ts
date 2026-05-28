@@ -25,20 +25,6 @@ type ClinicReviewRow = Tables<'clinic_reviews'>;
 type ClinicScoreComponentRow = Tables<'clinic_score_components'>;
 type ClinicRegistryRecordRow = Tables<'clinic_registry_records'>;
 
-export interface ClinicSourceScore {
-  id: string
-  clinic_id: string
-  source_name: string
-  score_version: string
-  summary_score: number
-  confidence_score: number | null
-  metrics_json: Record<string, number>
-  breakdown_json: Record<string, unknown>
-  explanation: string | null
-  computed_at: string
-  is_current: boolean
-}
-
 /**
  * Per-qualification row scraped from a public professional directory
  * (currently ISHRS or IAHRS).
@@ -137,7 +123,6 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   packages: ClinicPackageRow[];
   reviews: (ClinicReviewRow & { sources?: { source_name: string; source_type: string } | null })[];
   scoreComponents: ClinicScoreComponentRow[];
-  sourceScores: ClinicSourceScore[];
   yearsInOperation: number | null;
   proceduresPerformed: number | null;
   /** Total review count from clinic_facts (actual Google total, not scraped count) */
@@ -816,7 +801,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     packages,
     reviews,
     scoreComponents,
-    sourceScores: [],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sourceScores: ((clinic as any).clinic_source_scores as ClinicSourceScore[]) ?? [],
     yearsInOperation: clinic.years_in_operation,
     proceduresPerformed: clinic.procedures_performed,
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
@@ -824,8 +810,6 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     hrnSignals,
     redditSignals,
     techniques: scrapedData?.techniques ?? null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    sourceScores: ((clinic as any).clinic_source_scores as ClinicSourceScore[]) ?? [],
   };
 }
 

@@ -256,6 +256,7 @@ describe('ClinicProfilePage', () => {
           doctor_involvement_level: 'high',
           last_verified_at: null,
           external_ids: {},
+          name_normalized: null,
           qualifications: [],
         },
       ],
@@ -510,6 +511,7 @@ describe('ClinicProfilePage', () => {
           doctor_involvement_level: 'high',
           last_verified_at: null,
           external_ids: {},
+          name_normalized: null,
           qualifications: [],
         },
         {
@@ -523,6 +525,7 @@ describe('ClinicProfilePage', () => {
           doctor_involvement_level: 'low',
           last_verified_at: null,
           external_ids: {},
+          name_normalized: null,
           qualifications: [],
         },
       ],
