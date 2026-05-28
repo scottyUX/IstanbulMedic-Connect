@@ -129,6 +129,12 @@ describe('ReviewsSection', () => {
     expect(screen.getByRole('button', { name: /View more Google reviews/i })).toBeInTheDocument();
   });
 
+  it('modal trigger button has w-full class on mobile', () => {
+    render(<ReviewsSection {...defaultProps} />);
+    const button = screen.getByRole('button', { name: /View more Google reviews/i });
+    expect(button.className).toContain('w-full');
+  });
+
   it('handles single review count grammar', () => {
     const { container } = render(<ReviewsSection {...defaultProps} totalReviews={1} />);
     expect(container.textContent).toContain('· 1 review');
@@ -223,6 +229,15 @@ describe('ReviewsSection modal search', () => {
     totalReviews: 3,
     reviews: searchableReviews,
   };
+
+  it('renders star distribution bars in modal sidebar', () => {
+    render(<ReviewsSection {...defaultProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /View more Google reviews/i }));
+
+    // Should show Rating breakdown heading and bars for each star level
+    expect(screen.getByText('Rating breakdown')).toBeInTheDocument();
+    expect(screen.getByText(/Based on 3 stored reviews/)).toBeInTheDocument();
+  });
 
   it('filters reviews by text in modal search', async () => {
     render(<ReviewsSection {...defaultProps} />);

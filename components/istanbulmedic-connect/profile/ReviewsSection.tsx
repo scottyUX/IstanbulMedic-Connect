@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Star } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { StarBar } from "@/components/ui/star-bar"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogClose } from "@/components/ui/dialog"
@@ -23,7 +24,7 @@ export interface Review {
   date: string
   text: string
   verified: boolean
-  source: string
+  source: string // "google" only for now
 }
 
 interface ReviewsSectionProps {
@@ -62,20 +63,6 @@ export const sortReviews = (reviews: Review[], sortBy: SortOption): Review[] => 
   }
 }
 
-function StarBar({ stars, count, total }: { stars: number; count: number; total: number }) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="flex w-14 shrink-0 items-center justify-end gap-0.5 text-muted-foreground">
-        {stars} <Star className="h-2.5 w-2.5 fill-[#FFD700] text-[#FFD700]" />
-      </span>
-      <div className="flex-1 rounded-full bg-muted/30 overflow-hidden h-2">
-        <div className="h-full rounded-full bg-[#FFD700]" style={{ width: `${pct}%` }} />
-      </div>
-      <span className="w-8 text-right font-medium text-foreground">{pct}%</span>
-    </div>
-  )
-}
 
 export const ReviewsSection = ({
   averageRating,
@@ -153,6 +140,7 @@ export const ReviewsSection = ({
             {googleScore !== null && (
               <div className="flex items-center gap-2 mt-3">
                 <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Google Signal Score</span>
+                {/* sourceScores.summary_score is 0–100; divide by 10 to display as 0–10 */}
                 <span className="rounded-md bg-[#17375B]/10 px-2.5 py-0.5 text-sm font-bold text-[#17375B]">{(googleScore / 10).toFixed(1)}</span>
                 <span className="text-xs text-muted-foreground">/ 10</span>
               </div>
