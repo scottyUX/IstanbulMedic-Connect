@@ -245,16 +245,6 @@ VALUES
   ('550e8400-e29b-41d4-a716-446655440002', 'transparency', 92, 0.15, 'Outstanding price clarity and communication'),
   ('550e8400-e29b-41d4-a716-446655440002', 'aftercare_support', 80, 0.10, '90-day follow-up program');
 
--- ============================================
--- CLINIC SCORES
--- ============================================
-
-INSERT INTO clinic_scores (clinic_id, overall_score, band, version)
-VALUES
-  ('550e8400-e29b-41d4-a716-446655440001', 90, 'A', 'v1.0'),
-  ('550e8400-e29b-41d4-a716-446655440002', 86, 'B', 'v1.0'),
-  ('550e8400-e29b-41d4-a716-446655440003', 72, 'C', 'v1.0'),
-  ('550e8400-e29b-41d4-a716-446655440004', 78, 'B', 'v1.0');
 
 -- ============================================
 -- CLINIC GOOGLE PLACES (for rating sorting)

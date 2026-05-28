@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { ShieldCheck, Star, Share, Heart, Grid3X3, X, ChevronLeft, ChevronRight, Trophy, Sparkles } from "lucide-react"
 import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
@@ -15,6 +16,7 @@ interface HeroSectionProps {
   transparencyScore: number
   rating: number | null
   reviewCount: number
+  isMinistryVerified?: boolean
 }
 
 export const HeroSection = ({
@@ -24,6 +26,7 @@ export const HeroSection = ({
   transparencyScore,
   rating,
   reviewCount,
+  isMinistryVerified = false,
 }: HeroSectionProps) => {
   const safeImages = useMemo(() => images.slice(0, 5), [images])
   const hasImages = safeImages.length > 0
@@ -52,9 +55,20 @@ export const HeroSection = ({
           {/* Header Section */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-start justify-between">
-              <h1 className="im-heading-1 text-foreground" data-testid="clinic-name">
-                {clinicName}
-              </h1>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h1 className="im-heading-1 text-foreground" data-testid="clinic-name">
+                  {clinicName}
+                </h1>
+                {isMinistryVerified && (
+                  <Badge
+                    variant="outline"
+                    className="gap-1.5 border-[#3EBBB7]/40 bg-[#3EBBB7]/10 px-3 py-1 text-sm font-medium text-[#17375B]"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-[#3EBBB7]" aria-hidden />
+                    Verified by Turkish Ministry of Health
+                  </Badge>
+                )}
+              </div>
               {(FEATURE_CONFIG.share || FEATURE_CONFIG.saveClinic) && (
                 <div className="hidden sm:flex items-center gap-2">
                   {FEATURE_CONFIG.share && (

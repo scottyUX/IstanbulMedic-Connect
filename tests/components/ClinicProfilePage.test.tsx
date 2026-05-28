@@ -108,8 +108,7 @@ describe('ClinicProfilePage', () => {
     expect(screen.getByText('Istanbul Hair Center')).toBeInTheDocument();
   });
 
-  // TODO: Unskip once development branch MoH badge feature is merged
-  it.skip('shows Turkish Ministry of Health verification as a hero badge instead of a registry section', () => {
+  it('shows Turkish Ministry of Health verification as a hero badge instead of a registry section', () => {
     const clinic = createMinimalClinic({ name: 'Istanbul Hair Center' });
     const registryRecord: RegistryRecord = {
       id: 'reg-1',
@@ -132,8 +131,7 @@ describe('ClinicProfilePage', () => {
     expect(screen.queryByText('MOH-42')).not.toBeInTheDocument();
   });
 
-  // TODO: Unskip once development branch MoH badge feature is merged
-  it.skip('does not show Ministry of Health badge for inactive registry records', () => {
+  it('does not show Ministry of Health badge for inactive registry records', () => {
     const clinic = createMinimalClinic();
     const registryRecord: RegistryRecord = {
       id: 'reg-1',

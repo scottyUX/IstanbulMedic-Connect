@@ -1,8 +1,10 @@
 "use client"
 
-import { Search } from "lucide-react"
+import { Search, GitCompareArrows } from "lucide-react"
+import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 
 import { ClinicCard } from "@/components/istanbulmedic-connect/ClinicCard"
 import { UnifiedFilterBar } from "@/components/istanbulmedic-connect/UnifiedFilterBar"
@@ -91,6 +93,19 @@ export const ExploreClinicsPage = ({
   initialSort,
 }: ExploreClinicsPageProps) => {
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
+  const [pendingConsultationIds, setPendingConsultationIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    fetch('/api/consultations/pending-ids')
+      .then((res) => res.ok ? res.json() : { pendingClinicIds: [] })
+      .then(({ pendingClinicIds }: { pendingClinicIds: string[] }) => {
+        setPendingConsultationIds(new Set(pendingClinicIds))
+      })
+      .catch(() => {/* leave empty — non-critical, UI degrades gracefully */})
+  }, [isAuthenticated])
+
   const normalizedInitialSort = ENABLED_SORT_OPTIONS.includes(initialSort)
     ? initialSort
     : DEFAULT_SORT_OPTION
@@ -175,7 +190,7 @@ export const ExploreClinicsPage = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="im-text-body im-text-muted">Sort by:</span>
             <div className="relative">
               <Select value={sortBy} onValueChange={handleSortChange}>
@@ -194,6 +209,22 @@ export const ExploreClinicsPage = ({
           </div>
         </div>
 
+        {/* Compare Banner */}
+        <Link href="/clinics/compare" className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-[var(--im-color-primary)]/20 bg-[var(--im-color-primary)]/5 px-6 py-4 transition-colors hover:bg-[var(--im-color-primary)]/10">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--im-color-primary)] text-white">
+              <GitCompareArrows className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-semibold text-[var(--im-color-primary)]">Compare clinics side by side</p>
+              <p className="text-sm text-muted-foreground">Pick two clinics and see how they stack up on trust score, specialties, and more.</p>
+            </div>
+          </div>
+          <Button variant="default" size="sm" className="shrink-0 bg-[var(--im-color-primary)] hover:bg-[var(--im-color-primary)]/90">
+            Compare now →
+          </Button>
+        </Link>
+
         {/* Clinic Grid */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" data-testid="clinics-grid">
           {clinics.length > 0 ? (
@@ -210,6 +241,8 @@ export const ExploreClinicsPage = ({
                 rating={clinic.rating}
                 reviewCount={clinic.reviewCount}
                 aiInsight={clinic.aiInsight}
+                initialConsultationRequested={pendingConsultationIds.has(clinic.id)}
+                isMinistryVerified={clinic.isMinistryVerified}
                 onViewProfile={() => router.push(`/clinics/${clinic.id}`)}
               />
             ))

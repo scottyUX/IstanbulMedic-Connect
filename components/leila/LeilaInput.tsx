@@ -10,7 +10,7 @@ export interface LeilaInputHandle {
 }
 
 const LeilaInput = forwardRef<LeilaInputHandle, InputProps>(
-  ({ inProgress, onSend, chatReady, onStop, onUpload, hideStopButton }, ref) => {
+  ({ inProgress, onSend, chatReady, onStop: _onStop, onUpload, hideStopButton: _hideStopButton }, ref) => {
     const [value, setValue] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 

@@ -16,6 +16,7 @@ import { HRNSignalsCard } from "./HRNSignalsCard"
 import { RedditSignalsCard } from "./RedditSignalsCard"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
+import { ScoreBreakdownCard } from "./ScoreBreakdownCard"
 import type { ClinicDetail } from "@/lib/api/clinics"
 import {
   toNumber,
@@ -24,8 +25,8 @@ import {
   type OpeningHoursJson,
 } from "@/lib/transformers/clinic"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
-import { RegistrySection } from "./RegistrySection"
 import type { RegistryRecord, ComplianceEvent } from "./RegistrySection"
+import { RegistrySection } from "./RegistrySection"
 
 type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
 type CommunitySentiment = "Positive" | "Neutral" | "Negative"
@@ -114,6 +115,13 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
     .map((m) => m.url)
   const heroImages = imageMedia
 
+  const isMinistryVerified = registryRecords.some(
+    (record) =>
+      record.source === "turkish_ministry_of_health" &&
+      record.license_status === "active"
+  )
+  const hasActiveMOHRecord = isMinistryVerified
+
   // Build AI insights from score components (no fake defaults)
   const aiInsights = clinic.scoreComponents.map((sc) => sc.explanation)
 
@@ -199,8 +207,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
     .map((post) => topicLabels[post.topic] ?? "Other")
     .filter((value, index, self) => self.indexOf(value) === index)
     .slice(0, 3)
-
-  const communitySignals = {
+const communitySignals = {
     posts: posts.map((post) => ({
       source: post.source,
       author: post.author,
@@ -260,6 +267,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
         transparencyScore={clinic.trustScore}
         rating={clinic.rating ?? null}
         reviewCount={clinic.totalReviewCount}
+        isMinistryVerified={isMinistryVerified}
       />
 
       {/* Section Navigation */}
@@ -309,8 +317,13 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
                 items={transparencyItems}
               />
             )}
-
-            {FEATURE_CONFIG.profileRegistry && (
+            <ScoreBreakdownCard
+              overallScore={clinic.trustScore}
+              band={clinic.trustBand}
+              scoreComponents={clinic.scoreComponents}
+              sourceScores={clinic.sourceScores}
+            />
+            {FEATURE_CONFIG.profileRegistry && !hasActiveMOHRecord && (
               <RegistrySection
                 registryRecords={registryRecords}
                 complianceHistory={complianceHistory}
@@ -335,6 +348,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
             />
           </div>
         </div>
+  
 
         {/* Full Width Sections */}
         <div className="mt-12 space-y-12 w-full">

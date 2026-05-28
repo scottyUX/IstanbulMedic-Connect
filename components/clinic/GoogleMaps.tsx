@@ -24,6 +24,7 @@ export const GoogleMaps = ({ lat, lng, address, clinicName }: GoogleMapsProps) =
                 {/* Istanbul Map */}
                 <div className="w-full h-64 bg-muted rounded-lg overflow-hidden relative flex flex-col items-center justify-center p-4">
                     {apiKey ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                             src={`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=14&size=600x300&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${apiKey}`}
                             alt={`${clinicName || "Clinic"} Map`}

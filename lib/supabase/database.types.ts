@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -767,6 +772,163 @@ export type Database = {
           },
         ]
       }
+      clinic_reddit_posts: {
+        Row: {
+          author_username: string | null
+          body: string | null
+          captured_at: string
+          clinic_id: string
+          comment_count: number | null
+          had_clinical_procedures: boolean | null
+          id: string
+          is_firsthand: boolean | null
+          medical_summary: string | null
+          post_type: Database["public"]["Enums"]["reddit_post_type"]
+          posted_at: string | null
+          reddit_post_id: string
+          score: number | null
+          seeking_medical_help: boolean | null
+          source_id: string | null
+          subreddit: string | null
+          title: string | null
+          url: string
+        }
+        Insert: {
+          author_username?: string | null
+          body?: string | null
+          captured_at?: string
+          clinic_id: string
+          comment_count?: number | null
+          had_clinical_procedures?: boolean | null
+          id?: string
+          is_firsthand?: boolean | null
+          medical_summary?: string | null
+          post_type: Database["public"]["Enums"]["reddit_post_type"]
+          posted_at?: string | null
+          reddit_post_id: string
+          score?: number | null
+          seeking_medical_help?: boolean | null
+          source_id?: string | null
+          subreddit?: string | null
+          title?: string | null
+          url: string
+        }
+        Update: {
+          author_username?: string | null
+          body?: string | null
+          captured_at?: string
+          clinic_id?: string
+          comment_count?: number | null
+          had_clinical_procedures?: boolean | null
+          id?: string
+          is_firsthand?: boolean | null
+          medical_summary?: string | null
+          post_type?: Database["public"]["Enums"]["reddit_post_type"]
+          posted_at?: string | null
+          reddit_post_id?: string
+          score?: number | null
+          seeking_medical_help?: boolean | null
+          source_id?: string | null
+          subreddit?: string | null
+          title?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_reddit_posts_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_reddit_posts_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_reddit_posts_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_reddit_profiles: {
+        Row: {
+          captured_at: string
+          caution_flags: Json | null
+          clinic_id: string
+          confidence_score: number | null
+          cons: string[] | null
+          id: string
+          last_mentioned_at: string | null
+          mention_count: number
+          notable_mentions: Json | null
+          pros: string[] | null
+          sentiment_score: number | null
+          summary: string | null
+          themes: Json | null
+          thread_count: number
+          unique_authors_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          captured_at?: string
+          caution_flags?: Json | null
+          clinic_id: string
+          confidence_score?: number | null
+          cons?: string[] | null
+          id?: string
+          last_mentioned_at?: string | null
+          mention_count?: number
+          notable_mentions?: Json | null
+          pros?: string[] | null
+          sentiment_score?: number | null
+          summary?: string | null
+          themes?: Json | null
+          thread_count?: number
+          unique_authors_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          captured_at?: string
+          caution_flags?: Json | null
+          clinic_id?: string
+          confidence_score?: number | null
+          cons?: string[] | null
+          id?: string
+          last_mentioned_at?: string | null
+          mention_count?: number
+          notable_mentions?: Json | null
+          pros?: string[] | null
+          sentiment_score?: number | null
+          summary?: string | null
+          themes?: Json | null
+          thread_count?: number
+          unique_authors_count?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_reddit_profiles_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_reddit_profiles_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_registry_records: {
         Row: {
           authorized_specialties: string[] | null
@@ -1236,13 +1398,73 @@ export type Database = {
           },
         ]
       }
+      clinic_source_scores: {
+        Row: {
+          breakdown_json: Json
+          clinic_id: string
+          computed_at: string
+          confidence_score: number | null
+          explanation: string | null
+          id: string
+          is_current: boolean
+          metrics_json: Json
+          score_version: string
+          source_name: string
+          summary_score: number
+        }
+        Insert: {
+          breakdown_json?: Json
+          clinic_id: string
+          computed_at?: string
+          confidence_score?: number | null
+          explanation?: string | null
+          id?: string
+          is_current?: boolean
+          metrics_json?: Json
+          score_version: string
+          source_name: string
+          summary_score: number
+        }
+        Update: {
+          breakdown_json?: Json
+          clinic_id?: string
+          computed_at?: string
+          confidence_score?: number | null
+          explanation?: string | null
+          id?: string
+          is_current?: boolean
+          metrics_json?: Json
+          score_version?: string
+          source_name?: string
+          summary_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_source_scores_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_source_scores_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_team: {
         Row: {
           clinic_id: string
           credentials: string
           doctor_involvement_level: Database["public"]["Enums"]["doctor_involvement_levels"]
+          external_ids: Json
           id: string
+          last_verified_at: string | null
           name: string | null
+          name_normalized: string | null
           photo_url: string | null
           role: Database["public"]["Enums"]["clinic_roles"]
           years_experience: number | null
@@ -1251,8 +1473,11 @@ export type Database = {
           clinic_id: string
           credentials: string
           doctor_involvement_level: Database["public"]["Enums"]["doctor_involvement_levels"]
+          external_ids?: Json
           id?: string
+          last_verified_at?: string | null
           name?: string | null
+          name_normalized?: string | null
           photo_url?: string | null
           role: Database["public"]["Enums"]["clinic_roles"]
           years_experience?: number | null
@@ -1261,8 +1486,11 @@ export type Database = {
           clinic_id?: string
           credentials?: string
           doctor_involvement_level?: Database["public"]["Enums"]["doctor_involvement_levels"]
+          external_ids?: Json
           id?: string
+          last_verified_at?: string | null
           name?: string | null
+          name_normalized?: string | null
           photo_url?: string | null
           role?: Database["public"]["Enums"]["clinic_roles"]
           years_experience?: number | null
@@ -1280,6 +1508,41 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics_with_scores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_team_qualifications: {
+        Row: {
+          id: string
+          qualification: string
+          source: string
+          source_url: string | null
+          team_member_id: string
+          verified_at: string
+        }
+        Insert: {
+          id?: string
+          qualification: string
+          source: string
+          source_url?: string | null
+          team_member_id: string
+          verified_at?: string
+        }
+        Update: {
+          id?: string
+          qualification?: string
+          source?: string
+          source_url?: string | null
+          team_member_id?: string
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_team_qualifications_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_team"
             referencedColumns: ["id"]
           },
         ]
@@ -1523,6 +1786,7 @@ export type Database = {
           secondary_clinic_mentions: Json | null
           sentiment_label: string | null
           sentiment_score: number | null
+          sentiment_toward_clinic: string | null
           summary_short: string | null
           thread_id: string
         }
@@ -1543,6 +1807,7 @@ export type Database = {
           secondary_clinic_mentions?: Json | null
           sentiment_label?: string | null
           sentiment_score?: number | null
+          sentiment_toward_clinic?: string | null
           summary_short?: string | null
           thread_id: string
         }
@@ -1563,6 +1828,7 @@ export type Database = {
           secondary_clinic_mentions?: Json | null
           sentiment_label?: string | null
           sentiment_score?: number | null
+          sentiment_toward_clinic?: string | null
           summary_short?: string | null
           thread_id?: string
         }
@@ -1974,10 +2240,10 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           deleted: boolean | null
-          first_name: string | null
+          first_name: string
           gender: string | null
           id: string
-          last_name: string | null
+          last_name: string
           nationality: string | null
           preferred_language: string | null
           profile_picture_url: string | null
@@ -1989,10 +2255,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name?: string | null
+          first_name: string
           gender?: string | null
           id?: string
-          last_name?: string | null
+          last_name: string
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -2004,10 +2270,10 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           deleted?: boolean | null
-          first_name?: string | null
+          first_name?: string
           gender?: string | null
           id?: string
-          last_name?: string | null
+          last_name?: string
           nationality?: string | null
           preferred_language?: string | null
           profile_picture_url?: string | null
@@ -2227,6 +2493,7 @@ export type Database = {
       }
     }
     Functions: {
+      unaccent: { Args: { "": string }; Returns: string }
       upsert_clinic_facts: {
         Args: { facts_data: Json }
         Returns: {
@@ -2330,6 +2597,7 @@ export type Database = {
         | "package_accuracy"
         | "before_after"
       photo_view: "front" | "left_side" | "right_side" | "top" | "donor_area"
+      reddit_post_type: "post" | "comment"
       registry_license_status_enum:
         | "active"
         | "expired"
@@ -2579,6 +2847,7 @@ export const Constants = {
         "before_after",
       ],
       photo_view: ["front", "left_side", "right_side", "top", "donor_area"],
+      reddit_post_type: ["post", "comment"],
       registry_license_status_enum: [
         "active",
         "expired",
@@ -2618,4 +2887,3 @@ export const Constants = {
     },
   },
 } as const
-

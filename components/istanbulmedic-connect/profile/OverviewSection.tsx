@@ -19,9 +19,9 @@ interface OverviewSectionProps {
 
 export const OverviewSection = ({
   specialties,
-  yearsInOperation,
-  proceduresPerformed,
-  languages,
+  yearsInOperation: _yearsInOperation,
+  proceduresPerformed: _proceduresPerformed,
+  languages: _languages,
   description,
   techniques,
 }: OverviewSectionProps) => {
