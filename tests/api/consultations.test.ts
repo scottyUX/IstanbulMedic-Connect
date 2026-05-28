@@ -18,14 +18,18 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('@/lib/email/sendConsultationRequest', () => ({
   sendConsultationRequest: vi.fn().mockResolvedValue(undefined),
   sendConsultationConfirmation: vi.fn().mockResolvedValue(undefined),
+  sendCancellationNotification: vi.fn().mockResolvedValue(undefined),
+  sendCancellationConfirmation: vi.fn().mockResolvedValue(undefined),
 }))
 
 import { createClient } from '@/lib/supabase/server'
-import { sendConsultationRequest } from '@/lib/email/sendConsultationRequest'
+import { sendConsultationRequest, sendCancellationNotification } from '@/lib/email/sendConsultationRequest'
 import { POST, GET } from '@/app/api/consultations/route'
+import { PATCH } from '@/app/api/consultations/[id]/route'
 
 const mockCreateClient = vi.mocked(createClient)
 const mockSendEmail = vi.mocked(sendConsultationRequest)
+const mockSendCancellationNotification = vi.mocked(sendCancellationNotification)
 
 // ─── Chain builder ─────────────────────────────────────────────────────────────
 //
@@ -44,7 +48,7 @@ function makeChain(data: unknown, error: unknown = null) {
 
   // Chainable query-builder methods — all return `obj` so chains like
   // .select().eq().in().eq() work without needing real Supabase.
-  for (const method of ['select', 'eq', 'in', 'insert', 'order', 'is', 'neq', 'limit']) {
+  for (const method of ['select', 'eq', 'in', 'insert', 'update', 'order', 'is', 'neq', 'limit']) {
     obj[method] = vi.fn().mockReturnValue(obj)
   }
 
@@ -443,5 +447,174 @@ describe('GET /api/consultations', () => {
 
     const res = await GET()
     expect(res.status).toBe(500)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Minimal NextRequest stub — the PATCH handler ignores the request body
+const patchRequest = {} as import('next/server').NextRequest
+
+function makePatchParams(id: string) {
+  return { params: Promise.resolve({ id }) }
+}
+
+// Supabase factory for the PATCH route.
+//
+// The PATCH handler hits `from('consultations')` twice:
+//   1st call → SELECT to fetch + ownership-check the row
+//   2nd call → UPDATE to set status = 'cancelled'
+// A consultationsCallCount counter distinguishes the two.
+
+interface MakePatchSupabaseOptions {
+  authUser?: { id: string; email: string } | null
+  authError?: { message: string } | null
+  userRow?: { id: string; name: string; email: string } | null
+  consultationRow?: { id: string; status: string; clinic_id: string; user_email: string } | null
+  consultationFetchError?: { message: string } | null
+  updateError?: { message: string } | null
+  clinicRow?: { display_name: string } | null
+}
+
+function makePatchSupabase({
+  authUser = { id: 'auth-uid', email: 'user@test.com' },
+  authError = null,
+  userRow = { id: 'user-uuid', name: 'Test User', email: 'user@test.com' },
+  consultationRow = { id: 'consult-1', status: 'pending', clinic_id: 'clinic-1', user_email: 'user@test.com' },
+  consultationFetchError = null,
+  updateError = null,
+  clinicRow = { display_name: 'Clinic One' },
+}: MakePatchSupabaseOptions = {}) {
+  let consultationsCallCount = 0
+
+  return {
+    auth: {
+      getUser: vi.fn().mockResolvedValue(
+        authError
+          ? { data: { user: null }, error: authError }
+          : { data: { user: authUser }, error: null }
+      ),
+    },
+    from: vi.fn().mockImplementation((table: string) => {
+      if (table === 'users') return makeChain(userRow)
+      if (table === 'clinics') return makeChain(clinicRow)
+      if (table === 'consultations') {
+        consultationsCallCount++
+        if (consultationsCallCount === 1) {
+          // SELECT — ownership + status check
+          return makeChain(consultationRow, consultationFetchError)
+        }
+        // UPDATE — set status to cancelled
+        return makeChain(null, updateError)
+      }
+      return makeChain(null)
+    }),
+  }
+}
+
+describe('PATCH /api/consultations/[id]', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // ── Auth gate ───────────────────────────────────────────────────────────────
+
+  it('returns 401 when there is no authenticated user', async () => {
+    mockCreateClient.mockResolvedValue(makePatchSupabase({ authError: { message: 'not authed' } }) as never)
+    const res = await PATCH(patchRequest, makePatchParams('consult-1'))
+    expect(res.status).toBe(401)
+  })
+
+  // ── User lookup ─────────────────────────────────────────────────────────────
+
+  it('returns 404 when no users row exists for the auth user', async () => {
+    mockCreateClient.mockResolvedValue(makePatchSupabase({ userRow: null }) as never)
+    const res = await PATCH(patchRequest, makePatchParams('consult-1'))
+    expect(res.status).toBe(404)
+  })
+
+  // ── Consultation ownership ──────────────────────────────────────────────────
+  //
+  // The SELECT filters on both id and user_id so a row not owned by the caller
+  // comes back as null — same 404 as "not found".
+
+  it('returns 404 when the consultation does not exist or is not owned by the user', async () => {
+    mockCreateClient.mockResolvedValue(makePatchSupabase({ consultationRow: null }) as never)
+    const res = await PATCH(patchRequest, makePatchParams('consult-1'))
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 404 when the DB SELECT itself errors', async () => {
+    mockCreateClient.mockResolvedValue(
+      makePatchSupabase({ consultationFetchError: { message: 'db error' } }) as never
+    )
+    const res = await PATCH(patchRequest, makePatchParams('consult-1'))
+    expect(res.status).toBe(404)
+  })
+
+  // ── Status guard ────────────────────────────────────────────────────────────
+  //
+  // Only pending consultations can be cancelled — in_progress / completed /
+  // already-cancelled rows should all be rejected.
+
+  it('returns 400 when the consultation status is not pending', async () => {
+    mockCreateClient.mockResolvedValue(
+      makePatchSupabase({
+        consultationRow: { id: 'consult-1', status: 'in_progress', clinic_id: 'clinic-1', user_email: 'user@test.com' },
+      }) as never
+    )
+    const res = await PATCH(patchRequest, makePatchParams('consult-1'))
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toMatch(/pending/i)
+  })
+
+  it('returns 400 when trying to cancel an already-cancelled consultation', async () => {
+    mockCreateClient.mockResolvedValue(
+      makePatchSupabase({
+        consultationRow: { id: 'consult-1', status: 'cancelled', clinic_id: 'clinic-1', user_email: 'user@test.com' },
+      }) as never
+    )
+    const res = await PATCH(patchRequest, makePatchParams('consult-1'))
+    expect(res.status).toBe(400)
+  })
+
+  // ── DB update failure ───────────────────────────────────────────────────────
+
+  it('returns 500 when the DB update fails', async () => {
+    mockCreateClient.mockResolvedValue(
+      makePatchSupabase({ updateError: { message: 'update failed' } }) as never
+    )
+    const res = await PATCH(patchRequest, makePatchParams('consult-1'))
+    expect(res.status).toBe(500)
+    expect(mockSendCancellationNotification).not.toHaveBeenCalled()
+  })
+
+  // ── Happy path ──────────────────────────────────────────────────────────────
+
+  it('updates status to cancelled, fires both emails, and returns emailSent:true', async () => {
+    mockCreateClient.mockResolvedValue(makePatchSupabase() as never)
+    const res = await PATCH(patchRequest, makePatchParams('consult-1'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(true)
+    expect(body.emailSent).toBe(true)
+    expect(mockSendCancellationNotification).toHaveBeenCalledOnce()
+  })
+
+  // ── Email failure propagation ───────────────────────────────────────────────
+  //
+  // Same pattern as the POST route: DB is updated successfully but if emails
+  // fail the response carries emailSent:false without rolling back.
+
+  it('returns emailSent:false when cancellation emails throw, but status is still updated', async () => {
+    mockCreateClient.mockResolvedValue(makePatchSupabase() as never)
+    mockSendCancellationNotification.mockRejectedValueOnce(new Error('SMTP timeout'))
+
+    const res = await PATCH(patchRequest, makePatchParams('consult-1'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(true)
+    expect(body.emailSent).toBe(false)
   })
 })

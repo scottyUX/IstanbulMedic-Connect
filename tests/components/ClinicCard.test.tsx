@@ -182,6 +182,7 @@ describe('ClinicCard — consultation', () => {
     vi.clearAllMocks();
     isAuthenticated = false;
     global.fetch = vi.fn();
+    sessionStorage.clear();
   });
 
   it('shows "Request Free Consultation" button', () => {
@@ -193,11 +194,14 @@ describe('ClinicCard — consultation', () => {
   //
   // When signed out, clicking the button should redirect — not open the modal.
 
-  it('redirects unauthenticated user to /auth/login on click', () => {
+  it('stores consultation_intent and redirects to /auth/login when unauthenticated', () => {
     isAuthenticated = false;
     render(<ClinicCard {...defaultProps} />);
     fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
-    expect(mockPush).toHaveBeenCalledWith('/auth/login');
+    expect(sessionStorage.getItem('consultation_intent')).toBe(JSON.stringify(['clinic-test-id']));
+    expect(mockPush).toHaveBeenCalledWith(
+      `/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`
+    );
   });
 
   it('does not open the modal when user is unauthenticated', () => {

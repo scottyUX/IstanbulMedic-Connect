@@ -45,7 +45,8 @@ export async function updateSession(request: NextRequest) {
     if (!user && pathname !== '/profile/get-started') {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = '/auth/login';
-      loginUrl.searchParams.set('next', pathname);
+      loginUrl.search = '';
+      loginUrl.searchParams.set('next', pathname + request.nextUrl.search);
       const redirectResponse = NextResponse.redirect(loginUrl);
       supabaseResponse.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c.name, c.value));
       return redirectResponse;
@@ -59,9 +60,11 @@ export async function updateSession(request: NextRequest) {
         : { data: null };
       const hasConsented = qualRow?.terms_accepted === true;
       if (!hasConsented) {
+        const originalDest = pathname + request.nextUrl.search;
         const stepperUrl = request.nextUrl.clone();
         stepperUrl.pathname = '/profile/get-started';
         stepperUrl.search = '';
+        stepperUrl.searchParams.set('next', originalDest);
         const redirectResponse = NextResponse.redirect(stepperUrl);
         supabaseResponse.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c.name, c.value));
         return redirectResponse;

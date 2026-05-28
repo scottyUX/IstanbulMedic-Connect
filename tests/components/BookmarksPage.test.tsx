@@ -9,6 +9,9 @@
  *   - API failure → UI stays unchanged (clinic remains requestable)
  *   - Bulk select + request: selection state, button label, confirm flow
  *   - Remove bookmark: clinic removed from the list
+ *   - Guest (unauthenticated): reads from localStorage, calls guest endpoint
+ *   - Guest: shows "Sign in to request" instead of "Request Consultation"
+ *   - Guest: empty localStorage shows empty state without calling the API
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -84,6 +87,7 @@ describe('BookmarksPage', () => {
     isAuthenticated = true
     authLoading = false
     global.fetch = vi.fn()
+    localStorage.clear()
   })
 
   // ── Empty state ─────────────────────────────────────────────────────────────
@@ -290,5 +294,75 @@ describe('BookmarksPage', () => {
 
     // Context badge count should be updated
     expect(mockRemoveId).toHaveBeenCalledWith('clinic-1')
+  })
+
+  it('refetches bookmarks when the DELETE returns a non-ok response', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(global.fetch as any)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ bookmarks: [makeClinic()] }) }) // initial fetch
+      .mockResolvedValueOnce({ ok: false })                                                    // DELETE fails
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ bookmarks: [makeClinic()] }) }) // re-fetch after failure
+
+    render(<BookmarksPage />)
+
+    await waitFor(() => screen.getByText('Clinic One'))
+
+    fireEvent.click(screen.getByRole('button', { name: /remove clinic one from bookmarks/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^remove$/i }))
+
+    // Wait for the re-fetch triggered by the non-ok response
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3))
+  })
+
+  // ── Guest (unauthenticated) ───────────────────────────────────────────────────
+  //
+  // Non-auth users have their saved clinic IDs in localStorage. The page reads
+  // those IDs and calls POST /api/bookmarks/guest to fetch clinic details.
+
+  it('fetches from the guest endpoint using localStorage IDs when not authenticated', async () => {
+    isAuthenticated = false
+    localStorage.setItem('im.bookmarks', JSON.stringify(['clinic-1']))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ bookmarks: [makeClinic()] }),
+    })
+
+    render(<BookmarksPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Clinic One')).toBeInTheDocument()
+    })
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/bookmarks/guest',
+      expect.objectContaining({ method: 'POST' })
+    )
+  })
+
+  it('shows "Sign in to request" button for guests instead of "Request Consultation"', async () => {
+    isAuthenticated = false
+    localStorage.setItem('im.bookmarks', JSON.stringify(['clinic-1']))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ bookmarks: [makeClinic()] }),
+    })
+
+    render(<BookmarksPage />)
+
+    await waitFor(() => screen.getByText('Clinic One'))
+    expect(screen.getByRole('button', { name: /sign in to request/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^request consultation$/i })).not.toBeInTheDocument()
+  })
+
+  it('shows empty state without calling the API when guest has no localStorage bookmarks', async () => {
+    isAuthenticated = false
+
+    render(<BookmarksPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/no saved clinics yet/i)).toBeInTheDocument()
+    })
+    expect(global.fetch).not.toHaveBeenCalled()
   })
 })

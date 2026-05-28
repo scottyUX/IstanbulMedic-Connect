@@ -18,7 +18,7 @@ interface LeilaHeroProps {
   pending?: boolean;
 }
 
-const LeilaHero = ({ onGetStarted, pending = false }: LeilaHeroProps) => {
+const LeilaHero = ({ onGetStarted: _onGetStarted, pending = false }: LeilaHeroProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { loginWithGoogle } = useAuth();
 

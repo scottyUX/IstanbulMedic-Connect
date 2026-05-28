@@ -235,7 +235,7 @@ export async function runRedditPipeline(options: PipelineOptions = {}): Promise<
         .select('id, clinic_id')
         .in('id', allThreadIds)
       const clinicIdMap = new Map<string, string | null>(
-        (hubs ?? []).map(h => [h.id, h.clinic_id])
+        (Array.isArray(hubs) ? hubs : []).map(h => [h.id, h.clinic_id])
       )
 
       for (const { threadId, post } of upsertedPosts) {

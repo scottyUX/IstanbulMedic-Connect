@@ -13,7 +13,7 @@ type SectionProps = {
     noPadding?: boolean;
 };
 
-export default function Section({ children, className = '', id, noPadding = false }: SectionProps) {
+export default function Section({ children, className = '', id, noPadding: _noPadding = false }: SectionProps) {
     return (
         <section id={id} className={clsx(className)}>
             {children}
