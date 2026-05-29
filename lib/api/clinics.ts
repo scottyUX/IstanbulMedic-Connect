@@ -25,6 +25,32 @@ type ClinicReviewRow = Tables<'clinic_reviews'>;
 type ClinicScoreComponentRow = Tables<'clinic_score_components'>;
 type ClinicRegistryRecordRow = Tables<'clinic_registry_records'>;
 
+/**
+ * Per-qualification row scraped from a public professional directory
+ * (currently ISHRS or IAHRS).
+ *
+ * The shape is hand-typed because the table was added in migration
+ * 20260502000000_add_doctor_credential_verification.sql; regenerate
+ * `database.types.ts` via `npm run db:types` to make this redundant.
+ */
+export interface ClinicTeamQualificationRow {
+  id: string;
+  team_member_id: string;
+  qualification: string;
+  source: string;
+  source_url: string | null;
+  verified_at: string;
+}
+
+/** Verification metadata added to clinic_team in the same migration. */
+export interface ClinicTeamVerificationFields {
+  last_verified_at: string | null;
+  external_ids: Record<string, string>;
+  qualifications: ClinicTeamQualificationRow[];
+}
+
+export type ClinicTeamMember = ClinicTeamRow & ClinicTeamVerificationFields;
+
 export type ClinicSortOption =
   | 'A-Z'
   | 'Z-A'
@@ -96,7 +122,7 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   mentions: (ClinicMentionRow & { sources?: SourceRow | SourceRow[] | null })[];
   facts: ClinicFactRow[];
   pricing: ClinicPricingRow[];
-  team: ClinicTeamRow[];
+  team: ClinicTeamMember[];
   packages: ClinicPackageRow[];
   reviews: (ClinicReviewRow & { sources?: { source_name: string; source_type: string } | null })[];
   scoreComponents: ClinicScoreComponentRow[];
@@ -638,7 +664,19 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
       clinic_facts (*),
       clinic_google_places (*),
       clinic_pricing (*),
-      clinic_team (*),
+      clinic_team (
+        *,
+        last_verified_at,
+        external_ids,
+        clinic_team_qualifications (
+          id,
+          team_member_id,
+          qualification,
+          source,
+          source_url,
+          verified_at
+        )
+      ),
       clinic_packages (*),
       clinic_reviews (*, sources (source_name, source_type)),
       clinic_scraped_data!clinic_id (*),
@@ -669,7 +707,21 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     [];
   const facts = (clinic.clinic_facts as ClinicFactRow[]) || [];
   const pricing = (clinic.clinic_pricing as ClinicPricingRow[]) || [];
-  const team = (clinic.clinic_team as ClinicTeamRow[]) || [];
+  // Cast through `unknown` because `database.types.ts` predates the
+  // 20260502 migration that added last_verified_at / external_ids /
+  // clinic_team_qualifications. Regenerate via `npm run db:types` after the
+  // migration is applied to drop the cast.
+  const teamRaw = ((clinic.clinic_team as unknown) as (ClinicTeamRow & {
+    last_verified_at?: string | null;
+    external_ids?: Record<string, string> | null;
+    clinic_team_qualifications?: ClinicTeamQualificationRow[] | null;
+  })[]) || [];
+  const team: ClinicTeamMember[] = teamRaw.map((t) => ({
+    ...t,
+    last_verified_at: t.last_verified_at ?? null,
+    external_ids: t.external_ids ?? {},
+    qualifications: t.clinic_team_qualifications ?? [],
+  }));
   const packages = (clinic.clinic_packages as ClinicPackageRow[]) || [];
   const reviews = (clinic.clinic_reviews as (ClinicReviewRow & { sources?: { source_name: string; source_type: string } | null })[]) || [];
   const scoreComponents = (clinic.clinic_score_components as ClinicScoreComponentRow[]) || [];
@@ -765,6 +817,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     packages,
     reviews,
     scoreComponents,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sourceScores: ((clinic as any).clinic_source_scores as ClinicSourceScore[]) ?? [],
     yearsInOperation: clinic.years_in_operation,
     proceduresPerformed: clinic.procedures_performed,
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
@@ -772,8 +826,6 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     hrnSignals,
     redditSignals,
     techniques: scrapedData?.techniques ?? null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    sourceScores: ((clinic as any).clinic_source_scores as ClinicSourceScore[]) ?? [],
   };
 }
 
