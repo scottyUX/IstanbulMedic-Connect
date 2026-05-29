@@ -58,7 +58,7 @@ const steps: Step[] = [
         title: 'Engage on Your Terms',
         description:
             "Message clinics securely, ask questions, and move forward only when you're ready. No pressure. No obligation. Just informed decisions.",
-        imageSrc: '/confidence/confidence1.png',
+        imageSrc: '/confidence/confidence3.png',
         imageAlt: 'Engage on your terms',
         ctaLabel: 'Book a consultation',
         ctaHref: CONSULTATION_LINK,
