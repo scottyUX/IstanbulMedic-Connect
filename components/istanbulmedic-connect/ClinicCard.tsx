@@ -29,12 +29,11 @@ interface ClinicCardProps {
   image: string | null
   specialties: string[]
   trustScore: number
-  trustBand?: 'A' | 'B' | 'C' | 'D' | null
+  trustBand?: "A" | "B" | "C" | "D" | null
   description: string | null
   rating?: number
   reviewCount?: number
   aiInsight?: string
-  trustBand?: "A" | "B" | "C" | "D" | null
   initialConsultationRequested?: boolean
   isMinistryVerified?: boolean
   onViewProfile: () => void
@@ -47,7 +46,6 @@ export const ClinicCard = ({
   image,
   specialties: _specialties,
   trustScore,
-  trustBand,
   description,
   rating,
   reviewCount,
