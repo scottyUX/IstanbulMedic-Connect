@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Share2, X, Globe, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -62,8 +62,23 @@ export const SummarySidebar = ({
 }: SummarySidebarProps) => {
   const [feeModalOpen, setFeeModalOpen] = useState<"consultation" | "service" | null>(null)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [consultationRequested, setConsultationRequested] = useState(false)
+  const [pendingConsultationId, setPendingConsultationId] = useState<string | null>(null)
   const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    fetch('/api/consultations/pending-ids')
+      .then((res) => res.ok ? res.json() : { pendingClinicIds: [], pendingConsultations: {} })
+      .then(({ pendingClinicIds, pendingConsultations }: { pendingClinicIds: string[], pendingConsultations: Record<string, string> }) => {
+        if (pendingClinicIds.includes(clinicId)) {
+          setConsultationRequested(true)
+          setPendingConsultationId(pendingConsultations[clinicId] ?? null)
+        }
+      })
+      .catch(() => {/* non-critical */})
+  }, [isAuthenticated, clinicId])
   const router = useRouter()
 
   // suppress unused-var warning — kept for future use
@@ -72,8 +87,8 @@ export const SummarySidebar = ({
 
   const handleConsultationClick = () => {
     if (!isAuthenticated) {
-      document.cookie = `auth_redirect_next=${encodeURIComponent(window.location.pathname)}; path=/; max-age=300`
-      router.push("/auth/login")
+      sessionStorage.setItem('consultation_intent', JSON.stringify([clinicId]))
+      router.push(`/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`)
       return
     }
     if (!consultationRequested) {
@@ -95,6 +110,14 @@ export const SummarySidebar = ({
     }
   }
 
+  const handleCancelConfirm = async () => {
+    if (!pendingConsultationId) throw new Error('no consultation id')
+    const res = await fetch(`/api/consultations/${pendingConsultationId}`, { method: 'PATCH' })
+    if (!res.ok) throw new Error('cancel failed')
+    setConsultationRequested(false)
+    setPendingConsultationId(null)
+  }
+
   return (
     <div className="sticky top-24">
       <Card variant="sidebar">
@@ -111,11 +134,20 @@ export const SummarySidebar = ({
           <div className="grid gap-3">
             {FEATURE_CONFIG.bookConsultation && (
               consultationRequested ? (
-                <div className={cn(
-                  "flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-medium text-muted-foreground"
-                )}>
-                  <Check className="h-4 w-4 text-[#3EBBB7]" />
-                  Consultation Requested
+                <div className="space-y-2">
+                  <div className={cn(
+                    "flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-medium text-muted-foreground"
+                  )}>
+                    <Check className="h-4 w-4 text-[#3EBBB7]" />
+                    Consultation Requested
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCancelModalOpen(true)}
+                    className="w-full text-xs text-slate-400 hover:text-red-500 transition-colors text-center"
+                  >
+                    Cancel request
+                  </button>
                 </div>
               ) : (
                 <Button
@@ -238,10 +270,19 @@ export const SummarySidebar = ({
 
       <ConsultationConfirmModal
         open={confirmModalOpen}
-        onOpenChange={(open) => !open && setConfirmModalOpen(false)}
+        onOpenChange={(open) => { if (!open) setConfirmModalOpen(false) }}
         clinicName={clinicName}
         isRemoving={false}
         onConfirm={handleConsultationConfirm}
+      />
+
+      <ConsultationConfirmModal
+        open={cancelModalOpen}
+        onOpenChange={(open) => { if (!open) setCancelModalOpen(false) }}
+        clinicName={clinicName}
+        isRemoving={false}
+        isCancelling={true}
+        onConfirm={handleCancelConfirm}
       />
     </div>
   )

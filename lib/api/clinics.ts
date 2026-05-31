@@ -4,7 +4,7 @@ import type { InstagramSignalsData } from '@/components/istanbulmedic-connect/pr
 import { getInstagramSignals } from './instagram';
 import type { HRNSignalsData } from '@/components/istanbulmedic-connect/profile/HRNSignalsCard';
 import { getHRNSignals } from './hrn';
-import { getForumSignals, type ClinicForumProfile } from './forumSignals';
+import { getRedditSignals, type RedditSignalsData } from './reddit';
 
 // Database row types
 type ClinicRow = Tables<'clinics'>;
@@ -25,11 +25,40 @@ type ClinicReviewRow = Tables<'clinic_reviews'>;
 type ClinicScoreComponentRow = Tables<'clinic_score_components'>;
 type ClinicRegistryRecordRow = Tables<'clinic_registry_records'>;
 
+/**
+ * Per-qualification row scraped from a public professional directory
+ * (currently ISHRS or IAHRS).
+ *
+ * The shape is hand-typed because the table was added in migration
+ * 20260502000000_add_doctor_credential_verification.sql; regenerate
+ * `database.types.ts` via `npm run db:types` to make this redundant.
+ */
+export interface ClinicTeamQualificationRow {
+  id: string;
+  team_member_id: string;
+  qualification: string;
+  source: string;
+  source_url: string | null;
+  verified_at: string;
+}
+
+/** Verification metadata added to clinic_team in the same migration. */
+export interface ClinicTeamVerificationFields {
+  last_verified_at: string | null;
+  external_ids: Record<string, string>;
+  qualifications: ClinicTeamQualificationRow[];
+}
+
+export type ClinicTeamMember = ClinicTeamRow & ClinicTeamVerificationFields;
+
 export type ClinicSortOption =
-  | 'Alphabetical'
+  | 'A-Z'
+  | 'Z-A'
   | 'Best Match'
   | 'Highest Rated'
   | 'Lowest Rated'
+  | 'Highest Trust'
+  | 'Lowest Trust'
   | 'Most Transparent'
   | 'Price: Low to High'
   | 'Price: High to Low';
@@ -70,6 +99,10 @@ export interface ClinicListItem {
   rating?: number;
   reviewCount?: number;
   aiInsight?: string;
+  googleScore?: number | null;
+  redditScore?: number | null;
+  hrnScore?: number | null;
+  instagramScore?: number | null;
   isMinistryVerified?: boolean;
 }
 
@@ -89,7 +122,7 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   mentions: (ClinicMentionRow & { sources?: SourceRow | SourceRow[] | null })[];
   facts: ClinicFactRow[];
   pricing: ClinicPricingRow[];
-  team: ClinicTeamRow[];
+  team: ClinicTeamMember[];
   packages: ClinicPackageRow[];
   reviews: (ClinicReviewRow & { sources?: { source_name: string; source_type: string } | null })[];
   scoreComponents: ClinicScoreComponentRow[];
@@ -102,7 +135,7 @@ export interface ClinicDetail extends Omit<ClinicListItem, 'languages'> {
   /** HRN forum signals (null if no threads attributed to this clinic) */
   hrnSignals: HRNSignalsData | null;
   /** Reddit community signals (null if no Reddit data exists) */
-  redditSignals: ClinicForumProfile | null;
+  redditSignals: RedditSignalsData | null;
   techniques: string[] | null;
   sourceScores: ClinicSourceScore[]
 }
@@ -250,11 +283,11 @@ const mapClinicRow = (clinic: ClinicListQueryRow): ClinicListItem => {
 export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResult> {
   const supabase = await createClient();
 
-  const pageSize = Math.max(1, Math.min(query.pageSize ?? 12, 50));
+  const pageSize = Math.max(1, Math.min(query.pageSize ?? 12, 500));
   const page = Math.max(1, query.page ?? 1);
   const sort = query.sort ?? 'Best Match';
   // These sorts require the view for proper ORDER BY
-  const needsViewSort = sort === 'Highest Rated' || sort === 'Lowest Rated' || sort === 'Best Match' || sort === 'Most Transparent';
+  const needsViewSort = sort === 'Highest Rated' || sort === 'Lowest Rated' || sort === 'Best Match' || sort === 'Most Transparent' || sort === 'Highest Trust' || sort === 'Lowest Trust';
 
   const searchQuery = normalizeString(query.searchQuery);
   const locationQuery = normalizeString(query.location);
@@ -458,6 +491,18 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
           .order('google_review_count', { ascending: true, nullsFirst: false })
           .order('display_name', { ascending: true });
         break;
+      case 'Highest Trust':
+        viewQuery = viewQuery
+          .order('overall_score', { ascending: false, nullsFirst: false })
+          .order('google_rating', { ascending: false, nullsFirst: false })
+          .order('display_name', { ascending: true });
+        break;
+      case 'Lowest Trust':
+        viewQuery = viewQuery
+          .order('overall_score', { ascending: true, nullsFirst: false })
+          .order('google_rating', { ascending: true, nullsFirst: false })
+          .order('display_name', { ascending: true });
+        break;
       case 'Best Match':
       case 'Most Transparent':
         viewQuery = viewQuery
@@ -549,8 +594,11 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
   // Apply sort for non-view sorts
   if (!needsViewSort) {
     switch (sort) {
-      case 'Alphabetical':
+      case 'A-Z':
         queryBuilder = queryBuilder.order('display_name', { ascending: true });
+        break;
+      case 'Z-A':
+        queryBuilder = queryBuilder.order('display_name', { ascending: false });
         break;
       case 'Price: Low to High':
         queryBuilder = queryBuilder.order('display_name', { ascending: true });
@@ -616,7 +664,19 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
       clinic_facts (*),
       clinic_google_places (*),
       clinic_pricing (*),
-      clinic_team (*),
+      clinic_team (
+        *,
+        last_verified_at,
+        external_ids,
+        clinic_team_qualifications (
+          id,
+          team_member_id,
+          qualification,
+          source,
+          source_url,
+          verified_at
+        )
+      ),
       clinic_packages (*),
       clinic_reviews (*, sources (source_name, source_type)),
       clinic_scraped_data!clinic_id (*),
@@ -647,7 +707,21 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     [];
   const facts = (clinic.clinic_facts as ClinicFactRow[]) || [];
   const pricing = (clinic.clinic_pricing as ClinicPricingRow[]) || [];
-  const team = (clinic.clinic_team as ClinicTeamRow[]) || [];
+  // Cast through `unknown` because `database.types.ts` predates the
+  // 20260502 migration that added last_verified_at / external_ids /
+  // clinic_team_qualifications. Regenerate via `npm run db:types` after the
+  // migration is applied to drop the cast.
+  const teamRaw = ((clinic.clinic_team as unknown) as (ClinicTeamRow & {
+    last_verified_at?: string | null;
+    external_ids?: Record<string, string> | null;
+    clinic_team_qualifications?: ClinicTeamQualificationRow[] | null;
+  })[]) || [];
+  const team: ClinicTeamMember[] = teamRaw.map((t) => ({
+    ...t,
+    last_verified_at: t.last_verified_at ?? null,
+    external_ids: t.external_ids ?? {},
+    qualifications: t.clinic_team_qualifications ?? [],
+  }));
   const packages = (clinic.clinic_packages as ClinicPackageRow[]) || [];
   const reviews = (clinic.clinic_reviews as (ClinicReviewRow & { sources?: { source_name: string; source_type: string } | null })[]) || [];
   const scoreComponents = (clinic.clinic_score_components as ClinicScoreComponentRow[]) || [];
@@ -700,14 +774,12 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     });
   const imageUrl = imageMedia[0]?.url ?? null;
 
-  // Fetch Instagram and HRN signals in parallel (both return null if no data)
-  const [instagramSignals, hrnSignals] = await Promise.all([
+  // Fetch Instagram, HRN, and Reddit signals in parallel
+  const [instagramSignals, hrnSignals, redditSignals] = await Promise.all([
     getInstagramSignals(clinic.id),
     getHRNSignals(clinic.id, clinic.display_name),
+    getRedditSignals(clinic.id),
   ]);
-
-  // Fetch Reddit signals data (returns null if no Reddit profile exists)
-  const redditSignals = await getForumSignals(clinic.id, 'reddit');
 
   const scrapedData = Array.isArray(clinic.clinic_scraped_data)
     ? clinic.clinic_scraped_data[0]
@@ -745,6 +817,8 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     packages,
     reviews,
     scoreComponents,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sourceScores: ((clinic as any).clinic_source_scores as ClinicSourceScore[]) ?? [],
     yearsInOperation: clinic.years_in_operation,
     proceduresPerformed: clinic.procedures_performed,
     totalReviewCount: googlePlaces?.user_ratings_total ?? 0,
@@ -752,8 +826,6 @@ export async function getClinicById(clinicId: string): Promise<ClinicDetail | nu
     hrnSignals,
     redditSignals,
     techniques: scrapedData?.techniques ?? null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    sourceScores: ((clinic as any).clinic_source_scores as ClinicSourceScore[]) ?? [],
   };
 }
 
@@ -775,6 +847,49 @@ export async function getClinicCities(): Promise<string[]> {
 
   const cities = [...new Set(data?.map((c) => c.primary_city) || [])];
   return cities.sort();
+}
+
+/**
+ * Fetches per-source scores for a list of clinics (used by comparison pages).
+ * Reads from clinic_source_scores (summary_score 0–100) and converts to 0–10.
+ * Returns a map of clinicId → { googleScore, redditScore, hrnScore, instagramScore }.
+ */
+export async function getClinicSourceScores(
+  clinicIds: string[]
+): Promise<Map<string, { googleScore: number | null; redditScore: number | null; hrnScore: number | null; instagramScore: number | null }>> {
+  if (clinicIds.length === 0) return new Map()
+
+  const supabase = await createClient()
+
+  const result = new Map<string, { googleScore: number | null; redditScore: number | null; hrnScore: number | null; instagramScore: number | null }>()
+  for (const id of clinicIds) result.set(id, { googleScore: null, redditScore: null, hrnScore: null, instagramScore: null })
+
+  const { data, error } = await supabase
+    .from('clinic_source_scores')
+    .select('clinic_id, source_name, summary_score')
+    .in('clinic_id', clinicIds)
+    .in('source_name', ['google', 'reddit', 'hrn', 'instagram'])
+    .eq('is_current', true)
+
+  if (error) {
+    console.error('[getClinicSourceScores] query failed:', error.message)
+    return result
+  }
+
+  for (const row of data ?? []) {
+    const entry = result.get(row.clinic_id)
+    if (!entry) continue
+    // summary_score is 0–100; divide by 10 for consistent /10 display.
+    // Treat 0 as null (placeholder row, no real data) so the UI shows — instead of 0.0.
+    if (row.summary_score === 0) continue
+    const score = row.summary_score / 10
+    if (row.source_name === 'google')    entry.googleScore    = score
+    if (row.source_name === 'reddit')    entry.redditScore    = score
+    if (row.source_name === 'hrn')       entry.hrnScore       = score
+    if (row.source_name === 'instagram') entry.instagramScore = score
+  }
+
+  return result
 }
 
 /**

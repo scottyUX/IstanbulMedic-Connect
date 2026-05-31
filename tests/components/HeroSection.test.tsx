@@ -84,21 +84,26 @@ describe('HeroSection', () => {
     expect(screen.getByText('No clinic photos uploaded yet')).toBeInTheDocument();
   });
 
-  // Patient Favorite threshold updated to rating >= 4.8 and reviewCount >= 100
-  it('shows Patient Favorite badge when rating >= 4.8 and reviewCount >= 100', () => {
-    render(<HeroSection {...defaultProps} rating={4.9} reviewCount={150} />);
+  it('shows Patient Favorite banner when trustBand is A', () => {
+    render(<HeroSection {...defaultProps} trustBand="A" />);
     expect(screen.getByText('Patient')).toBeInTheDocument();
     expect(screen.getByText('favorite')).toBeInTheDocument();
     expect(screen.getByText('One of the most loved clinics on Istanbul Medic Connect')).toBeInTheDocument();
+    expect(screen.getByText('Awarded our highest trust rating — Band A.')).toBeInTheDocument();
   });
 
-  it('does not show Patient Favorite badge when rating < 4.8', () => {
-    render(<HeroSection {...defaultProps} rating={4.7} reviewCount={150} />);
+  it('shows Trust Score in banner stats when trustBand is A', () => {
+    render(<HeroSection {...defaultProps} trustBand="A" transparencyScore={85} />);
+    expect(screen.getByText('Trust Score')).toBeInTheDocument();
+  });
+
+  it('does not show Patient Favorite banner when trustBand is B', () => {
+    render(<HeroSection {...defaultProps} trustBand="B" />);
     expect(screen.queryByText('One of the most loved clinics')).not.toBeInTheDocument();
   });
 
-  it('does not show Patient Favorite badge when reviewCount < 100', () => {
-    render(<HeroSection {...defaultProps} rating={4.9} reviewCount={50} />);
+  it('does not show Patient Favorite banner when trustBand is not provided', () => {
+    render(<HeroSection {...defaultProps} />);
     expect(screen.queryByText('One of the most loved clinics')).not.toBeInTheDocument();
   });
 

@@ -48,39 +48,34 @@ describe('ReviewsSection', () => {
 
   it('renders average rating', () => {
     render(<ReviewsSection {...defaultProps} />);
-    expect(screen.getByText('4.50')).toBeInTheDocument();
+    expect(screen.getByText('4.5')).toBeInTheDocument();
   });
 
-  it('shows dash when average rating is null', () => {
+  it('shows no reviews message when average rating is null', () => {
     render(<ReviewsSection {...defaultProps} averageRating={null} />);
-    const elements = screen.getAllByText('—');
-    expect(elements.length).toBeGreaterThan(0);
+    expect(screen.getByText('No Google reviews yet.')).toBeInTheDocument();
   });
 
   it('renders review count', () => {
-    render(<ReviewsSection {...defaultProps} />);
-    expect(screen.getByText(/25 reviews/)).toBeInTheDocument();
+    const { container } = render(<ReviewsSection {...defaultProps} />);
+    expect(container.textContent).toContain('25 reviews');
   });
 
-  it('shows Patient Favorite for high rating with enough reviews', () => {
-    render(<ReviewsSection {...defaultProps} averageRating={4.8} totalReviews={10} />);
-    expect(screen.getByText('Patient Favorite')).toBeInTheDocument();
-    expect(screen.getByText(/One of the top highly rated clinics/)).toBeInTheDocument();
+  it('shows Google Signal Score when googleScore prop is provided', () => {
+    const { container } = render(<ReviewsSection {...defaultProps} googleScore={78} />);
+    expect(container.textContent).toContain('Google Signal Score');
+    expect(container.textContent).toContain('7.8');
+    expect(container.textContent).toContain('/ 10');
   });
 
-  it('shows Patient Reviews for lower rating', () => {
-    render(<ReviewsSection {...defaultProps} averageRating={4.0} totalReviews={10} />);
-    expect(screen.getByText('Patient Reviews')).toBeInTheDocument();
-  });
-
-  it('shows Patient Reviews when not enough reviews', () => {
-    render(<ReviewsSection {...defaultProps} averageRating={4.8} totalReviews={3} />);
-    expect(screen.getByText('Patient Reviews')).toBeInTheDocument();
+  it('does not show Google Signal Score when googleScore is not provided', () => {
+    const { container } = render(<ReviewsSection {...defaultProps} />);
+    expect(container.textContent).not.toContain('Google Signal Score');
   });
 
   it('shows no reviews message when totalReviews is 0', () => {
     render(<ReviewsSection {...defaultProps} totalReviews={0} reviews={[]} />);
-    expect(screen.getByText(/No reviews yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No Google reviews yet/)).toBeInTheDocument();
   });
 
   it('renders review author names', () => {
@@ -129,20 +124,26 @@ describe('ReviewsSection', () => {
     expect(showMoreButtons.length).toBe(1); // Only the long review should have it
   });
 
-  it('renders Show all reviews button', () => {
+  it('renders modal trigger button', () => {
     render(<ReviewsSection {...defaultProps} />);
-    expect(screen.getByRole('button', { name: /Show all 25 reviews/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /View more Google reviews/i })).toBeInTheDocument();
+  });
+
+  it('modal trigger button has w-full class on mobile', () => {
+    render(<ReviewsSection {...defaultProps} />);
+    const button = screen.getByRole('button', { name: /View more Google reviews/i });
+    expect(button.className).toContain('w-full');
   });
 
   it('handles single review count grammar', () => {
-    render(<ReviewsSection {...defaultProps} totalReviews={1} />);
-    expect(screen.getByText(/Based on 1 patient review\./)).toBeInTheDocument();
+    const { container } = render(<ReviewsSection {...defaultProps} totalReviews={1} />);
+    expect(container.textContent).toContain('· 1 review');
+    expect(container.textContent).not.toContain('· 1 reviews');
   });
 
   it('handles multiple reviews count grammar', () => {
-    render(<ReviewsSection {...defaultProps} totalReviews={5} averageRating={4.0} />);
-    // When rating is lower or few reviews, shows "Based on X patient reviews"
-    expect(screen.getByText(/5 patient reviews/)).toBeInTheDocument();
+    const { container } = render(<ReviewsSection {...defaultProps} totalReviews={5} averageRating={4.0} />);
+    expect(container.textContent).toContain('5 reviews');
   });
 });
 
@@ -229,11 +230,20 @@ describe('ReviewsSection modal search', () => {
     reviews: searchableReviews,
   };
 
+  it('renders star distribution bars in modal sidebar', () => {
+    render(<ReviewsSection {...defaultProps} />);
+    fireEvent.click(screen.getByRole('button', { name: /View more Google reviews/i }));
+
+    // Should show Rating breakdown heading and bars for each star level
+    expect(screen.getByText('Rating breakdown')).toBeInTheDocument();
+    expect(screen.getByText(/Based on 3 stored reviews/)).toBeInTheDocument();
+  });
+
   it('filters reviews by text in modal search', async () => {
     render(<ReviewsSection {...defaultProps} />);
 
     // Open the modal
-    fireEvent.click(screen.getByRole('button', { name: /Show all 3 reviews/i }));
+    fireEvent.click(screen.getByRole('button', { name: /View more Google reviews/i }));
 
     // Find search input and type
     const searchInput = screen.getByPlaceholderText('Search reviews');
@@ -247,7 +257,7 @@ describe('ReviewsSection modal search', () => {
     render(<ReviewsSection {...defaultProps} />);
 
     // Open the modal
-    fireEvent.click(screen.getByRole('button', { name: /Show all 3 reviews/i }));
+    fireEvent.click(screen.getByRole('button', { name: /View more Google reviews/i }));
 
     // Search for something that doesn't exist
     const searchInput = screen.getByPlaceholderText('Search reviews');
@@ -261,7 +271,7 @@ describe('ReviewsSection modal search', () => {
     render(<ReviewsSection {...defaultProps} />);
 
     // Open the modal
-    fireEvent.click(screen.getByRole('button', { name: /Show all 3 reviews/i }));
+    fireEvent.click(screen.getByRole('button', { name: /View more Google reviews/i }));
 
     // Search for something that doesn't exist
     const searchInput = screen.getByPlaceholderText('Search reviews');

@@ -194,6 +194,7 @@ describe('SummarySidebar — consultation', () => {
     vi.clearAllMocks();
     isAuthenticated = false;
     global.fetch = vi.fn();
+    sessionStorage.clear();
   });
 
   it('shows "Request Free Consultation" button', () => {
@@ -203,11 +204,14 @@ describe('SummarySidebar — consultation', () => {
 
   // ── Auth gate ──────────────────────────────────────────────────────────────
 
-  it('redirects unauthenticated user to /auth/login on click', () => {
+  it('stores consultation_intent and redirects to /auth/login when unauthenticated', () => {
     isAuthenticated = false;
     render(<SummarySidebar {...defaultProps} />);
     fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
-    expect(mockPush).toHaveBeenCalledWith('/auth/login');
+    expect(sessionStorage.getItem('consultation_intent')).toBe(JSON.stringify(['clinic-test-id']));
+    expect(mockPush).toHaveBeenCalledWith(
+      `/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`
+    );
   });
 
   it('does not open the modal when user is unauthenticated', () => {
@@ -219,9 +223,13 @@ describe('SummarySidebar — consultation', () => {
 
   // ── Modal trigger ──────────────────────────────────────────────────────────
 
-  it('opens the confirmation modal when authenticated user clicks the button', () => {
+  it('opens the confirmation modal when authenticated user clicks the button', async () => {
     isAuthenticated = true;
+    // SummarySidebar fetches /api/consultations/pending-ids on mount when authenticated
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({ pendingClinicIds: [], pendingConsultations: {} }) });
     render(<SummarySidebar {...defaultProps} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /request free consultation/i })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
     expect(screen.getByText(/request a free consultation with/i)).toBeInTheDocument();
   });
@@ -231,9 +239,12 @@ describe('SummarySidebar — consultation', () => {
   it('calls /api/consultations and shows "Consultation Requested" after confirming', async () => {
     isAuthenticated = true;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global.fetch as any).mockResolvedValueOnce({ ok: true, json: async () => ({ emailSent: true }) });
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ pendingClinicIds: [], pendingConsultations: {} }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ emailSent: true }) })
 
     render(<SummarySidebar {...defaultProps} />);
+    await waitFor(() => screen.getByRole('button', { name: /request free consultation/i }));
     fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
     fireEvent.click(screen.getByRole('button', { name: /^request consultation$/i }));
 
@@ -255,16 +266,128 @@ describe('SummarySidebar — consultation', () => {
   it('leaves the button visible when the API call fails', async () => {
     isAuthenticated = true;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global.fetch as any).mockResolvedValueOnce({ ok: false });
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ pendingClinicIds: [], pendingConsultations: {} }) })
+      .mockResolvedValueOnce({ ok: false })
 
     render(<SummarySidebar {...defaultProps} />);
+    await waitFor(() => screen.getByRole('button', { name: /request free consultation/i }));
     fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
     fireEvent.click(screen.getByRole('button', { name: /^request consultation$/i }));
 
-    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /request free consultation/i })).toBeInTheDocument();
+    });
+  });
+});
+
+// ─── Cancellation behavior ─────────────────────────────────────────────────────
+
+describe('SummarySidebar — cancellation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isAuthenticated = true;
+    global.fetch = vi.fn();
+    sessionStorage.clear();
+  });
+
+  // ── Pending state display ──────────────────────────────────────────────────
+
+  it('shows "Consultation Requested" and "Cancel request" when clinic has a pending consultation', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        pendingClinicIds: ['clinic-test-id'],
+        pendingConsultations: { 'clinic-test-id': 'consult-uuid' },
+      }),
+    });
+
+    render(<SummarySidebar {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/consultation requested/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /cancel request/i })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /request free consultation/i })).not.toBeInTheDocument();
+  });
+
+  // ── Cancel modal ───────────────────────────────────────────────────────────
+
+  it('opens the cancel confirmation modal when "Cancel request" is clicked', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        pendingClinicIds: ['clinic-test-id'],
+        pendingConsultations: { 'clinic-test-id': 'consult-uuid' },
+      }),
+    });
+
+    render(<SummarySidebar {...defaultProps} />);
+    await waitFor(() => screen.getByRole('button', { name: /cancel request/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancel request/i }));
+
+    expect(screen.getByText(/cancel your consultation request with/i)).toBeInTheDocument();
+  });
+
+  // ── Confirm cancel → API + UI revert ──────────────────────────────────────
+
+  it('calls PATCH and reverts to "Request Free Consultation" after confirming cancellation', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          pendingClinicIds: ['clinic-test-id'],
+          pendingConsultations: { 'clinic-test-id': 'consult-uuid' },
+        }),
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, emailSent: true }) });
+
+    render(<SummarySidebar {...defaultProps} />);
+    await waitFor(() => screen.getByRole('button', { name: /cancel request/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancel request/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^cancel request$/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/consultations/consult-uuid',
+        expect.objectContaining({ method: 'PATCH' })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /request free consultation/i })).toBeInTheDocument();
+      expect(screen.queryByText(/consultation requested/i)).not.toBeInTheDocument();
+    });
+  });
+
+  // ── PATCH failure → UI stays unchanged ────────────────────────────────────
+
+  it('leaves "Consultation Requested" visible when the PATCH call fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          pendingClinicIds: ['clinic-test-id'],
+          pendingConsultations: { 'clinic-test-id': 'consult-uuid' },
+        }),
+      })
+      .mockResolvedValueOnce({ ok: false });
+
+    render(<SummarySidebar {...defaultProps} />);
+    await waitFor(() => screen.getByRole('button', { name: /cancel request/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancel request/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^cancel request$/i }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+
+    await waitFor(() => {
+      expect(screen.getByText(/consultation requested/i)).toBeInTheDocument();
     });
   });
 });

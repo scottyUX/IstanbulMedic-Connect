@@ -10,6 +10,7 @@ export const FILTER_CONFIG = {
   location: true,
   minRating: true,
   minReviews: true,
+  minTrustScore: true,
 
   // Disabled - no data yet
   budgetRange: false,
@@ -38,9 +39,12 @@ export type FilterConfigKey = keyof typeof FILTER_CONFIG;
  * Enable sort options as backend support becomes available.
  */
 export const SORT_CONFIG = {
-  'Alphabetical': true,
+  'A-Z': true,
+  'Z-A': true,
   'Highest Rated': true,
   'Lowest Rated': true,
+  'Highest Trust': true,
+  'Lowest Trust': true,
 
   // Disabled - no backend support yet
   'Best Match': false,
@@ -76,7 +80,7 @@ export const FEATURE_CONFIG = {
   profileOverview: true,
   profilePricing: false,
   profilePackages: false,
-  profileDoctors: false,
+  profileDoctors: true,
   profileTransparency: false,
   profileAIInsights: false,
   profileCommunitySignals: false,

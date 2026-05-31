@@ -21,7 +21,6 @@ const NAV_ITEMS = [
   // { label: "Design System", href: "/design-system" },
 ] as const
 
-const CONSULTATION_LINK = "https://cal.com/team/istanbul-medic/istanbul-medic-15-minutes-consultation"
 
 export const TopNav = () => {
   const [open, setOpen] = useState(false)
@@ -174,7 +173,7 @@ export const TopNav = () => {
 
         {/* Desktop CTA - shrink-0 ensures both buttons stay visible */}
         <div className="hidden shrink-0 items-center gap-3 md:flex">
-          {FEATURE_CONFIG.bookConsultation && isAuthenticated && (
+          {FEATURE_CONFIG.bookConsultation && (
             <Link
               href="/bookmarks"
               aria-label={`Saved clinics${bookmarkCount > 0 ? ` (${bookmarkCount})` : ""}`}
@@ -190,13 +189,11 @@ export const TopNav = () => {
           )}
           <Button
             variant="teal-primary"
-            href={CONSULTATION_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Book consultation"
-            className="shrink-0"
+            href="/profile?section=consultations"
+            aria-label="Consultations"
+            className="shrink-0 min-w-0"
           >
-            Book Consultation
+            Consultations
           </Button>
           <Button
             variant="leila-link"
@@ -323,7 +320,7 @@ export const TopNav = () => {
                         )
                       })}
 
-                      {FEATURE_CONFIG.bookConsultation && isAuthenticated && (
+                      {FEATURE_CONFIG.bookConsultation && (
                         <Link
                           href="/bookmarks"
                           onClick={() => setOpen(false)}
@@ -342,13 +339,11 @@ export const TopNav = () => {
                       )}
                       <Button
                         variant="teal-primary"
-                        href={CONSULTATION_LINK}
+                        href="/profile?section=consultations"
                         onClick={() => setOpen(false)}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="w-full shadow-[0_12px_30px_rgba(62,187,183,0.35)]"
                       >
-                        Book Consultation
+                        Consultations
                       </Button>
                       <Button
                         variant="leila-link"

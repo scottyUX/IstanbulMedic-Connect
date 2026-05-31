@@ -64,7 +64,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // If href is provided, render as Link
     if (href) {
       // Filter out button-specific props that shouldn't be on anchor
-      const { type, ...anchorProps } = props as React.AnchorHTMLAttributes<HTMLAnchorElement> & { type?: string }
+      const { type: _type, ...anchorProps } = props as React.AnchorHTMLAttributes<HTMLAnchorElement> & { type?: string }
       return (
         <Link
           href={href}

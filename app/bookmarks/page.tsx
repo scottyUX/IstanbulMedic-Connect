@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { MapPin, Star, Bookmark, Check } from "lucide-react"
+import { MapPin, Star, Bookmark, Check, Trash2 } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
 import { useAuth } from "@/contexts/AuthContext"
@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils"
 import { ConsultationConfirmModal } from "@/components/istanbulmedic-connect/ConsultationConfirmModal"
 
 const merriweather = Merriweather({ subsets: ["latin"], weight: ["700"] })
+
+const LS_KEY = 'im.bookmarks'
 
 interface BookmarkedClinic {
   bookmarkId: string
@@ -31,7 +33,6 @@ export default function BookmarksPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const { removeId } = useBookmarkCount()
   const router = useRouter()
-
   const [clinics, setClinics] = useState<BookmarkedClinic[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -40,14 +41,6 @@ export default function BookmarksPage() {
   const [removeTarget, setRemoveTarget] = useState<BookmarkedClinic | null>(null)
   const [consultTarget, setConsultTarget] = useState<BookmarkedClinic | null>(null)
   const [emailWarning, setEmailWarning] = useState(false)
-
-  // Redirect unauthenticated users
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      document.cookie = `auth_redirect_next=${encodeURIComponent("/bookmarks")}; path=/; max-age=300`
-      router.push("/auth/login")
-    }
-  }, [authLoading, isAuthenticated, router])
 
   const fetchBookmarks = useCallback(async () => {
     setLoading(true)
@@ -63,9 +56,31 @@ export default function BookmarksPage() {
     }
   }, [])
 
+  const fetchGuestBookmarks = useCallback(async () => {
+    setLoading(true)
+    try {
+      const ids: string[] = JSON.parse(localStorage.getItem(LS_KEY) ?? '[]')
+      if (ids.length === 0) { setClinics([]); return }
+      const res = await fetch('/api/bookmarks/guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicIds: ids }),
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      setClinics(data.bookmarks ?? [])
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
+    if (authLoading) return
     if (isAuthenticated) fetchBookmarks()
-  }, [isAuthenticated, fetchBookmarks])
+    else fetchGuestBookmarks()
+  }, [isAuthenticated, authLoading, fetchBookmarks, fetchGuestBookmarks])
 
   const handleRemove = async () => {
     if (!removeTarget) return
@@ -74,36 +89,33 @@ export default function BookmarksPage() {
     setSelected((prev) => { const s = new Set(prev); s.delete(clinicId); return s })
     removeId(clinicId)
     setRemoveTarget(null)
+    if (!isAuthenticated) return
     try {
-      await fetch("/api/bookmarks", {
+      const res = await fetch("/api/bookmarks", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clinicId }),
       })
+      if (!res.ok) fetchBookmarks()
     } catch {
-      fetchBookmarks() // revert page list on error (context will re-sync on next auth change)
+      fetchBookmarks()
     }
   }
 
   const handleRequestOne = async () => {
     if (!consultTarget) return
     const clinic = consultTarget
-    setConsultTarget(null)
-    try {
-      const res = await fetch("/api/consultations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clinicIds: [clinic.clinicId] }),
-      })
-      if (!res.ok) throw new Error('request failed')
-      const data = await res.json()
-      setClinics((prev) =>
-        prev.map((c) => c.clinicId === clinic.clinicId ? { ...c, consultationRequested: true } : c)
-      )
-      if (!data.emailSent) setEmailWarning(true)
-    } catch {
-      // leave UI unchanged — clinic remains requestable
-    }
+    const res = await fetch("/api/consultations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clinicIds: [clinic.clinicId] }),
+    })
+    if (!res.ok) throw new Error('request failed')
+    const data = await res.json()
+    setClinics((prev) =>
+      prev.map((c) => c.clinicId === clinic.clinicId ? { ...c, consultationRequested: true } : c)
+    )
+    if (!data.emailSent) setEmailWarning(true)
   }
 
   const handleBulkRequest = async () => {
@@ -122,7 +134,6 @@ export default function BookmarksPage() {
       )
       if (!data.emailSent) setEmailWarning(true)
       setSelected(new Set())
-      setBulkModalOpen(false)
     } catch {
       // leave UI unchanged — user can retry
     } finally {
@@ -139,6 +150,10 @@ export default function BookmarksPage() {
     })
   }
 
+  const sortedClinics = useMemo<BookmarkedClinic[]>(
+    () => [...clinics].sort((a, b) => Number(a.consultationRequested) - Number(b.consultationRequested)),
+    [clinics]
+  )
   const selectableIds = clinics.filter((c) => !c.consultationRequested).map((c) => c.clinicId)
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id))
   const toggleAll = () => {
@@ -179,7 +194,15 @@ export default function BookmarksPage() {
         {selected.size > 0 && (
           <Button
             variant="teal-primary"
-            onClick={() => setBulkModalOpen(true)}
+            onClick={() => {
+              if (isAuthenticated) {
+                setBulkModalOpen(true)
+              } else {
+                sessionStorage.setItem('consultation_intent', JSON.stringify(Array.from(selected)))
+                document.cookie = `auth_redirect_next=${encodeURIComponent('/profile?section=consultations')}; path=/; max-age=300`
+                router.push(`/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`)
+              }
+            }}
             disabled={bulkSubmitting}
             className="shrink-0"
           >
@@ -222,7 +245,7 @@ export default function BookmarksPage() {
           )}
 
           <ul className="space-y-3">
-            {clinics.map((clinic) => (
+            {sortedClinics.map((clinic) => (
               <li
                 key={clinic.clinicId}
                 className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
@@ -274,26 +297,42 @@ export default function BookmarksPage() {
                 {/* Actions */}
                 <div className="flex shrink-0 items-center gap-3">
                   {clinic.consultationRequested ? (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Check className="h-3.5 w-3.5 text-[#3EBBB7]" />
-                      Requested
-                    </span>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Check className="h-3.5 w-3.5 text-[#3EBBB7]" />
+                        Requested
+                      </span>
+                      <Link
+                        href="/profile?section=consultations"
+                        className="text-[10px] text-slate-400 hover:text-[#3EBBB7] hover:underline transition-colors"
+                      >
+                        Manage →
+                      </Link>
+                    </div>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setConsultTarget(clinic)}
+                      onClick={() => {
+                        if (isAuthenticated) {
+                          setConsultTarget(clinic)
+                        } else {
+                          sessionStorage.setItem('consultation_intent', JSON.stringify([clinic.clinicId]))
+                          document.cookie = `auth_redirect_next=${encodeURIComponent('/profile?section=consultations')}; path=/; max-age=300`
+                          router.push(`/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`)
+                        }
+                      }}
                       className="text-xs font-medium text-[#3EBBB7] hover:underline underline-offset-2"
                     >
-                      Request Consultation
+                      {isAuthenticated ? "Request Consultation" : "Sign in to request"}
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => setRemoveTarget(clinic)}
                     aria-label={`Remove ${clinic.name} from bookmarks`}
-                    className="text-slate-300 hover:text-red-400 transition-colors"
+                    className="text-slate-300 hover:text-red-500 transition-colors"
                   >
-                    <Bookmark className="h-4 w-4 fill-current" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </li>
@@ -305,7 +344,7 @@ export default function BookmarksPage() {
       {/* Individual consultation request modal */}
       <ConsultationConfirmModal
         open={consultTarget !== null}
-        onOpenChange={(open) => !open && setConsultTarget(null)}
+        onOpenChange={(open) => { if (!open) setConsultTarget(null) }}
         clinicName={consultTarget?.name ?? ""}
         isRemoving={false}
         onConfirm={handleRequestOne}
@@ -323,7 +362,7 @@ export default function BookmarksPage() {
       {/* Bulk request modal */}
       <ConsultationConfirmModal
         open={bulkModalOpen}
-        onOpenChange={(open) => !open && setBulkModalOpen(false)}
+        onOpenChange={(open) => { if (!open) setBulkModalOpen(false) }}
         clinicName={`${selected.size} clinic${selected.size !== 1 ? "s" : ""}`}
         isRemoving={false}
         onConfirm={handleBulkRequest}

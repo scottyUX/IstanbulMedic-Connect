@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,7 +16,8 @@ interface ConsultationConfirmModalProps {
   onOpenChange: (open: boolean) => void
   clinicName: string
   isRemoving: boolean
-  onConfirm: () => void
+  isCancelling?: boolean
+  onConfirm: () => Promise<void>
 }
 
 export function ConsultationConfirmModal({
@@ -23,16 +25,47 @@ export function ConsultationConfirmModal({
   onOpenChange,
   clinicName,
   isRemoving,
+  isCancelling = false,
   onConfirm,
 }: ConsultationConfirmModalProps) {
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleConfirm = async () => {
+    if (isRemoving) {
+      onConfirm()
+      onOpenChange(false)
+      return
+    }
+    setSubmitting(true)
+    try {
+      await onConfirm()
+      onOpenChange(false)
+    } catch {
+      onOpenChange(false)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const title = isRemoving ? "Remove Bookmark" : isCancelling ? "Cancel Request" : "Request Free Consultation"
+  const confirmLabel = submitting
+    ? isCancelling ? "Cancelling…" : "Requesting…"
+    : isRemoving ? "Remove" : isCancelling ? "Cancel Request" : "Request Consultation"
+  const dismissLabel = isCancelling ? "Keep Request" : "Cancel"
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent
+        className="sm:max-w-sm"
+        onEscapeKeyDown={submitting ? (e) => e.preventDefault() : undefined}
+        onPointerDownOutside={submitting ? (e) => e.preventDefault() : undefined}
+      >
         <DialogHeader className="flex flex-row items-center justify-between space-y-0">
-          <DialogTitle>
-            {isRemoving ? "Remove Bookmark" : "Request Free Consultation"}
-          </DialogTitle>
-          <DialogClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogClose
+            disabled={submitting}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-30"
+          >
             <X className="h-4 w-4" aria-hidden />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -42,6 +75,10 @@ export function ConsultationConfirmModal({
           {isRemoving ? (
             <p>
               Remove <span className="font-semibold text-foreground">{clinicName}</span> from your saved clinics?
+            </p>
+          ) : isCancelling ? (
+            <p>
+              Cancel your consultation request with <span className="font-semibold text-foreground">{clinicName}</span>? The team will be notified.
             </p>
           ) : (
             <>
@@ -59,19 +96,18 @@ export function ConsultationConfirmModal({
           <Button
             variant="outline"
             className="flex-1"
+            disabled={submitting}
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {dismissLabel}
           </Button>
           <Button
-            variant={isRemoving ? "destructive" : "teal-primary"}
+            variant={isRemoving || isCancelling ? "destructive" : "teal-primary"}
             className="flex-1"
-            onClick={() => {
-              onConfirm()
-              onOpenChange(false)
-            }}
+            disabled={submitting}
+            onClick={handleConfirm}
           >
-            {isRemoving ? "Remove" : "Request Consultation"}
+            {confirmLabel}
           </Button>
         </div>
       </DialogContent>

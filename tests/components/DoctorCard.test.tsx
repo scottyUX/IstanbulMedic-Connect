@@ -48,11 +48,9 @@ describe('DoctorCard', () => {
     expect(screen.getByText('Dr. John Smith')).toBeInTheDocument();
   });
 
-  it('uses name for alt text, falls back to "Doctor"', () => {
-    const { rerender } = render(<DoctorCard doctor={defaultDoctor} />);
-    expect(screen.getByAltText('Dr. John Smith')).toBeInTheDocument();
-
-    rerender(<DoctorCard doctor={{ ...defaultDoctor, name: null }} />);
-    expect(screen.getByAltText('Doctor')).toBeInTheDocument();
+  it('renders name without a photo image', () => {
+    render(<DoctorCard doctor={defaultDoctor} />);
+    expect(screen.getByText('Dr. John Smith')).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 });
