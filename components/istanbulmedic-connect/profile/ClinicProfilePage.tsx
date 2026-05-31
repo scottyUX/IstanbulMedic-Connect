@@ -338,6 +338,17 @@ const communitySignals = {
               rating={clinic.rating ?? null}
               reviewCount={clinic.totalReviewCount}
               websiteUrl={clinic.websiteUrl}
+              instagramProfile={
+                communitySignals.instagramIntelligence
+                  ? {
+                      username: communitySignals.instagramIntelligence.username,
+                      followersCount: communitySignals.instagramIntelligence.followersCount,
+                      postsCount: communitySignals.instagramIntelligence.postsCount,
+                      profileUrl: communitySignals.instagramIntelligence.profileUrl,
+                      verified: communitySignals.instagramIntelligence.verified,
+                    }
+                  : null
+              }
             />
           </div>
         </div>

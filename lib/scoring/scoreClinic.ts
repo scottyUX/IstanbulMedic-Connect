@@ -200,6 +200,7 @@ export async function scoreClinic(
       metrics_json:     googleSource.metrics_json,
       breakdown_json:   googleSource.breakdown_json,
       is_current:       true,
+      explanation: googleSource.explanation,
     }, { onConflict: "clinic_id,source_name,score_version" });
 
   if (sourceError) throw new Error(`Source score insert failed: ${sourceError.message}`);
@@ -248,6 +249,7 @@ export async function scoreClinic(
         confidence_score: instagramSource.confidence_score,
         metrics_json:     instagramSource.metrics_json,
         breakdown_json:   instagramSource.breakdown_json,
+        explanation: instagramSource.explanation,
         is_current:       true,
       }, { onConflict: "clinic_id,source_name,score_version" });
 

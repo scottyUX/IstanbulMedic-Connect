@@ -2,8 +2,6 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { StatBlock } from "@/components/ui/stat-block"
 
 interface OverviewSectionProps {
   specialties: string[]
@@ -30,7 +28,8 @@ export const OverviewSection = ({
       <CardHeader className="pb-3">
         <h2 className="im-heading-2 text-foreground">Overview</h2>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
+        {/* Specialties */}
         <div className="flex flex-wrap gap-2">
           {specialties.map((s) => (
             <Badge key={s} variant="secondary" className="font-medium text-sm">
@@ -39,15 +38,26 @@ export const OverviewSection = ({
           ))}
         </div>
 
-        <Separator />
+        {/* Summary */}
+        {description && (
+          <div className="text-base leading-relaxed text-muted-foreground">{description}</div>
+        )}
 
-        <div className="flex flex-wrap gap-4">
-          {techniques.length > 0 && (
-            <StatBlock label="Techniques" value={techniques.join(", ")} />
-          )}
-        </div>
-
-        <div className="text-base leading-relaxed text-muted-foreground">{description}</div>
+        {/* Hair Transplant Techniques */}
+        {techniques.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground tracking-wide uppercase">
+              Hair Transplant Techniques
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {techniques.map((t) => (
+                <Badge key={t} variant="outline" className="text-sm font-medium px-3 py-1">
+                  {t}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
