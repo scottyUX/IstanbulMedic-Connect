@@ -23,16 +23,50 @@ const LangchainChat = () => {
   const inputBarRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
   const [inputBarHeight, setInputBarHeight] = useState(96);
+  const [awaitingAssistant, setAwaitingAssistant] = useState(false);
 
   const filteredMessages = (messages as Message[]).filter((m) => {
+    if (m.id?.startsWith("coagent-state-render-")) return false;
     if (!VISIBLE_ROLES.has(m.role)) return false;
     if (m.role === "assistant") {
-      return typeof m.content === "string" && m.content.trim().length > 0;
+      const hasText =
+        typeof m.content === "string" && m.content.trim().length > 0;
+      const genUIResult = (m as any).generativeUI?.();
+      const isBridge =
+        genUIResult?.type?.name === "CoAgentStateRenderBridge" ||
+        genUIResult?.type?.displayName === "CoAgentStateRenderBridge";
+      const hasRealGenUI =
+        genUIResult != null && genUIResult !== false && !isBridge;
+      return hasText || hasRealGenUI;
     }
     return true;
   });
 
-  const showGreeting = filteredMessages.length === 0;
+  // Swap adjacent text-only / genUI-only assistant pairs so the card renders above the text.
+  // The text message is created first by the adapter (TEXT_MESSAGE_START fires before tool calls),
+  // so without this it would appear above the card even though the card arrived visually first.
+  const hasRealGenUI = (m: Message) => {
+    const r = (m as any).generativeUI?.();
+    if (r == null || r === false) return false;
+    return r?.type?.name !== "CoAgentStateRenderBridge" && r?.type?.displayName !== "CoAgentStateRenderBridge";
+  };
+  const orderedMessages = [...filteredMessages];
+  for (let i = 0; i < orderedMessages.length - 1; i++) {
+    const curr = orderedMessages[i];
+    const next = orderedMessages[i + 1];
+    if (curr.role !== "assistant" || next.role !== "assistant") continue;
+    const currHasText = typeof curr.content === "string" && curr.content.trim().length > 0;
+    const nextHasText = typeof next.content === "string" && next.content.trim().length > 0;
+    if (currHasText && !hasRealGenUI(curr) && hasRealGenUI(next) && !nextHasText) {
+      orderedMessages[i] = next;
+      orderedMessages[i + 1] = curr;
+    }
+  }
+
+  const lastVisibleMessage = orderedMessages[orderedMessages.length - 1];
+  const showTypingIndicator = awaitingAssistant || isLoading;
+  const showGreeting =
+    filteredMessages.length === 0 && !isLoading && !awaitingAssistant;
 
   // Detect manual scroll-up so auto-scroll doesn't fight the user
   useEffect(() => {
@@ -59,6 +93,12 @@ const LangchainChat = () => {
     if (showGreeting) userScrolledUpRef.current = false;
   }, [showGreeting]);
 
+  useEffect(() => {
+    if (lastVisibleMessage?.role === "assistant") {
+      setAwaitingAssistant(false);
+    }
+  }, [lastVisibleMessage]);
+
   // Keep the bottom reserve space aligned with the fixed composer height.
   useEffect(() => {
     const el = inputBarRef.current;
@@ -80,11 +120,17 @@ const LangchainChat = () => {
     async (text: string) => {
       if (!text.trim() || isLoading) return;
       userScrolledUpRef.current = false;
-      await (sendMessage as any)({
-        id: crypto.randomUUID(),
-        role: "user" as const,
-        content: text,
-      });
+      setAwaitingAssistant(true);
+      try {
+        await (sendMessage as any)({
+          id: crypto.randomUUID(),
+          role: "user" as const,
+          content: text,
+        });
+      } catch (error) {
+        setAwaitingAssistant(false);
+        throw error;
+      }
     },
     [isLoading, sendMessage],
   );
@@ -121,10 +167,10 @@ const LangchainChat = () => {
           style={{ paddingBottom: inputBarHeight + 16 }}
         >
           <div className="max-w-2xl mx-auto">
-            {filteredMessages.map((msg) => (
+            {orderedMessages.map((msg) => (
               <MessageBubble key={msg.id} message={msg} />
             ))}
-            {isLoading && <TypingIndicator />}
+            {showTypingIndicator && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
         </div>

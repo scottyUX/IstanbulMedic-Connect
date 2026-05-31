@@ -88,6 +88,17 @@ export class LangchainAgentAdapter extends AbstractAgent {
           text: userText,
         };
 
+        // Open the assistant message immediately so tool call events are
+        // emitted inside an active message context — CopilotKit needs this
+        // to associate genUI renders with the correct message.
+        const start = {
+          type: EventType.TEXT_MESSAGE_START,
+          messageId,
+          role: "assistant" as const,
+        } satisfies TextMessageStartEvent;
+        subscriber.next(start);
+        textMessageOpen = true;
+
         // Buffer text chunks; emit them as a single TEXT_MESSAGE_CONTENT after
         // the agent finishes (so output guardrails run before tokens leave the
         // server). Empty chunks are dropped.
@@ -146,14 +157,6 @@ export class LangchainAgentAdapter extends AbstractAgent {
           const finalText = finalMessage.text || buffered.join("");
 
           if (finalText.length > 0) {
-            const start = {
-              type: EventType.TEXT_MESSAGE_START,
-              messageId,
-              role: "assistant" as const,
-            } satisfies TextMessageStartEvent;
-            subscriber.next(start);
-            textMessageOpen = true;
-
             const content = {
               type: EventType.TEXT_MESSAGE_CONTENT,
               messageId,

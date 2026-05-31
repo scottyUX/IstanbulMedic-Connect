@@ -8,7 +8,11 @@ interface MessageBubbleProps {
 }
 
 const MessageBubble = ({ message }: MessageBubbleProps) => {
-  const genUI = (message as any).generativeUI?.();
+  const rawGenUI = (message as any).generativeUI?.();
+  const isBridge =
+    rawGenUI?.type?.name === "CoAgentStateRenderBridge" ||
+    rawGenUI?.type?.displayName === "CoAgentStateRenderBridge";
+  const genUI = isBridge ? null : rawGenUI;
   const genUIPosition: "before" | "after" = (message as any).generativeUIPosition ?? "after";
   const content = typeof message.content === "string" ? message.content : "";
 

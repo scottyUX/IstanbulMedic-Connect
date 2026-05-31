@@ -148,16 +148,6 @@ const DatabaseResultsCard = ({ table, count, results }: DatabaseResultsCardProps
   );
 };
 
-interface ErrorCardProps {
-  message: string;
-}
-
-const ErrorCard = ({ message }: ErrorCardProps) => (
-  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 max-w-lg">
-    {message}
-  </div>
-);
-
 interface LoadingCardProps {
   message: string;
 }
@@ -170,6 +160,17 @@ const LoadingCard = ({ message }: LoadingCardProps) => (
     </div>
   </div>
 );
+
+interface ErrorCardProps {
+  message: string;
+}
+
+const ErrorCard = ({ message }: ErrorCardProps) => (
+  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 max-w-lg">
+    {message}
+  </div>
+);
+
 
 interface DoctorProfileCardProps {
   doctors: {

@@ -301,6 +301,13 @@ export class LangchainAgent {
       }
     }
 
+    // TODO: card-awareness + conversational memory — both are context injection into currentMessages
+    // before the final stream call. For card-awareness: after tool calls resolve, inject a synthetic
+    // system message like "you just displayed a [ClinicProfileCard] for [clinic], do not repeat what
+    // the card covers — instead add context or suggest next steps." toolCall.name + result JSON are
+    // already available here. For memory: pass prior conversation turns in the same way.
+    // Both parallel each other; card-awareness is simpler (local to this run, no persistence needed).
+
     // ---- Final streaming response ----
     const streamingModel = new ChatOpenAI({
       modelName: MODEL_NAME,
