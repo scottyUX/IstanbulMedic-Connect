@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import type { ClinicListItem } from '@/lib/api/clinics'
+import { RedditView } from '@/components/istanbulmedic-connect/comparison/RedditView'
 
 // ── Shared mocks ─────────────────────────────────────────────────────────────
 
@@ -71,19 +72,24 @@ const noop = vi.fn()
 describe('RedditView', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('shows the Reddit score from clinic_source_scores', async () => {
-    const { RedditView } = await import(
-      '@/components/istanbulmedic-connect/comparison/RedditView'
+  it('shows the Reddit score from clinic_source_scores', () => {
+    render(
+      <RedditView
+        clinic={baseClinic}
+        onDeselect={noop}
+        accentClass="text-blue-600"
+      />
     )
-    render(<RedditView clinic={baseClinic} onDeselect={noop} accentClass="text-blue-600" />)
-    expect(screen.getByText('7.5')).toBeInTheDocument()
-    expect(screen.getByText('/ 10')).toBeInTheDocument()
-  })
+
+  expect(screen.getByText('7.5')).toBeInTheDocument()
+  expect(screen.getByText('/ 10')).toBeInTheDocument()
+})
 
   it('shows — when redditScore is null', async () => {
     const { RedditView } = await import(
       '@/components/istanbulmedic-connect/comparison/RedditView'
     )
+
     render(
       <RedditView
         clinic={{ ...baseClinic, redditScore: null }}
@@ -91,9 +97,8 @@ describe('RedditView', () => {
         accentClass="text-blue-600"
       />
     )
-    // The score span should show — not a number
-    const scoreSpan = screen.getAllByText('—')[0]
-    expect(scoreSpan).toBeInTheDocument()
+
+    expect(screen.getAllByText('—')[0]).toBeInTheDocument()
   })
 })
 
