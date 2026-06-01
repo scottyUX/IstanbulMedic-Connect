@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import type { ClinicListItem } from '@/lib/api/clinics'
 
 // ── Shared mocks ─────────────────────────────────────────────────────────────
@@ -271,6 +271,34 @@ describe('CompareClinicPage — ClinicRow score pill', () => {
   it('shows — when score is null for the active source', async () => {
     await renderRow({ ...baseClinic, googleScore: null }, 'google_places')
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+})
+
+// ── Mobile clinic switcher ───────────────────────────────────────────────────
+
+describe('CompareClinicPage — mobile switcher', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetParam.mockReset()
+    mockGetParam.mockReturnValue(null)
+  })
+
+  it('lets small-screen users switch between Clinic A and Clinic B panes', async () => {
+    const { CompareClinicPage } = await import(
+      '@/components/istanbulmedic-connect/comparison/CompareClinicPage'
+    )
+    render(<CompareClinicPage clinics={[baseClinic]} source="all" />)
+
+    const clinicA = screen.getByRole('button', { name: /clinic a/i })
+    const clinicB = screen.getByRole('button', { name: /clinic b/i })
+
+    expect(clinicA).toHaveAttribute('aria-pressed', 'true')
+    expect(clinicB).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(clinicB)
+
+    expect(clinicA).toHaveAttribute('aria-pressed', 'false')
+    expect(clinicB).toHaveAttribute('aria-pressed', 'true')
   })
 })
 
