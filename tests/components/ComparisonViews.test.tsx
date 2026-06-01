@@ -43,6 +43,16 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: vi.fn(() => null),
 }))
 
+// ComparePane calls useAuth() unconditionally (for the consultation button)
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false }),
+}))
+
+// BookmarkButton (rendered when a clinic is selected) needs the bookmark context
+vi.mock('@/contexts/BookmarkCountContext', () => ({
+  useBookmarkCount: () => ({ bookmarkedIds: new Set<string>(), addId: vi.fn(), removeId: vi.fn() }),
+}))
+
 // ── Shared fixture ────────────────────────────────────────────────────────────
 
 const baseClinic: ClinicListItem = {
