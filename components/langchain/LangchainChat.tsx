@@ -87,12 +87,17 @@ const LangchainChat = () => {
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Auto-scroll to bottom on new messages / loading state, unless user scrolled up
+  // Auto-scroll to bottom on new messages / loading state, unless user scrolled up.
+  // rAF defers until after browser layout so scrollHeight is correct even when the
+  // greeting UI unmounts and the first message mounts in the same render cycle.
   useEffect(() => {
     if (userScrolledUpRef.current) return;
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    const frame = requestAnimationFrame(() => {
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [messages, isLoading]);
 
   // Reset scroll-up flag when conversation starts fresh
