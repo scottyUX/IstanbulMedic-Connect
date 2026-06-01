@@ -60,6 +60,12 @@ interface ClinicSummary {
     price_max?: number;
     currency?: string;
   }[];
+  media?: {
+    url: string;
+    alt_text?: string;
+    caption?: string;
+    is_primary?: boolean;
+  }[];
   score?: {
     overall_score: number;
     band: string;
@@ -217,6 +223,17 @@ export const clinicSummaryTool = new DynamicStructuredTool({
             currency: pkg.currency,
           })
         ) as ClinicSummary["packages"];
+      }
+
+      if (bundle.media.length > 0) {
+        summary.media = bundle.media.map((m) =>
+          stripNulls({
+            url: m.url,
+            alt_text: m.alt_text,
+            caption: m.caption,
+            is_primary: m.is_primary,
+          })
+        ) as ClinicSummary["media"];
       }
 
       if (bundle.score) {

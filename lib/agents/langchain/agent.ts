@@ -95,6 +95,7 @@ function describeClinicProfileCard(result: string): string {
     if (s.review_count != null) parts.push(`reviews: ${s.review_count}`);
     if (s.years_in_operation != null) parts.push(`years in operation: ${s.years_in_operation}`);
     if (s.languages?.length) parts.push(`languages: ${s.languages.map((l: { language: string }) => l.language).join(', ')}`);
+    if (s.media?.length) parts.push(`images: ${s.media.length} photo${s.media.length === 1 ? '' : 's'} shown`);
     return `a ClinicProfileCard showing — ${parts.join(' | ')}`;
   } catch {
     return 'a ClinicProfileCard';

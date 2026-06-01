@@ -32,6 +32,13 @@ export interface ClinicDataBundle {
     opening_hours?: unknown;
     payment_methods?: string[] | null;
   };
+  media: {
+    url: string;
+    alt_text?: string | null;
+    caption?: string | null;
+    is_primary?: boolean | null;
+    media_type: string;
+  }[];
   services: {
     service_name: string;
     service_category: string;
@@ -118,6 +125,7 @@ export async function fetchClinicData(
 
   const [
     locationsResult,
+    mediaResult,
     servicesResult,
     credentialsResult,
     pricingResult,
@@ -135,6 +143,13 @@ export async function fetchClinicData(
       .eq("clinic_id", id)
       .eq("is_primary", true)
       .limit(1),
+    supabase
+      .from("clinic_media")
+      .select("url, alt_text, caption, is_primary, media_type, display_order")
+      .eq("clinic_id", id)
+      .eq("media_type", "image")
+      .order("display_order", { ascending: true })
+      .limit(4),
     supabase
       .from("clinic_services")
       .select("service_name, service_category, is_primary_service")
@@ -181,6 +196,7 @@ export async function fetchClinicData(
   return {
     clinic,
     location: locationsResult.data?.[0] ?? undefined,
+    media: mediaResult.data ?? [],
     services: servicesResult.data ?? [],
     credentials: credentialsResult.data ?? [],
     pricing: pricingResult.data ?? [],

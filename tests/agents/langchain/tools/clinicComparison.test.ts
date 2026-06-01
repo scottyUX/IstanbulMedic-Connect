@@ -44,6 +44,7 @@ interface TableResult {
 /**
  * Build a Supabase mock that returns per-clinic results based on the
  * `clinic_id` filter applied via chained `.eq("clinic_id", id)` or `.eq("id", id)`.
+ * Handles `.maybeSingle()` by unwrapping array results to a single row or null.
  */
 function buildMockSupabase(opts: {
   clinicsByName?: Record<string, typeof CLINIC_A>;
@@ -62,28 +63,35 @@ function buildMockSupabase(opts: {
     let pendingClinicId: string | undefined;
     let pendingNameLookup: string | undefined;
     let pendingIdLookup: string | undefined;
+    let isMaybySingle = false;
 
     const proxy: Record<string, unknown> = {};
     const handler: ProxyHandler<Record<string, unknown>> = {
       get(_t, prop) {
         if (prop === "then") {
-          let result: TableResult;
+          let rawResult: TableResult;
           if (table === "clinics" && pendingNameLookup) {
             const match = Object.entries(clinicsByName).find(
               ([name]) =>
                 name.toLowerCase().includes(pendingNameLookup!.toLowerCase()),
             );
-            result = { data: match ? [match[1]] : [], error: null };
+            rawResult = { data: match ? [match[1]] : [], error: null };
           } else if (table === "clinics" && pendingIdLookup) {
             const found = clinicsById[pendingIdLookup];
-            result = { data: found ? [found] : [], error: null };
+            rawResult = { data: found ? [found] : [], error: null };
           } else if (pendingClinicId && perClinic[pendingClinicId]?.[table]) {
-            result = perClinic[pendingClinicId][table];
+            rawResult = perClinic[pendingClinicId][table];
           } else if (globalOverrides[table]) {
-            result = globalOverrides[table];
+            rawResult = globalOverrides[table];
           } else {
-            result = { data: [], error: null };
+            rawResult = { data: [], error: null };
           }
+
+          const result: TableResult =
+            isMaybySingle && Array.isArray(rawResult.data)
+              ? { ...rawResult, data: rawResult.data[0] ?? null }
+              : rawResult;
+
           return (resolve: (val: unknown) => void) => resolve(result);
         }
         return (...args: unknown[]) => {
@@ -96,6 +104,8 @@ function buildMockSupabase(opts: {
             }
           } else if (prop === "ilike") {
             pendingNameLookup = String(args[1]).replace(/%/g, "");
+          } else if (prop === "maybeSingle") {
+            isMaybySingle = true;
           }
           return new Proxy(proxy, handler);
         };
@@ -191,6 +201,31 @@ describe("clinicComparisonTool", () => {
       expect(ids).toContain(CLINIC_B.id);
     });
 
+    it("includes image_url in clinic entry when media exists", async () => {
+      mockCreateClient.mockResolvedValue(
+        buildMockSupabase({
+          clinicsById: { [CLINIC_A.id]: CLINIC_A, [CLINIC_B.id]: CLINIC_B },
+          perClinic: {
+            [CLINIC_A.id]: {
+              clinic_media: {
+                data: [{ url: "https://example.com/a.jpg", is_primary: true, media_type: "image", display_order: 1 }],
+                error: null,
+              },
+            },
+          },
+        }),
+      );
+      const r = await clinicComparisonTool.invoke({
+        clinic_ids: [CLINIC_A.id, CLINIC_B.id],
+        dimensions: ["score"],
+      });
+      const parsed = JSON.parse(r);
+      const clinicA = parsed.clinics.find((c: { id: string }) => c.id === CLINIC_A.id);
+      const clinicB = parsed.clinics.find((c: { id: string }) => c.id === CLINIC_B.id);
+      expect(clinicA.image_url).toBe("https://example.com/a.jpg");
+      expect(clinicB.image_url).toBeUndefined();
+    });
+
     it("builds a comparison object keyed by dimension with per-clinic values", async () => {
       mockCreateClient.mockResolvedValue(
         buildMockSupabase({
@@ -238,7 +273,7 @@ describe("clinicComparisonTool", () => {
       expect(typeof parsed.metadata.tookMs).toBe("number");
     });
 
-    it("defaults dimensions to the first four when none provided", async () => {
+    it("defaults to pricing, score, team, google, reddit, registry when no dimensions provided", async () => {
       mockCreateClient.mockResolvedValue(
         buildMockSupabase({
           clinicsById: { [CLINIC_A.id]: CLINIC_A, [CLINIC_B.id]: CLINIC_B },
@@ -249,9 +284,99 @@ describe("clinicComparisonTool", () => {
       });
       const parsed = JSON.parse(r);
       const dimKeys = Object.keys(parsed.comparison);
-      // Spec says default to first 4 of [pricing, score, team, services, languages, location, accreditations]
-      expect(dimKeys.length).toBeLessThanOrEqual(4);
-      expect(dimKeys.length).toBeGreaterThan(0);
+      expect(dimKeys).toContain("pricing");
+      expect(dimKeys).toContain("score");
+      expect(dimKeys).toContain("team");
+      expect(dimKeys).toContain("google");
+      expect(dimKeys).toContain("reddit");
+      expect(dimKeys).toContain("registry");
+      expect(dimKeys).not.toContain("services");
+    });
+  });
+
+  describe("signal dimensions", () => {
+    it("populates google dimension from clinic_reviews average", async () => {
+      mockCreateClient.mockResolvedValue(
+        buildMockSupabase({
+          clinicsById: { [CLINIC_A.id]: CLINIC_A, [CLINIC_B.id]: CLINIC_B },
+          perClinic: {
+            [CLINIC_A.id]: {
+              clinic_reviews: {
+                data: [{ rating: "5" }, { rating: "4" }, { rating: "5" }],
+                error: null,
+              },
+            },
+          },
+        }),
+      );
+      const r = await clinicComparisonTool.invoke({
+        clinic_ids: [CLINIC_A.id, CLINIC_B.id],
+        dimensions: ["google"],
+      });
+      const parsed = JSON.parse(r);
+      const googleRow = parsed.comparison.google as { clinic_id: string; value: unknown }[];
+      const aGoogle = googleRow.find((e) => e.clinic_id === CLINIC_A.id)!;
+      const bGoogle = googleRow.find((e) => e.clinic_id === CLINIC_B.id)!;
+
+      expect((aGoogle.value as { average_rating: number; review_count: number }).average_rating).toBeCloseTo(4.67, 1);
+      expect((aGoogle.value as { review_count: number }).review_count).toBe(3);
+      expect(bGoogle.value).toBeNull();
+    });
+
+    it("populates reddit dimension from clinic_forum_profiles", async () => {
+      mockCreateClient.mockResolvedValue(
+        buildMockSupabase({
+          clinicsById: { [CLINIC_A.id]: CLINIC_A, [CLINIC_B.id]: CLINIC_B },
+          perClinic: {
+            [CLINIC_A.id]: {
+              clinic_forum_profiles: {
+                data: [{ score: 8.5, thread_count: 42, sentiment_score: 0.72, summary: "Great" }],
+                error: null,
+              },
+            },
+          },
+        }),
+      );
+      const r = await clinicComparisonTool.invoke({
+        clinic_ids: [CLINIC_A.id, CLINIC_B.id],
+        dimensions: ["reddit"],
+      });
+      const parsed = JSON.parse(r);
+      const redditRow = parsed.comparison.reddit as { clinic_id: string; value: unknown }[];
+      const aReddit = redditRow.find((e) => e.clinic_id === CLINIC_A.id)!;
+      const bReddit = redditRow.find((e) => e.clinic_id === CLINIC_B.id)!;
+
+      expect((aReddit.value as { score: number }).score).toBe(8.5);
+      expect((aReddit.value as { thread_count: number }).thread_count).toBe(42);
+      expect(bReddit.value).toBeNull();
+    });
+
+    it("populates registry dimension from clinic_registry_records", async () => {
+      mockCreateClient.mockResolvedValue(
+        buildMockSupabase({
+          clinicsById: { [CLINIC_A.id]: CLINIC_A, [CLINIC_B.id]: CLINIC_B },
+          perClinic: {
+            [CLINIC_A.id]: {
+              clinic_registry_records: {
+                data: [{ source: "turkish_ministry_of_health", license_status: "active", licensed_since: "2019-01-01" }],
+                error: null,
+              },
+            },
+          },
+        }),
+      );
+      const r = await clinicComparisonTool.invoke({
+        clinic_ids: [CLINIC_A.id, CLINIC_B.id],
+        dimensions: ["registry"],
+      });
+      const parsed = JSON.parse(r);
+      const registryRow = parsed.comparison.registry as { clinic_id: string; value: unknown }[];
+      const aRegistry = registryRow.find((e) => e.clinic_id === CLINIC_A.id)!;
+      const bRegistry = registryRow.find((e) => e.clinic_id === CLINIC_B.id)!;
+
+      expect(Array.isArray(aRegistry.value)).toBe(true);
+      expect((aRegistry.value as { license_status: string }[])[0].license_status).toBe("active");
+      expect(bRegistry.value).toBeNull();
     });
   });
 
