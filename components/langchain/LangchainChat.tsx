@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useCopilotChatInternal } from "@copilotkit/react-core";
 import type { Message } from "@ag-ui/core";
+import type { CopilotKitMessage } from "@/types/langchain";
 import MessageBubble from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
 import LangchainInput from "./LangchainInput";
@@ -15,6 +16,15 @@ const QUICK_SUGGESTIONS = [
 ];
 
 const VISIBLE_ROLES = new Set(["user", "assistant"]);
+
+function isCopilotBridge(r: unknown): boolean {
+  if (!r || typeof r !== "object") return false;
+  const t = (r as { type?: { name?: string; displayName?: string } }).type;
+  return (
+    t?.name === "CoAgentStateRenderBridge" ||
+    t?.displayName === "CoAgentStateRenderBridge"
+  );
+}
 
 const LangchainChat = () => {
   const { messages, sendMessage, isLoading } = useCopilotChatInternal();
@@ -31,12 +41,9 @@ const LangchainChat = () => {
     if (m.role === "assistant") {
       const hasText =
         typeof m.content === "string" && m.content.trim().length > 0;
-      const genUIResult = (m as any).generativeUI?.();
-      const isBridge =
-        genUIResult?.type?.name === "CoAgentStateRenderBridge" ||
-        genUIResult?.type?.displayName === "CoAgentStateRenderBridge";
+      const genUIResult = (m as CopilotKitMessage).generativeUI?.();
       const hasRealGenUI =
-        genUIResult != null && genUIResult !== false && !isBridge;
+        genUIResult != null && genUIResult !== false && !isCopilotBridge(genUIResult);
       return hasText || hasRealGenUI;
     }
     return true;
@@ -46,9 +53,9 @@ const LangchainChat = () => {
   // The text message is created first by the adapter (TEXT_MESSAGE_START fires before tool calls),
   // so without this it would appear above the card even though the card arrived visually first.
   const hasRealGenUI = (m: Message) => {
-    const r = (m as any).generativeUI?.();
+    const r = (m as CopilotKitMessage).generativeUI?.();
     if (r == null || r === false) return false;
-    return r?.type?.name !== "CoAgentStateRenderBridge" && r?.type?.displayName !== "CoAgentStateRenderBridge";
+    return !isCopilotBridge(r);
   };
   const orderedMessages = [...filteredMessages];
   for (let i = 0; i < orderedMessages.length - 1; i++) {
@@ -95,6 +102,9 @@ const LangchainChat = () => {
 
   useEffect(() => {
     if (lastVisibleMessage?.role === "assistant") {
+      // Resetting derived UI state in response to an external message update —
+      // this is intentional and safe in React 18+ (state updates are batched).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAwaitingAssistant(false);
     }
   }, [lastVisibleMessage]);
@@ -122,7 +132,7 @@ const LangchainChat = () => {
       userScrolledUpRef.current = false;
       setAwaitingAssistant(true);
       try {
-        await (sendMessage as any)({
+        await (sendMessage as unknown as (msg: Message) => Promise<void>)({
           id: crypto.randomUUID(),
           role: "user" as const,
           content: text,

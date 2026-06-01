@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { Message } from '@ag-ui/core';
 
 // =============================================================================
 // Mocks — must be defined before component import
 // =============================================================================
 
 const mockCopilotChat = vi.hoisted(() => ({
-  messages: [] as any[],
-  // typed as any so it can be reassigned to different vi.fn() instances per test
+  messages: [] as Message[],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendMessage: vi.fn() as any,
   isLoading: false,
@@ -64,7 +64,7 @@ beforeEach(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     constructor(_cb: ResizeObserverCallback) {}
   } as unknown as typeof ResizeObserver;
-  Element.prototype.scrollTo = vi.fn() as any;
+  Element.prototype.scrollTo = vi.fn() as unknown as typeof Element.prototype.scrollTo;
 
   vi.spyOn(crypto, 'randomUUID').mockReturnValue(
     'test-uuid' as `${string}-${string}-${string}-${string}-${string}`
@@ -132,7 +132,7 @@ describe('LangchainChat', () => {
     it('filters out tool and activity messages', () => {
       mockCopilotChat.messages = [
         { id: 'u1', role: 'user', content: 'Show me clinics' },
-        { id: 't1', role: 'tool', content: '{"results":[]}' },
+        { id: 't1', role: 'tool', content: '{"results":[]}', toolCallId: 'tc1' },
         { id: 'a1', role: 'assistant', content: 'Here are the results.' },
       ];
       render(<LangchainChat />);

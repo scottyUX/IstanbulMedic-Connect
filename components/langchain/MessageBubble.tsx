@@ -2,18 +2,26 @@
 
 import ReactMarkdown from "react-markdown";
 import type { Message } from "@ag-ui/core";
+import type { CopilotKitMessage } from "@/types/langchain";
+
+function isCopilotBridge(r: unknown): boolean {
+  if (!r || typeof r !== "object") return false;
+  const t = (r as { type?: { name?: string; displayName?: string } }).type;
+  return (
+    t?.name === "CoAgentStateRenderBridge" ||
+    t?.displayName === "CoAgentStateRenderBridge"
+  );
+}
 
 interface MessageBubbleProps {
   message: Message;
 }
 
 const MessageBubble = ({ message }: MessageBubbleProps) => {
-  const rawGenUI = (message as any).generativeUI?.();
-  const isBridge =
-    rawGenUI?.type?.name === "CoAgentStateRenderBridge" ||
-    rawGenUI?.type?.displayName === "CoAgentStateRenderBridge";
-  const genUI = isBridge ? null : rawGenUI;
-  const genUIPosition: "before" | "after" = (message as any).generativeUIPosition ?? "after";
+  const ckMsg = message as CopilotKitMessage;
+  const rawGenUI = ckMsg.generativeUI?.();
+  const genUI = isCopilotBridge(rawGenUI) ? null : rawGenUI;
+  const genUIPosition: "before" | "after" = ckMsg.generativeUIPosition ?? "after";
   const content = typeof message.content === "string" ? message.content : "";
 
   if (message.role === "user") {
