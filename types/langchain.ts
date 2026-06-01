@@ -5,10 +5,10 @@ import type { ReactElement } from "react";
 export type Role = 'user' | 'assistant' | 'system' | 'tool';
 
 /** CopilotKit augments ag-ui Message objects at runtime with generative-UI helpers. */
-export interface CopilotKitMessage extends Message {
+export type CopilotKitMessage = Message & {
   generativeUI?: () => ReactElement | false | null;
   generativeUIPosition?: "before" | "after";
-}
+};
 
 export interface LangchainMessage {
   id?: string;
