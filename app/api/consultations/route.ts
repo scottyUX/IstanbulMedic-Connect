@@ -86,7 +86,12 @@ export async function POST(request: NextRequest) {
   const newClinicIds = clinicIds.filter((id) => !existingIds.has(id))
 
   if (newClinicIds.length === 0) {
-    return NextResponse.json({ created: 0, skipped: clinicIds.length })
+    return NextResponse.json({
+      created: 0,
+      skipped: clinicIds.length,
+      createdNames: [],
+      skippedNames: clinicIds.map((id) => clinicNameMap[id] ?? id),
+    })
   }
 
   const userEmail = userRow.email ?? user.email ?? ''
@@ -173,10 +178,22 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ created: createdIds.length, skipped: skippedIds.length, emailSent })
+    return NextResponse.json({
+      created: createdIds.length,
+      skipped: skippedIds.length,
+      createdNames: createdIds.map((id) => clinicNameMap[id] ?? id),
+      skippedNames: skippedIds.map((id) => clinicNameMap[id] ?? id),
+      emailSent,
+    })
   }
 
-  return NextResponse.json({ created: createdIds.length, skipped: skippedIds.length, emailSent: true })
+  return NextResponse.json({
+    created: createdIds.length,
+    skipped: skippedIds.length,
+    createdNames: createdIds.map((id) => clinicNameMap[id] ?? id),
+    skippedNames: skippedIds.map((id) => clinicNameMap[id] ?? id),
+    emailSent: true,
+  })
 }
 
 // GET /api/consultations — list all consultations for the logged-in user

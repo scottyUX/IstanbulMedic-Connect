@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { ShieldCheck, Star, Share, Heart, Grid3X3, X, ChevronLeft, ChevronRight, Trophy, Sparkles } from "lucide-react"
 import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
@@ -13,8 +14,10 @@ interface HeroSectionProps {
   location: string
   images: string[]
   transparencyScore: number
+  trustBand?: "A" | "B" | "C" | "D" | null
   rating: number | null
   reviewCount: number
+  isMinistryVerified?: boolean
 }
 
 export const HeroSection = ({
@@ -22,8 +25,10 @@ export const HeroSection = ({
   location,
   images,
   transparencyScore,
+  trustBand = null,
   rating,
   reviewCount,
+  isMinistryVerified = false,
 }: HeroSectionProps) => {
   const safeImages = useMemo(() => images.slice(0, 5), [images])
   const hasImages = safeImages.length > 0
@@ -52,9 +57,20 @@ export const HeroSection = ({
           {/* Header Section */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-start justify-between">
-              <h1 className="im-heading-1 text-foreground" data-testid="clinic-name">
-                {clinicName}
-              </h1>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h1 className="im-heading-1 text-foreground" data-testid="clinic-name">
+                  {clinicName}
+                </h1>
+                {isMinistryVerified && (
+                  <Badge
+                    variant="outline"
+                    className="gap-1.5 border-[#3EBBB7]/40 bg-[#3EBBB7]/10 px-3 py-1 text-sm font-medium text-[#17375B]"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-[#3EBBB7]" aria-hidden />
+                    Verified by Turkish Ministry of Health
+                  </Badge>
+                )}
+              </div>
               {(FEATURE_CONFIG.share || FEATURE_CONFIG.saveClinic) && (
                 <div className="hidden sm:flex items-center gap-2">
                   {FEATURE_CONFIG.share && (
@@ -124,8 +140,8 @@ export const HeroSection = ({
             </div>
           </div>
 
-          {/* Patient Favorite Banner - only show if clinic qualifies (rating >= 4.8 with at least 100 reviews) */}
-          {rating !== null && rating >= 4.8 && reviewCount >= 100 && (
+          {/* Patient Favorite Banner - only show if clinic has Band A trust score */}
+          {trustBand === "A" && (
             <div className="border border-border/60 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-background shadow-sm">
 
               {/* Left: Badge */}
@@ -146,14 +162,19 @@ export const HeroSection = ({
                   One of the most loved clinics on Istanbul Medic Connect
                 </p>
                 <p className="text-muted-foreground">
-                  Rated highly for hygiene, outcome, and service.
+                  Awarded our highest trust rating — Band A.
                 </p>
               </div>
 
               {/* Right: Stats */}
               <div className="flex items-center gap-6 shrink-0 md:border-l md:pl-6 border-border/60">
                 <div className="text-center">
-                  <div className="im-heading-3 text-foreground">{rating.toFixed(2)}</div>
+                  <div className="im-heading-3 text-foreground">{transparencyScore}</div>
+                  <div className="text-sm text-muted-foreground mt-1">Trust Score</div>
+                </div>
+                <div className="h-10 w-px bg-border/60 hidden md:block"></div>
+                <div className="text-center">
+                  <div className="im-heading-3 text-foreground">{rating !== null ? rating.toFixed(1) : "—"}</div>
                   <div className="flex gap-0.5 mt-1 justify-center">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star key={i} className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />

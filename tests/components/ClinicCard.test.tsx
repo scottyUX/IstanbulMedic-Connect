@@ -41,6 +41,43 @@ describe('ClinicCard', () => {
     expect(screen.getByText('Test Clinic')).toBeInTheDocument();
   });
 
+  it('renders Ministry verification badge when verified', () => {
+    render(<ClinicCard {...defaultProps} isMinistryVerified />);
+    expect(screen.getByText('Ministry verified')).toBeInTheDocument();
+  });
+
+  it('explains Ministry verification without opening the clinic card', () => {
+    const onViewProfile = vi.fn();
+    render(<ClinicCard {...defaultProps} isMinistryVerified onViewProfile={onViewProfile} />);
+
+    const badge = screen.getByRole('button', { name: /ministry verified/i });
+    fireEvent.mouseEnter(badge);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/official health registry/i);
+
+    fireEvent.click(badge);
+    expect(onViewProfile).not.toHaveBeenCalled();
+  });
+
+  it('does not render Ministry verification badge by default', () => {
+    render(<ClinicCard {...defaultProps} />);
+    expect(screen.queryByText('Ministry verified')).not.toBeInTheDocument();
+  });
+
+  it('shows Patient Favorite badge when trustBand is A', () => {
+    render(<ClinicCard {...defaultProps} trustBand="A" />);
+    expect(screen.getByText('Patient Favorite')).toBeInTheDocument();
+  });
+
+  it('does not show Patient Favorite badge when trustBand is B', () => {
+    render(<ClinicCard {...defaultProps} trustBand="B" />);
+    expect(screen.queryByText('Patient Favorite')).not.toBeInTheDocument();
+  });
+
+  it('does not show Patient Favorite badge when trustBand is not provided', () => {
+    render(<ClinicCard {...defaultProps} />);
+    expect(screen.queryByText('Patient Favorite')).not.toBeInTheDocument();
+  });
+
   it('renders location with icon', () => {
     render(<ClinicCard {...defaultProps} />);
     expect(screen.getByText('Istanbul, Turkey')).toBeInTheDocument();
@@ -57,14 +94,15 @@ describe('ClinicCard', () => {
     expect(screen.getByText(/Trust 85/)).toBeInTheDocument();
   });
 
-  it('renders specialties as tags', () => {
+  // Specialty tags are hidden until multiple clinic types are added to the platform.
+  // Re-enable these tests when the tags section is uncommented in ClinicCard.tsx.
+  it.skip('renders specialties as tags', () => {
     render(<ClinicCard {...defaultProps} />);
-    // SpecialtyTag component renders as lowercase 'transplant'
     expect(screen.getByText(/Hair transplant/i)).toBeInTheDocument();
     expect(screen.getByText(/Dental/i)).toBeInTheDocument();
   });
 
-  it('limits specialties to 4 items', () => {
+  it.skip('limits specialties to 4 items', () => {
     const manySpecialties = ['Spec 1', 'Spec 2', 'Spec 3', 'Spec 4', 'Spec 5', 'Spec 6'];
     render(<ClinicCard {...defaultProps} specialties={manySpecialties} />);
 
@@ -159,6 +197,7 @@ describe('ClinicCard — consultation', () => {
     vi.clearAllMocks();
     isAuthenticated = false;
     global.fetch = vi.fn();
+    sessionStorage.clear();
   });
 
   it('shows "Request Free Consultation" button', () => {
@@ -170,11 +209,14 @@ describe('ClinicCard — consultation', () => {
   //
   // When signed out, clicking the button should redirect — not open the modal.
 
-  it('redirects unauthenticated user to /auth/login on click', () => {
+  it('stores consultation_intent and redirects to /auth/login when unauthenticated', () => {
     isAuthenticated = false;
     render(<ClinicCard {...defaultProps} />);
     fireEvent.click(screen.getByRole('button', { name: /request free consultation/i }));
-    expect(mockPush).toHaveBeenCalledWith('/auth/login');
+    expect(sessionStorage.getItem('consultation_intent')).toBe(JSON.stringify(['clinic-test-id']));
+    expect(mockPush).toHaveBeenCalledWith(
+      `/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`
+    );
   });
 
   it('does not open the modal when user is unauthenticated', () => {

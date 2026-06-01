@@ -4,6 +4,13 @@ import { render, screen, fireEvent } from '@testing-library/react'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
+// Override global setup so useSearchParams is a vi.fn() and can be controlled per-test
+vi.mock('next/navigation', () => ({
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  usePathname: () => '/profile',
+}))
+
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }))
@@ -27,10 +34,12 @@ vi.mock('@/components/istanbulmedic-connect/user-profile/sections/ProfileConsult
   default: () => <div data-testid="section-consultations">ProfileConsultations</div>,
 }))
 
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import ProfileDashboard from '@/components/istanbulmedic-connect/user-profile/ProfileDashboard'
 
 const mockUseAuth = vi.mocked(useAuth)
+const mockUseSearchParams = vi.mocked(useSearchParams)
 
 function renderDashboard(overrides: Partial<ReturnType<typeof useAuth>> = {}) {
   mockUseAuth.mockReturnValue({
@@ -41,6 +50,10 @@ function renderDashboard(overrides: Partial<ReturnType<typeof useAuth>> = {}) {
     loginWithGoogle: vi.fn(),
     logout: vi.fn(),
     fetchUserProfile: vi.fn(),
+    consultationResult: null,
+    clearConsultationResult: vi.fn(),
+    bookmarkSyncCount: 0,
+    clearBookmarkSyncCount: vi.fn(),
     ...overrides,
   })
   return render(<ProfileDashboard />)
@@ -49,7 +62,10 @@ function renderDashboard(overrides: Partial<ReturnType<typeof useAuth>> = {}) {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('ProfileDashboard', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseSearchParams.mockReturnValue(new URLSearchParams() as unknown as ReturnType<typeof useSearchParams>)
+  })
 
   // ─── Loading state ──────────────────────────────────────────────────────────
 
@@ -57,6 +73,8 @@ describe('ProfileDashboard', () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false, user: null, profile: null, loading: true,
       loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
+      consultationResult: null, clearConsultationResult: vi.fn(),
+      bookmarkSyncCount: 0, clearBookmarkSyncCount: vi.fn(),
     })
     const { container } = render(<ProfileDashboard />)
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
@@ -149,5 +167,69 @@ describe('ProfileDashboard', () => {
     renderDashboard()
     // 5 sections × 2 (sidebar + mobile) = 10 nav buttons
     expect(screen.getAllByRole('tab', { name: /Home/i }).length).toBeGreaterThanOrEqual(2)
+  })
+
+  // ─── ?section= URL param ─────────────────────────────────────────────────────
+  //
+  // When the page loads with ?section=consultations (e.g. from the post-login
+  // consultation intent redirect), the dashboard should activate that tab.
+
+  it('activates the consultations section from ?section=consultations URL param', () => {
+    mockUseSearchParams.mockReturnValue(
+      new URLSearchParams('section=consultations') as unknown as ReturnType<typeof useSearchParams>
+    )
+    renderDashboard()
+    expect(screen.getByTestId('section-consultations')).toBeInTheDocument()
+    expect(screen.queryByTestId('section-home')).not.toBeInTheDocument()
+  })
+
+  // ─── Consultation result banner ──────────────────────────────────────────────
+  //
+  // After the post-login consultation intent auto-fires, AuthContext sets
+  // consultationResult. ProfileDashboard reads it once, shows a green banner,
+  // switches to the consultations tab, and clears the result.
+
+  it('shows green banner with clinic name when consultationResult has createdNames', () => {
+    renderDashboard({
+      consultationResult: { createdNames: ['Clinic One'], skippedNames: [] },
+    })
+    expect(screen.getByText(/Clinic One/)).toBeInTheDocument()
+    expect(screen.getByText(/We'll be in touch soon!/i)).toBeInTheDocument()
+    // Should have switched to the consultations section
+    expect(screen.getByTestId('section-consultations')).toBeInTheDocument()
+  })
+
+  it('shows skipped message in green banner when both created and skipped are non-empty', () => {
+    renderDashboard({
+      consultationResult: { createdNames: ['Clinic One'], skippedNames: ['Clinic Two'] },
+    })
+    expect(screen.getByText(/Clinic One/)).toBeInTheDocument()
+    expect(screen.getByText(/Clinic Two/)).toBeInTheDocument()
+    expect(screen.getByText(/already requested/i)).toBeInTheDocument()
+  })
+
+  it('shows blue "already requested" banner when createdNames is empty but skippedNames is not', () => {
+    renderDashboard({
+      consultationResult: { createdNames: [], skippedNames: ['Clinic One'] },
+    })
+    expect(screen.getByText(/already requested a consultation for/i)).toBeInTheDocument()
+    expect(screen.getByText(/Clinic One/)).toBeInTheDocument()
+  })
+
+  // ─── Bookmark sync banner ────────────────────────────────────────────────────
+  //
+  // After sign-in, syncLocalBookmarks returns a count > 0 which AuthContext
+  // stores in bookmarkSyncCount. ProfileDashboard shows a teal banner with a
+  // link to /bookmarks.
+
+  it('shows teal bookmark sync banner when bookmarkSyncCount is greater than 0', () => {
+    renderDashboard({ bookmarkSyncCount: 2 })
+    expect(screen.getByText(/2 clinics have been added to your saved clinics/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /view saved clinics/i })).toBeInTheDocument()
+  })
+
+  it('does not show the teal banner when bookmarkSyncCount is 0', () => {
+    renderDashboard({ bookmarkSyncCount: 0 })
+    expect(screen.queryByText(/added to your saved clinics/i)).not.toBeInTheDocument()
   })
 })

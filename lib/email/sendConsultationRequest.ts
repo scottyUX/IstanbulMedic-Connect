@@ -393,6 +393,184 @@ export async function sendConsultationConfirmation(
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
+// ─── Cancellation emails ──────────────────────────────────────────────────────
+
+export interface SendCancellationParams {
+  userName: string
+  userEmail: string
+  clinicName: string
+}
+
+function buildCancellationNotificationHtml({ userName, userEmail, clinicName }: SendCancellationParams): string {
+  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <tr>
+        <td style="background:#0D1E32;padding:22px 32px;">
+          <span style="color:#3EBBB7;font-size:17px;font-weight:700;letter-spacing:0.06em;">ISTANBUL MEDIC CONNECT</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:28px 32px 8px;">
+          <h1 style="margin:0 0 4px;font-size:21px;font-weight:700;color:#0D1E32;">Consultation Request Cancelled</h1>
+          <p style="margin:0;color:#94a3b8;font-size:12px;">${date}</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:20px 32px 28px;">
+          <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.7;">
+            The following patient has cancelled their consultation request:
+          </p>
+          <table cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="padding:7px 16px 7px 0;color:#64748b;font-size:13px;width:120px;">Name</td>
+              <td style="padding:7px 0;color:#0D1E32;font-size:13px;">${userName}</td>
+            </tr>
+            <tr>
+              <td style="padding:7px 16px 7px 0;color:#64748b;font-size:13px;">Email</td>
+              <td style="padding:7px 0;font-size:13px;"><a href="mailto:${userEmail}" style="color:#3EBBB7;text-decoration:none;">${userEmail}</a></td>
+            </tr>
+            <tr>
+              <td style="padding:7px 16px 7px 0;color:#64748b;font-size:13px;">Clinic</td>
+              <td style="padding:7px 0;color:#0D1E32;font-size:13px;">${clinicName}</td>
+            </tr>
+          </table>
+          <p style="margin:16px 0 0;color:#64748b;font-size:13px;line-height:1.6;">No further action is required for this request.</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:20px 32px 28px;border-top:1px solid #e2e8f0;background:#f8fafc;">
+          <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.6;">
+            <strong style="color:#64748b;">Istanbul Medic Connect Concierge</strong>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`
+}
+
+function buildCancellationNotificationText({ userName, userEmail, clinicName }: SendCancellationParams): string {
+  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  const hr = '─'.repeat(48)
+  return `
+ISTANBUL MEDIC CONNECT — Consultation Request Cancelled
+${date}
+${hr}
+
+The following patient has cancelled their consultation request:
+
+  Name    ${userName}
+  Email   ${userEmail}
+  Clinic  ${clinicName}
+
+No further action is required for this request.
+
+Istanbul Medic Connect Concierge
+`.trim()
+}
+
+function buildCancellationConfirmationHtml({ userName, clinicName }: SendCancellationParams): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <tr>
+        <td style="background:#0D1E32;padding:22px 32px;">
+          <span style="color:#3EBBB7;font-size:17px;font-weight:700;letter-spacing:0.06em;">ISTANBUL MEDIC CONNECT</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:32px 32px 24px;">
+          <h1 style="margin:0 0 16px;font-size:21px;font-weight:700;color:#0D1E32;">Your request has been cancelled</h1>
+          <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.7;">
+            Hi ${userName},<br><br>
+            Your consultation request with <strong style="color:#0D1E32;">${clinicName}</strong> has been successfully cancelled. The team has been notified.
+          </p>
+          <p style="margin:0;color:#334155;font-size:14px;line-height:1.7;">
+            If you change your mind, you can submit a new request at any time through Istanbul Medic Connect.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:20px 32px 28px;border-top:1px solid #e2e8f0;background:#f8fafc;">
+          <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.6;">
+            <strong style="color:#64748b;">Istanbul Medic Connect</strong><br>
+            Your trusted partner for hair transplant consultations in Istanbul.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`
+}
+
+function buildCancellationConfirmationText({ userName, clinicName }: SendCancellationParams): string {
+  const hr = '─'.repeat(48)
+  return `
+ISTANBUL MEDIC CONNECT
+${hr}
+
+Hi ${userName},
+
+Your consultation request with ${clinicName} has been successfully cancelled. The team has been notified.
+
+If you change your mind, you can submit a new request at any time through Istanbul Medic Connect.
+
+Istanbul Medic Connect
+Your trusted partner for hair transplant consultations in Istanbul.
+`.trim()
+}
+
+export async function sendCancellationNotification(params: SendCancellationParams): Promise<void> {
+  const toEmail = process.env.CONSULTATION_EMAIL
+  if (!toEmail) throw new Error('sendCancellationNotification: CONSULTATION_EMAIL not set')
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) throw new Error('sendCancellationNotification: RESEND_API_KEY not set')
+
+  const from = process.env.CONSULTATION_FROM_EMAIL ?? 'Istanbul Medic Connect <noreply@istanbulmedic.com>'
+  const resend = new Resend(apiKey)
+
+  await resend.emails.send({
+    from,
+    to: [toEmail],
+    replyTo: params.userEmail,
+    subject: `[Istanbul Medic Connect] Consultation Cancelled — ${params.userName}`,
+    html: buildCancellationNotificationHtml(params),
+    text: buildCancellationNotificationText(params),
+  })
+}
+
+export async function sendCancellationConfirmation(params: SendCancellationParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) throw new Error('sendCancellationConfirmation: RESEND_API_KEY not set')
+
+  const from = process.env.CONSULTATION_FROM_EMAIL ?? 'Istanbul Medic Connect <noreply@istanbulmedic.com>'
+  const resend = new Resend(apiKey)
+
+  await resend.emails.send({
+    from,
+    to: [params.userEmail],
+    subject: '[Istanbul Medic Connect] Your consultation request has been cancelled',
+    html: buildCancellationConfirmationHtml(params),
+    text: buildCancellationConfirmationText(params),
+  })
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+
 export async function sendConsultationRequest(params: SendConsultationRequestParams): Promise<void> {
   const toEmail = process.env.CONSULTATION_EMAIL
   if (!toEmail) {

@@ -32,6 +32,7 @@ const DEFAULT_FILTERS: FilterState = {
   aiMatchScore: 75,
   minRating: null,
   minReviews: null,
+  minTrustScore: null,
 }
 
 const parseList = (value?: string | string[]) => {
@@ -59,7 +60,7 @@ const parseSort = (value?: string | string[]): ClinicSortOption => {
     return raw as ClinicSortOption
   }
 
-  return "Alphabetical"
+  return "A-Z"
 }
 
 const buildFilters = (searchParams?: { [key: string]: string | string[] | undefined }) => {
@@ -73,6 +74,7 @@ const buildFilters = (searchParams?: { [key: string]: string | string[] | undefi
   const aiMatchScore = parseNumber(searchParams.minScore, DEFAULT_FILTERS.aiMatchScore) ?? DEFAULT_FILTERS.aiMatchScore
   const minRating = parseNumber(searchParams.minRating) ?? null
   const minReviews = parseNumber(searchParams.minReviews) ?? null
+  const minTrustScore = parseNumber(searchParams.minTrustScore) ?? null
 
   const filters: FilterState = {
     ...DEFAULT_FILTERS,
@@ -102,6 +104,7 @@ const buildFilters = (searchParams?: { [key: string]: string | string[] | undefi
     aiMatchScore,
     minRating,
     minReviews,
+    minTrustScore,
   }
 
   const query: ClinicsQuery = {
@@ -110,8 +113,7 @@ const buildFilters = (searchParams?: { [key: string]: string | string[] | undefi
     treatments,
     languages,
     accreditations,
-    // minTrustScore disabled for now - clinics without scores were being excluded
-    // minTrustScore: aiMatchScore,
+    minTrustScore: minTrustScore ?? undefined,
     minRating: minRating ?? undefined,
     minReviews: minReviews ?? undefined,
   }

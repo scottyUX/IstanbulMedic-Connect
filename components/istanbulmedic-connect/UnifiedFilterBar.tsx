@@ -55,23 +55,25 @@ export const UnifiedFilterBar = ({
                     </div>
                 </div>
 
-                <div className="hidden md:block w-px h-8 bg-gray-300 mx-2" />
-
-                {/* 2. Location */}
-                <div className="flex-1 relative group">
-                    <div className="md:hidden mb-1 font-semibold text-sm">Location</div>
-                    <div className="relative">
-                        {/* Mobile Icon */}
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground md:hidden" />
-                        <Input
-                            value={filters.location}
-                            onChange={(e) => updateFilter("location", e.target.value)}
-                            placeholder="City or country"
-                            className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
-                            data-testid="location-input"
-                        />
-                    </div>
-                </div>
+                {/*
+                  * Location filter is hidden for now — the platform currently only lists Istanbul clinics,
+                  * so searching by city/country adds no value. Re-enable when multi-city support is added.
+                  *
+                  * <div className="hidden md:block w-px h-8 bg-gray-300 mx-2" />
+                  * <div className="flex-1 relative group">
+                  *     <div className="md:hidden mb-1 font-semibold text-sm">Location</div>
+                  *     <div className="relative">
+                  *         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground md:hidden" />
+                  *         <Input
+                  *             value={filters.location}
+                  *             onChange={(e) => updateFilter("location", e.target.value)}
+                  *             placeholder="City or country"
+                  *             className="pl-9 md:pl-0 h-11 md:h-9 bg-white md:bg-transparent border md:border-none shadow-sm md:shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 w-full"
+                  *             data-testid="location-input"
+                  *         />
+                  *     </div>
+                  * </div>
+                  */}
 
                 <div className="hidden md:block w-px h-8 bg-gray-300 mx-2" />
 

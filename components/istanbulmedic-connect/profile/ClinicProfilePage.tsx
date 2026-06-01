@@ -16,6 +16,7 @@ import { HRNSignalsCard } from "./HRNSignalsCard"
 import { RedditSignalsCard } from "./RedditSignalsCard"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
+import { ScoreBreakdownCard } from "./ScoreBreakdownCard"
 import type { ClinicDetail } from "@/lib/api/clinics"
 import {
   toNumber,
@@ -24,8 +25,8 @@ import {
   type OpeningHoursJson,
 } from "@/lib/transformers/clinic"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
-import { RegistrySection } from "./RegistrySection"
 import type { RegistryRecord, ComplianceEvent } from "./RegistrySection"
+import { RegistrySection } from "./RegistrySection"
 
 type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
 type CommunitySentiment = "Positive" | "Neutral" | "Negative"
@@ -71,6 +72,13 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
       credentials: t.credentials ? [t.credentials] : [],
       yearsOfExperience: t.years_experience,
       education: null, // No fake "Medical School" - show only if we have real data
+      verifiedQualifications: t.qualifications.map((q) => ({
+        qualification: q.qualification,
+        source: q.source,
+        sourceUrl: q.source_url,
+        verifiedAt: q.verified_at,
+      })),
+      lastVerifiedAt: t.last_verified_at,
     }))
 
   // Transform credentials to transparency items (no fake defaults)
@@ -106,6 +114,13 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
     })
     .map((m) => m.url)
   const heroImages = imageMedia
+
+  const isMinistryVerified = registryRecords.some(
+    (record) =>
+      record.source === "turkish_ministry_of_health" &&
+      record.license_status === "active"
+  )
+  const hasActiveMOHRecord = isMinistryVerified
 
   // Build AI insights from score components (no fake defaults)
   const aiInsights = clinic.scoreComponents.map((sc) => sc.explanation)
@@ -192,8 +207,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
     .map((post) => topicLabels[post.topic] ?? "Other")
     .filter((value, index, self) => self.indexOf(value) === index)
     .slice(0, 3)
-
-  const communitySignals = {
+const communitySignals = {
     posts: posts.map((post) => ({
       source: post.source,
       author: post.author,
@@ -251,8 +265,10 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
         location={clinic.location}
         images={heroImages}
         transparencyScore={clinic.trustScore}
+        trustBand={clinic.trustBand}
         rating={clinic.rating ?? null}
         reviewCount={clinic.totalReviewCount}
+        isMinistryVerified={isMinistryVerified}
       />
 
       {/* Section Navigation */}
@@ -292,7 +308,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
               <PackagesSection packages={clinic.packages} />
             )}
 
-            {FEATURE_CONFIG.profileDoctors && doctors.length > 0 && (
+            {FEATURE_CONFIG.profileDoctors && (
               <DoctorsSection doctors={doctors} />
             )}
 
@@ -302,8 +318,13 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
                 items={transparencyItems}
               />
             )}
-
-            {FEATURE_CONFIG.profileRegistry && (
+            <ScoreBreakdownCard
+              overallScore={clinic.trustScore}
+              band={clinic.trustBand}
+              scoreComponents={clinic.scoreComponents}
+              sourceScores={clinic.sourceScores}
+            />
+            {FEATURE_CONFIG.profileRegistry && !hasActiveMOHRecord && (
               <RegistrySection
                 registryRecords={registryRecords}
                 complianceHistory={complianceHistory}
@@ -328,6 +349,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
             />
           </div>
         </div>
+  
 
         {/* Full Width Sections */}
         <div className="mt-12 space-y-12 w-full">
@@ -335,6 +357,7 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
             averageRating={clinic.rating ?? null}
             totalReviews={clinic.totalReviewCount}
             reviews={allReviews}
+            googleScore={clinic.sourceScores?.find((s) => s.source_name === "google" && s.is_current)?.summary_score ?? null}
           />
 
           {FEATURE_CONFIG.profileCommunitySignals && (
@@ -345,7 +368,9 @@ export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }
           )}
 
           {FEATURE_CONFIG.profileInstagram && clinic.instagramSignals && (
-            <InstagramSignalsCard data={clinic.instagramSignals} />
+            <div id="instagram-intel">
+              <InstagramSignalsCard data={clinic.instagramSignals} />
+            </div>
           )}
 
           {FEATURE_CONFIG.profileHRN && clinic.hrnSignals && (
