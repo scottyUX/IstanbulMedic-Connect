@@ -98,10 +98,6 @@ describe("doctorProfileTool", () => {
   });
 
   describe("schema validation", () => {
-    it("rejects when none of doctor_id, doctor_name, clinic_id is provided", async () => {
-      await expect(doctorProfileTool.invoke({})).rejects.toThrow();
-    });
-
     it("accepts doctor_id as a UUID", async () => {
       mockCreateClient.mockResolvedValue(buildMockSupabase());
       const r = await doctorProfileTool.invoke({
@@ -120,6 +116,16 @@ describe("doctorProfileTool", () => {
       mockCreateClient.mockResolvedValue(buildMockSupabase());
       const r = await doctorProfileTool.invoke({ clinic_id: CLINIC_VERA.id });
       expect(() => JSON.parse(r)).not.toThrow();
+    });
+
+    it("accepts clinic_name as a string", async () => {
+      mockCreateClient.mockResolvedValue(buildMockSupabase());
+      const r = await doctorProfileTool.invoke({ clinic_name: "Vera" });
+      expect(() => JSON.parse(r)).not.toThrow();
+    });
+
+    it("rejects when none of doctor_id, doctor_name, clinic_id, clinic_name is provided", async () => {
+      await expect(doctorProfileTool.invoke({})).rejects.toThrow();
     });
   });
 
@@ -176,6 +182,25 @@ describe("doctorProfileTool", () => {
       expect(parsed.doctors[0].name).toBeUndefined();
       expect(parsed.doctors[0].years_experience).toBeUndefined();
       expect(parsed.doctors[0].photo_url).toBeUndefined();
+    });
+  });
+
+  describe("clinic_name lookup", () => {
+    it("resolves clinic by name and returns its doctors", async () => {
+      mockCreateClient.mockResolvedValue(buildMockSupabase());
+      const r = await doctorProfileTool.invoke({ clinic_name: "Vera" });
+      const parsed = JSON.parse(r);
+      expect(parsed.doctors).toHaveLength(1);
+      expect(parsed.doctors[0].name).toBe("Dr. Ahmet Yilmaz");
+    });
+
+    it("returns error JSON when clinic_name does not match any clinic", async () => {
+      mockCreateClient.mockResolvedValue(
+        buildMockSupabase({ clinics: { data: [], error: null } }),
+      );
+      const r = await doctorProfileTool.invoke({ clinic_name: "No Such Clinic" });
+      const parsed = JSON.parse(r);
+      expect(parsed.error).toMatch(/No clinic found/);
     });
   });
 

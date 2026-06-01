@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { resolveClinic } from "./_shared";
 
 interface DoctorProfile {
   id: string;
@@ -28,18 +29,19 @@ function stripNulls<T extends Record<string, unknown>>(obj: T): Partial<T> {
 export const doctorProfileTool = new DynamicStructuredTool({
   name: "doctor_profile",
   description:
-    "Look up doctors and surgeons by doctor_id (UUID), doctor_name (partial match), or clinic_id (UUID, returns all doctors at the clinic). Each doctor includes role, credentials, optional years of experience and photo, plus the clinic they work at. Use this when a patient asks about a specific doctor or wants to know who works at a clinic.",
+    "Look up doctors and surgeons. Provide ONE of: doctor_id (UUID), doctor_name (partial match on doctor's name), clinic_id (UUID), or clinic_name (partial match on clinic name — returns all doctors at that clinic). Each doctor includes role, credentials, optional years of experience and photo, plus the clinic they work at. Use this when a patient asks about a specific doctor or wants to know who works at a clinic.",
   schema: z
     .object({
       doctor_id: z.string().uuid().optional(),
       doctor_name: z.string().optional(),
       clinic_id: z.string().uuid().optional(),
+      clinic_name: z.string().optional(),
     })
     .refine(
-      (d) => Boolean(d.doctor_id || d.doctor_name || d.clinic_id),
-      { message: "Provide one of doctor_id, doctor_name, or clinic_id" },
+      (d) => Boolean(d.doctor_id || d.doctor_name || d.clinic_id || d.clinic_name),
+      { message: "Provide one of doctor_id, doctor_name, clinic_id, or clinic_name" },
     ),
-  func: async ({ doctor_id, doctor_name, clinic_id }) => {
+  func: async ({ doctor_id, doctor_name, clinic_id, clinic_name }) => {
     const startTime = Date.now();
 
     try {
@@ -55,6 +57,15 @@ export const doctorProfileTool = new DynamicStructuredTool({
         query = query.eq("id", doctor_id);
       } else if (clinic_id) {
         query = query.eq("clinic_id", clinic_id);
+      } else if (clinic_name) {
+        const clinic = await resolveClinic(supabase, undefined, clinic_name);
+        if (!clinic) {
+          return JSON.stringify({
+            error: `No clinic found matching "${clinic_name}"`,
+            metadata: { tookMs: Date.now() - startTime },
+          });
+        }
+        query = query.eq("clinic_id", clinic.id);
       } else if (doctor_name) {
         query = query.ilike("name", `%${doctor_name}%`);
       }

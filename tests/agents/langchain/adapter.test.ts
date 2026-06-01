@@ -161,16 +161,19 @@ describe('LangchainAgentAdapter', () => {
       expect(total).toBe('real content');
     });
 
-    it('does not emit TEXT_MESSAGE_START until the buffered final text is non-empty', async () => {
+    it('does not emit TEXT_MESSAGE_CONTENT or TEXT_MESSAGE_END when final text is empty', async () => {
       mockHandleMessageStream.mockImplementation(async () => {
-        // No chunks at all, no text — guardrail-blocked or empty response.
+        // No chunks, no text — e.g. guardrail-blocked or silent response.
         return { role: 'assistant', text: '' };
       });
 
       const adapter = new LangchainAgentAdapter({ agentId: 'test-agent' });
       const events = await collectEvents(adapter, buildInput('hi'));
 
-      expect(events.find(e => e.type === EventType.TEXT_MESSAGE_START)).toBeUndefined();
+      // The adapter always opens a message envelope (TEXT_MESSAGE_START) before
+      // calling the agent so that tool-call events are associated correctly.
+      // When there is nothing to emit, content and end events are suppressed.
+      expect(events.find(e => e.type === EventType.TEXT_MESSAGE_START)).toBeDefined();
       expect(events.find(e => e.type === EventType.TEXT_MESSAGE_CONTENT)).toBeUndefined();
       expect(events.find(e => e.type === EventType.TEXT_MESSAGE_END)).toBeUndefined();
       expect(events[0].type).toBe(EventType.RUN_STARTED);
@@ -244,8 +247,12 @@ describe('LangchainAgentAdapter', () => {
       const errorEv = events.find(e => e.type === EventType.RUN_ERROR) as BaseEvent & { message: string };
       expect(errorEv).toBeDefined();
       expect(errorEv.message).toBe('boom');
-      // No TEXT_MESSAGE_* events should have been emitted (nothing was open)
-      expect(events.find(e => e.type === EventType.TEXT_MESSAGE_START)).toBeUndefined();
+      // The adapter opens a message envelope before calling the agent (for tool-call ordering),
+      // so TEXT_MESSAGE_START is always emitted. No content should be emitted, and the
+      // envelope must be closed with TEXT_MESSAGE_END before the error event.
+      expect(events.find(e => e.type === EventType.TEXT_MESSAGE_START)).toBeDefined();
+      expect(events.find(e => e.type === EventType.TEXT_MESSAGE_CONTENT)).toBeUndefined();
+      expect(events.find(e => e.type === EventType.TEXT_MESSAGE_END)).toBeDefined();
     });
 
     it('emits TEXT_MESSAGE_END before RUN_ERROR if a message had already been opened', async () => {
@@ -286,6 +293,65 @@ describe('LangchainAgentAdapter', () => {
 
       // Both runs build a fresh agent — no sharing
       expect(MockAgentCtor).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('conversational memory', () => {
+    it('passes prior turns (excluding current user message) to the agent constructor', async () => {
+      mockHandleMessageStream.mockImplementation(async () => ({ role: 'assistant', text: 'ok' }));
+
+      const adapter = new LangchainAgentAdapter({ agentId: 'test-agent' });
+      const input: RunAgentInput = {
+        ...buildInput('ignored'),
+        messages: [
+          { id: 'm1', role: 'user', content: 'hello' },
+          { id: 'm2', role: 'assistant', content: 'hi there' },
+          { id: 'm3', role: 'user', content: 'current message' },
+        ],
+      } as unknown as RunAgentInput;
+
+      await firstValueFrom(adapter.run(input));
+
+      expect(MockAgentCtor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            expect.objectContaining({ role: 'user', text: 'hello' }),
+            expect.objectContaining({ role: 'assistant', text: 'hi there' }),
+          ],
+        })
+      );
+    });
+
+    it('filters out empty assistant messages (GenUI-only turns) from prior history', async () => {
+      mockHandleMessageStream.mockImplementation(async () => ({ role: 'assistant', text: 'ok' }));
+
+      const adapter = new LangchainAgentAdapter({ agentId: 'test-agent' });
+      const input: RunAgentInput = {
+        ...buildInput('ignored'),
+        messages: [
+          { id: 'm1', role: 'user', content: 'show me a clinic' },
+          { id: 'm2', role: 'assistant', content: '' }, // GenUI-only, no text
+          { id: 'm3', role: 'user', content: 'what did you show me' },
+        ],
+      } as unknown as RunAgentInput;
+
+      await firstValueFrom(adapter.run(input));
+
+      const ctorArg = MockAgentCtor.mock.calls[0][0] as { messages: unknown[] };
+      // Empty assistant message should be filtered; only the user message remains
+      expect(ctorArg.messages).toHaveLength(1);
+      expect(ctorArg.messages[0]).toMatchObject({ role: 'user', text: 'show me a clinic' });
+    });
+
+    it('passes threadId as conversationId to the agent constructor', async () => {
+      mockHandleMessageStream.mockImplementation(async () => ({ role: 'assistant', text: 'ok' }));
+
+      const adapter = new LangchainAgentAdapter({ agentId: 'test-agent' });
+      await firstValueFrom(adapter.run(buildInput('hi', 'thread-xyz')));
+
+      expect(MockAgentCtor).toHaveBeenCalledWith(
+        expect.objectContaining({ conversationId: 'thread-xyz' })
+      );
     });
   });
 

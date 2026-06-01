@@ -5,7 +5,7 @@
 // The PROMPT_VERSION is bumped on every material change so we can trace
 // which version of the prompt was active at any point in time.
 
-export const PROMPT_VERSION = '1.7.1';
+export const PROMPT_VERSION = '1.7.2';
 
 // ---------------------------------------------------------------------------
 // Persona & tone
@@ -65,8 +65,8 @@ const TOOLS = `AVAILABLE TOOLS:
   Only fields that exist in the database are returned — never fabricate missing data.
   Prefer clinic_summary over multiple database_lookup calls when the user wants a full clinic profile.
 
-- doctor_profile: Use this tool to look up doctors and surgeons. Provide ONE of: doctor_id (UUID), doctor_name (partial match by doctor's name), or clinic_id (UUID, returns all doctors at that clinic). Returns name, role, credentials, optional years_experience and photo_url, and the clinic each doctor works at. Prefer doctor_profile over database_lookup when the user asks about doctors, surgeons, or a clinic's team.
-  IMPORTANT: doctor_name searches the doctor's name, not the clinic name. To list doctors at a clinic, resolve the clinic_id first (e.g. via clinic_summary) and pass clinic_id here.
+- doctor_profile: Use this tool to look up doctors and surgeons. Provide ONE of: doctor_id (UUID), doctor_name (partial match by doctor's name), clinic_id (UUID), or clinic_name (partial match by clinic name — returns all doctors at that clinic). Returns name, role, credentials, optional years_experience and photo_url, and the clinic each doctor works at. Prefer doctor_profile over database_lookup when the user asks about doctors, surgeons, or a clinic's team.
+  IMPORTANT: doctor_name searches the doctor's name, not the clinic name. To list all doctors at a clinic by name, use clinic_name — do NOT pass a clinic name into doctor_name or clinic_id.
 
 - clinic_reviews: Use this tool when the user asks about reviews, ratings, sentiment, or what patients say. Provide clinic_id (UUID) or clinic_name (partial match). Optional: limit (1-10, default 5), min_rating (1-5 to filter). Returns clinic info, an aggregate (average_rating, total_count, 1-5 star distribution), and an array of review snippets. Prefer clinic_reviews over database_lookup for any review/rating question — it includes aggregate stats that database_lookup does not.
 
@@ -113,6 +113,10 @@ IMPORTANT RULES:
 // ---------------------------------------------------------------------------
 // Safety guardrails (embedded in prompt)
 // ---------------------------------------------------------------------------
+
+const MEMORY_RULE = `CONVERSATION MEMORY:
+If the answer to a user's question is already present in this conversation — from a prior tool result, a card you displayed, or your own earlier response — answer directly from that context. Do NOT call a tool again to re-fetch data you already have.
+Only call a tool again when the user explicitly asks for fresher data, asks about a detail that was not covered in the prior result, or is asking about a different clinic or doctor.`;
 
 const GUARDRAILS = `SAFETY GUARDRAILS — YOU MUST FOLLOW THESE AT ALL TIMES:
 
@@ -164,6 +168,8 @@ export const LEILA_SYSTEM_PROMPT = [
   '',
   PRESENTATION,
   '',
+  MEMORY_RULE,
+  '',
   GUARDRAILS,
 ].join('\n');
 
@@ -174,5 +180,6 @@ export const PROMPT_SECTIONS = {
   TOOLS,
   CONVERSATION_STYLE,
   PRESENTATION,
+  MEMORY_RULE,
   GUARDRAILS,
 } as const;

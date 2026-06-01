@@ -1,5 +1,6 @@
 import { Observable } from "rxjs";
 import { AbstractAgent } from "@ag-ui/client";
+import type { LangchainMessage } from "@/types/langchain";
 import {
   EventType,
   type BaseEvent,
@@ -16,7 +17,6 @@ import {
   type ToolCallResultEvent,
 } from "@ag-ui/core";
 import { LangchainAgent } from "./agent";
-import type { LangchainMessage } from "@/types/langchain";
 
 /**
  * AbstractAgent adapter that bridges CopilotKit's ag-ui runtime to the
@@ -38,6 +38,17 @@ import type { LangchainMessage } from "@/types/langchain";
  * the streaming path runs through the agent's output guardrails before any
  * delta reaches the client.
  */
+function agUiContentToText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return (content as { type: string; text?: string }[])
+      .filter((p) => p.type === 'text' && p.text)
+      .map((p) => p.text!)
+      .join('');
+  }
+  return '';
+}
+
 export class LangchainAgentAdapter extends AbstractAgent {
   run(input: RunAgentInput): Observable<BaseEvent> {
     return new Observable<BaseEvent>((subscriber) => {
@@ -64,8 +75,20 @@ export class LangchainAgentAdapter extends AbstractAgent {
         } satisfies RunStartedEvent;
         subscriber.next(started);
 
-        // Build a fresh LangchainAgent per run — do not share state across requests.
-        const agent = new LangchainAgent({ conversationId: threadId });
+        // Reconstruct prior conversation turns from CopilotKit's message history.
+        // input.messages contains the full thread; exclude the current (last) user message
+        // since handleMessageStream will add it.
+        const priorMessages: LangchainMessage[] = input.messages
+          .slice(0, -1)
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            text: agUiContentToText(m.content),
+            createdAt: new Date().toISOString(),
+          }))
+          .filter((m) => m.text.trim().length > 0);
+
+        const agent = new LangchainAgent({ conversationId: threadId, messages: priorMessages });
 
         // Pull the latest user message; fall back to "" if absent (the agent
         // will handle the empty input via its guardrails).

@@ -64,6 +64,126 @@ function convertToLangChainMessages(messages: LangchainMessage[]) {
 }
 
 // ============================================================================
+// CARD-AWARENESS HELPERS
+// ============================================================================
+
+// Each helper returns a human-readable description of what the card shows,
+// mirroring the exact fields rendered in the corresponding React component.
+
+function describeClinicProfileCard(result: string): string {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const s = JSON.parse(result)?.summary as Record<string, any>;
+    if (!s) return 'a ClinicProfileCard (no data)';
+    const parts: string[] = [`name: "${s.display_name}"`];
+    if (s.location) parts.push(`location: ${s.location.city}, ${s.location.country}`);
+    if (s.score) parts.push(`trust score: ${s.score.overall_score} (Band ${s.score.band})`);
+    if (s.short_description) parts.push(`description: "${s.short_description}"`);
+    if (s.specialties?.length) parts.push(`specialties: ${s.specialties.slice(0, 5).map((sp: { service_name: string }) => sp.service_name).join(', ')}`);
+    if (s.pricing?.length) {
+      const priceStr = s.pricing.slice(0, 3).map((p: { service_name: string; price_min?: number; price_max?: number; currency?: string }) =>
+        `${p.service_name}${p.price_min != null ? ` (${p.currency ?? '€'}${p.price_min}–${p.price_max})` : ''}`
+      ).join(', ');
+      parts.push(`pricing: ${priceStr}`);
+    }
+    if (s.team?.length) {
+      const teamStr = s.team.slice(0, 3).map((t: { name?: string; role: string; credentials: string }) =>
+        `${t.name ?? t.role} — ${t.credentials}`
+      ).join('; ');
+      parts.push(`team: ${teamStr}`);
+    }
+    if (s.review_count != null) parts.push(`reviews: ${s.review_count}`);
+    if (s.years_in_operation != null) parts.push(`years in operation: ${s.years_in_operation}`);
+    if (s.languages?.length) parts.push(`languages: ${s.languages.map((l: { language: string }) => l.language).join(', ')}`);
+    return `a ClinicProfileCard showing — ${parts.join(' | ')}`;
+  } catch {
+    return 'a ClinicProfileCard';
+  }
+}
+
+function describeReviewsCard(result: string): string {
+  try {
+    const { clinic, aggregate, reviews } = JSON.parse(result);
+    return (
+      `a ReviewsCard for "${clinic.display_name}" showing — ` +
+      `average rating: ${aggregate.average_rating?.toFixed(1) ?? '—'} | ` +
+      `total reviews: ${aggregate.total_count} | ` +
+      `${reviews.length} review excerpts with star distribution`
+    );
+  } catch {
+    return 'a ReviewsCard';
+  }
+}
+
+function describePackagesCard(result: string): string {
+  try {
+    const { clinic, packages } = JSON.parse(result);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const names = packages.map((p: any) => p.package_name).join(', ');
+    return `a PackagesCard for "${clinic.display_name}" showing ${packages.length} package(s): ${names}`;
+  } catch {
+    return 'a PackagesCard';
+  }
+}
+
+function describeDoctorProfileCard(result: string): string {
+  try {
+    const { doctors } = JSON.parse(result);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const names = doctors.map((d: any) => `${d.name ?? d.role} (${d.credentials})`).join(', ');
+    return `a DoctorProfileCard showing: ${names}`;
+  } catch {
+    return 'a DoctorProfileCard';
+  }
+}
+
+function describeComparisonTable(result: string): string {
+  try {
+    const { clinics, comparison } = JSON.parse(result);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const names = clinics.map((c: any) => c.display_name).join(' vs ');
+    const dims = Object.keys(comparison).join(', ');
+    return `a ClinicComparisonTable comparing ${names} across: ${dims}`;
+  } catch {
+    return 'a ClinicComparisonTable';
+  }
+}
+
+function describeDatabaseResultsCard(result: string): string {
+  try {
+    const { metadata } = JSON.parse(result);
+    return `a DatabaseResultsCard showing ${metadata.count} result(s) from the "${metadata.table}" table`;
+  } catch {
+    return 'a DatabaseResultsCard';
+  }
+}
+
+function describeCard(name: string, result: string): string {
+  switch (name) {
+    case 'clinic_summary':  return describeClinicProfileCard(result);
+    case 'clinic_reviews':  return describeReviewsCard(result);
+    case 'clinic_packages': return describePackagesCard(result);
+    case 'doctor_profile':  return describeDoctorProfileCard(result);
+    case 'clinic_comparison': return describeComparisonTable(result);
+    case 'database_lookup': return describeDatabaseResultsCard(result);
+    default: return `a ${name} card`;
+  }
+}
+
+function buildCardAwarenessMessage(
+  cards: Array<{ name: string; result: string }>
+): string {
+  const lines = cards.map(({ name, result }) => `- ${describeCard(name, result)}`).join('\n');
+  return (
+    `[Card context] You just displayed the following card(s) to the user:\n${lines}\n\n` +
+    `The card shows all the details — no need to list every field. ` +
+    `Respond in 1–2 sentences: (1) mention 1–2 key facts from the card inline ` +
+    `(e.g. trust score, city, or top specialty — whichever is most relevant) so they land in conversation history, ` +
+    `then (2) suggest one concrete next step (view packages, read reviews, compare clinics, or book a consultation).`
+  );
+}
+
+// ============================================================================
 // LANGCHAIN AGENT CLASS
 // ============================================================================
 
@@ -269,6 +389,7 @@ export class LangchainAgent {
     // ---- Tool resolution loop (non-streaming) ----
     const modelWithTools = this.model.bindTools(this.tools);
     let toolsWereUsed = false;
+    const renderedCards: Array<{ name: string; result: string }> = [];
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const response = await modelWithTools.invoke(currentMessages);
@@ -290,6 +411,7 @@ export class LangchainAgent {
             tool_call_id: toolCall.id ?? '',
           })
         );
+        renderedCards.push({ name: toolCall.name, result });
         if (onToolCall) {
           await onToolCall({
             id: toolCall.id ?? '',
@@ -301,12 +423,13 @@ export class LangchainAgent {
       }
     }
 
-    // TODO: card-awareness + conversational memory — both are context injection into currentMessages
-    // before the final stream call. For card-awareness: after tool calls resolve, inject a synthetic
-    // system message like "you just displayed a [ClinicProfileCard] for [clinic], do not repeat what
-    // the card covers — instead add context or suggest next steps." toolCall.name + result JSON are
-    // already available here. For memory: pass prior conversation turns in the same way.
-    // Both parallel each other; card-awareness is simpler (local to this run, no persistence needed).
+    // Inject card-awareness context so the final response doesn't repeat what the card displays
+    if (renderedCards.length > 0) {
+      currentMessages.push(new SystemMessage(buildCardAwarenessMessage(renderedCards)));
+    }
+
+    // Conversational memory: prior turns are injected at the adapter layer (adapter.ts)
+    // by initializing the agent with input.messages before this method is called.
 
     // ---- Final streaming response ----
     const streamingModel = new ChatOpenAI({
