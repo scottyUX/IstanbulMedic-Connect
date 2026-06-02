@@ -240,13 +240,6 @@ export const ReviewsSection = ({
                     </div>
                     <Star className="h-6 w-6 fill-[#FFD700] text-[#FFD700]" />
                   </div>
-                  <div className="mb-6">
-                    <p className="text-muted-foreground leading-relaxed">
-                      {totalReviews > 0
-                        ? `Based on ${totalReviews} review${totalReviews === 1 ? "" : "s"} from Google`
-                        : "No reviews yet."}
-                    </p>
-                  </div>
                 </>
 
                 {/* Star distribution */}
