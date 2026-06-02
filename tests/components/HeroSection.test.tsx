@@ -143,9 +143,9 @@ describe('HeroSection', () => {
   // ── Source score chips ────────────────────────────────────────────────────
 
   const mockSourceScores = [
-    { id: '1', clinic_id: 'c1', source_name: 'google',    summary_score: 81, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: true },
-    { id: '2', clinic_id: 'c1', source_name: 'instagram', summary_score: 62, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: true },
-    { id: '3', clinic_id: 'c1', source_name: 'reddit',    summary_score: 71, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: true },
+    { id: '1', clinic_id: 'c1', source_name: 'google',    summary_score: 81, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: true, score_version: 'v1.0' },
+    { id: '2', clinic_id: 'c1', source_name: 'instagram', summary_score: 62, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: true, score_version: 'v1.0' },
+    { id: '3', clinic_id: 'c1', source_name: 'reddit',    summary_score: 71, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: true, score_version: 'v1.0' },
   ];
 
   it('renders Google score chip when a current Google source score is provided', () => {
@@ -173,7 +173,7 @@ describe('HeroSection', () => {
 
   it('does not render Reddit chip when score exists but is_current is false', () => {
     const staleScores = [
-      { id: '2', clinic_id: 'c1', source_name: 'reddit', summary_score: 71, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: false },
+      { id: '2', clinic_id: 'c1', source_name: 'reddit', summary_score: 71, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: false, score_version: 'v1.0' },
     ];
     render(<HeroSection {...defaultProps} sourceScores={staleScores} />);
     expect(screen.queryByTestId('reddit-score-chip')).not.toBeInTheDocument();
