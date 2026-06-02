@@ -3,13 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
-import { MapPin } from "lucide-react"
+import Link from "next/link"
+import { MapPin, ExternalLink, Check } from "lucide-react"
 import { Merriweather } from "next/font/google"
 
 import { cn } from "@/lib/utils"
 import type { ClinicListItem } from "@/lib/api/clinics"
 import { getMockHRNSignals } from "@/lib/api/hrn.mock"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { FEATURE_CONFIG } from "@/lib/filterConfig"
+import { useAuth } from "@/contexts/AuthContext"
+import { BookmarkButton } from "@/components/istanbulmedic-connect/BookmarkButton"
+import { ConsultationConfirmModal } from "@/components/istanbulmedic-connect/ConsultationConfirmModal"
 
 import { AllSourcesView } from "./AllSourcesView"
 import { InstagramView } from "./InstagramView"
@@ -160,13 +165,103 @@ function ComparePane({
   const selected = clinics.find(c => c.id === selectedId) ?? null
   const SelectedView = SOURCE_VIEWS[source]
 
+  // ── Consultation state ──────────────────────────────────────────────────
+  const { isAuthenticated } = useAuth()
+  const paneRouter = useRouter()
+  const [consultationRequested, setConsultationRequested] = useState(false)
+  const [consultationLoading, setConsultationLoading] = useState(false)
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (!selected?.id) { setConsultationRequested(false); return }
+    if (!isAuthenticated) { setConsultationRequested(false); return }
+    fetch('/api/consultations/pending-ids')
+      .then(res => res.ok ? res.json() : { pendingClinicIds: [] })
+      .then(({ pendingClinicIds }: { pendingClinicIds: string[] }) => {
+        setConsultationRequested(pendingClinicIds.includes(selected.id))
+      })
+      .catch(() => {})
+  }, [selected?.id, isAuthenticated])
+
+  const handleConsultationClick = () => {
+    if (!selected) return
+    if (!isAuthenticated) {
+      sessionStorage.setItem('consultation_intent', JSON.stringify([selected.id]))
+      paneRouter.push(`/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`)
+      return
+    }
+    setConfirmModalOpen(true)
+  }
+
+  const handleConsultationConfirm = async () => {
+    if (!selected) return
+    setConsultationLoading(true)
+    try {
+      const res = await fetch("/api/consultations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinicIds: [selected.id] }),
+      })
+      if (!res.ok) throw new Error("request failed")
+      setConsultationRequested(true)
+    } finally {
+      setConsultationLoading(false)
+    }
+  }
+
   return (
     <div className={cn("flex flex-col rounded-2xl border border-border/60 overflow-hidden bg-[#FEFCF8]", className)}>
       <div className={cn("shrink-0 px-4 py-3", headerBg)}>
         <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{label}</p>
-        <p className={cn(merriweather.className, "mt-0.5 truncate text-base font-bold text-white leading-snug")}>
-          {selected ? selected.name : "Select a clinic below"}
-        </p>
+        <div className="mt-0.5 flex items-center justify-between gap-2">
+          <p className={cn(merriweather.className, "truncate text-base font-bold text-white leading-snug")}>
+            {selected ? selected.name : "Select a clinic below"}
+          </p>
+
+          {/* Action buttons — bookmark, profile link, book consultation */}
+          {selected && (
+            <div className="flex items-center gap-0.5 shrink-0">
+              {/* Bookmark */}
+              <BookmarkButton
+                clinicId={selected.id}
+                clinicName={selected.name}
+                className="text-white/70 hover:text-white rounded p-1.5 hover:bg-white/10 transition-colors"
+                iconClassName="h-4 w-4"
+              />
+
+              {/* View full profile */}
+              <Link
+                href={`/clinics/${selected.id}`}
+                className="inline-flex items-center justify-center text-white/70 hover:text-white rounded p-1.5 hover:bg-white/10 transition-colors"
+                title="View full profile"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Link>
+
+              {/* Book consultation */}
+              {FEATURE_CONFIG.bookConsultation && (
+                <button
+                  type="button"
+                  onClick={handleConsultationClick}
+                  disabled={consultationRequested || consultationLoading}
+                  title={consultationRequested ? "Consultation requested" : "Book free consultation"}
+                  className={cn(
+                    "flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold transition-colors",
+                    consultationRequested
+                      ? "text-white/50 cursor-default"
+                      : "bg-white/20 text-white hover:bg-white/30 disabled:opacity-50"
+                  )}
+                >
+                  {consultationRequested ? (
+                    <><Check className="h-3.5 w-3.5" /><span>Booked</span></>
+                  ) : (
+                    "Book"
+                  )}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">
@@ -190,6 +285,17 @@ function ComparePane({
           </div>
         )}
       </div>
+
+      {/* Consultation confirmation modal */}
+      {selected && (
+        <ConsultationConfirmModal
+          open={confirmModalOpen}
+          onOpenChange={setConfirmModalOpen}
+          clinicName={selected.name}
+          isRemoving={false}
+          onConfirm={handleConsultationConfirm}
+        />
+      )}
     </div>
   )
 }
