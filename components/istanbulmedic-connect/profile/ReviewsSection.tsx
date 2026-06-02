@@ -136,9 +136,14 @@ export const ReviewsSection = ({
               </span>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Google Signal Score</span>
-                <span title="Calculated from review recency, volume, rating, and response patterns.">
-                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                </span>
+                <button
+                  type="button"
+                  aria-label="How Google Signal Score is calculated: based on review recency, volume, rating, and response patterns."
+                  title="Calculated from review recency, volume, rating, and response patterns."
+                  className="cursor-help focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                >
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
               </div>
             </div>
           )}
