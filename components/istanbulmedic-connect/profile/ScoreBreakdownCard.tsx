@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { StatBlock } from "@/components/ui/stat-block"
+import { GoogleIcon } from "@/components/icons/GoogleIcon"
 
 interface ScoreComponent {
   component_key: string
@@ -118,8 +119,10 @@ export const ScoreBreakdownCard = ({
                   key={source.source_name}
                   className="flex items-center gap-2 rounded-lg border border-border bg-muted/5 px-3 py-2"
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#17375B] text-xs font-bold text-white">
-                    {config.icon}
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#17375B] text-xs font-bold text-white shrink-0">
+                    {source.source_name === 'google'
+                      ? <GoogleIcon className="h-3.5 w-3.5 text-white" />
+                      : config.icon}
                   </span>
                   <div className="flex flex-col">
                     <span className="text-xs text-muted-foreground">{config.label}</span>
