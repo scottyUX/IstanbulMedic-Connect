@@ -32,7 +32,7 @@ const LangchainChat = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputBarRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
-  const hasSentRef = useRef(false);
+  const [hasSent, setHasSent] = useState(false);
   const [inputBarHeight, setInputBarHeight] = useState(96);
   const [awaitingAssistant, setAwaitingAssistant] = useState(false);
 
@@ -76,7 +76,7 @@ const LangchainChat = () => {
   // Only leave the greeting once the user has sent something or messages already exist.
   // Intentionally excludes isLoading — CopilotKit briefly sets isLoading=true on init,
   // which used to flash the conversation UI + typing indicator before settling.
-  const showGreeting = !hasSentRef.current && filteredMessages.length === 0;
+  const showGreeting = !hasSent && filteredMessages.length === 0;
 
   // Detect manual scroll-up so auto-scroll doesn't fight the user
   useEffect(() => {
@@ -103,19 +103,16 @@ const LangchainChat = () => {
     return () => cancelAnimationFrame(frame);
   }, [messages, isLoading]);
 
-  // Reset flags when conversation starts fresh
+  // Reset flags when conversation is cleared back to empty
   useEffect(() => {
-    if (showGreeting) {
+    if (filteredMessages.length === 0) {
       userScrolledUpRef.current = false;
-      hasSentRef.current = false;
+      setHasSent(false);
     }
-  }, [showGreeting]);
+  }, [filteredMessages.length]);
 
   useEffect(() => {
     if (lastVisibleMessage?.role === "assistant") {
-      // Resetting derived UI state in response to an external message update —
-      // this is intentional and safe in React 18+ (state updates are batched).
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAwaitingAssistant(false);
     }
   }, [lastVisibleMessage]);
@@ -140,7 +137,7 @@ const LangchainChat = () => {
   const handleSend = useCallback(
     async (text: string) => {
       if (!text.trim() || isLoading) return;
-      hasSentRef.current = true;
+      setHasSent(true);
       userScrolledUpRef.current = false;
       setAwaitingAssistant(true);
       try {
