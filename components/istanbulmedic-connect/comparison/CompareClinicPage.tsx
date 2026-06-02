@@ -301,6 +301,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
           <div className="flex w-full rounded-lg border border-border/60 bg-muted/30 p-1 md:hidden" aria-label="Choose comparison clinic">
             <button
               type="button"
+              aria-label="Switch to Clinic A"
               aria-pressed={mobilePane === "left"}
               onClick={() => setMobilePane("left")}
               className={cn(
@@ -317,6 +318,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
             </button>
             <button
               type="button"
+              aria-label="Switch to Clinic B"
               aria-pressed={mobilePane === "right"}
               onClick={() => setMobilePane("right")}
               className={cn(
@@ -350,7 +352,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
             </div>
             {(leftId || rightId) && (
               <button
-                onClick={() => { setLeftId(null); setRightId(null) }}
+                onClick={() => { setLeftId(null); setRightId(null); setMobilePane("left") }}
                 className="text-sm text-[var(--im-color-primary)] hover:underline underline-offset-2 whitespace-nowrap"
               >
                 Clear selection
@@ -368,7 +370,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
           label="Clinic A"
           headerBg="bg-[var(--im-color-primary)]"
           accentClass="text-[var(--im-color-primary)]"
-          className={cn(mobilePane === "left" ? "flex" : "hidden md:flex")}
+          className={mobilePane === "left" ? "flex" : "hidden md:flex"}
           clinics={sortedClinics}
           selectedId={leftId}
           disabledId={rightId}
@@ -380,7 +382,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
           label="Clinic B"
           headerBg="bg-[var(--im-color-secondary)]"
           accentClass="text-[var(--im-color-secondary)]"
-          className={cn(mobilePane === "right" ? "flex" : "hidden md:flex")}
+          className={mobilePane === "right" ? "flex" : "hidden md:flex"}
           clinics={sortedClinics}
           selectedId={rightId}
           disabledId={leftId}

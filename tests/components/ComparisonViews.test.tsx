@@ -289,8 +289,8 @@ describe('CompareClinicPage — mobile switcher', () => {
     )
     render(<CompareClinicPage clinics={[baseClinic]} source="all" />)
 
-    const clinicA = screen.getByRole('button', { name: /clinic a/i })
-    const clinicB = screen.getByRole('button', { name: /clinic b/i })
+    const clinicA = screen.getByRole('button', { name: /switch to clinic a/i })
+    const clinicB = screen.getByRole('button', { name: /switch to clinic b/i })
 
     expect(clinicA).toHaveAttribute('aria-pressed', 'true')
     expect(clinicB).toHaveAttribute('aria-pressed', 'false')
