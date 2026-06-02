@@ -32,6 +32,7 @@ const LangchainChat = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputBarRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
+  const hasSentRef = useRef(false);
   const [inputBarHeight, setInputBarHeight] = useState(96);
   const [awaitingAssistant, setAwaitingAssistant] = useState(false);
 
@@ -72,8 +73,10 @@ const LangchainChat = () => {
 
   const lastVisibleMessage = orderedMessages[orderedMessages.length - 1];
   const showTypingIndicator = awaitingAssistant || isLoading;
-  const showGreeting =
-    filteredMessages.length === 0 && !isLoading && !awaitingAssistant;
+  // Only leave the greeting once the user has sent something or messages already exist.
+  // Intentionally excludes isLoading — CopilotKit briefly sets isLoading=true on init,
+  // which used to flash the conversation UI + typing indicator before settling.
+  const showGreeting = !hasSentRef.current && filteredMessages.length === 0;
 
   // Detect manual scroll-up so auto-scroll doesn't fight the user
   useEffect(() => {
@@ -100,9 +103,12 @@ const LangchainChat = () => {
     return () => cancelAnimationFrame(frame);
   }, [messages, isLoading]);
 
-  // Reset scroll-up flag when conversation starts fresh
+  // Reset flags when conversation starts fresh
   useEffect(() => {
-    if (showGreeting) userScrolledUpRef.current = false;
+    if (showGreeting) {
+      userScrolledUpRef.current = false;
+      hasSentRef.current = false;
+    }
   }, [showGreeting]);
 
   useEffect(() => {
@@ -134,6 +140,7 @@ const LangchainChat = () => {
   const handleSend = useCallback(
     async (text: string) => {
       if (!text.trim() || isLoading) return;
+      hasSentRef.current = true;
       userScrolledUpRef.current = false;
       setAwaitingAssistant(true);
       try {
