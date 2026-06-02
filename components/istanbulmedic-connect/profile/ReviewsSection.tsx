@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Star } from "lucide-react"
+import { Star, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { StarBar } from "@/components/ui/star-bar"
@@ -120,33 +120,28 @@ export const ReviewsSection = ({
               <div className="flex items-center gap-2 mt-2">
                 <GoogleIcon className="h-4 w-4" />
                 <span className="text-2xl font-bold text-foreground">{averageRating.toFixed(1)}</span>
-                <div className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={
-                        i < Math.round(averageRating)
-                          ? "h-4 w-4 fill-[#FFD700] text-[#FFD700]"
-                          : "h-4 w-4 text-neutral-300"
-                      }
-                    />
-                  ))}
-                </div>
+                <Star className="h-4 w-4 fill-[#FFD700] text-[#FFD700]" />
                 <span className="text-sm text-muted-foreground">· {totalReviews} review{totalReviews === 1 ? "" : "s"}</span>
               </div>
             ) : (
-              <p className="text-base text-muted-foreground mt-1">No Google reviews yet.</p>
-            )}
-            {googleScore !== null && (
-              <div className="flex items-center gap-2 mt-3">
-                <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Google Signal Score</span>
-                {/* sourceScores.summary_score is 0–100; divide by 10 to display as 0–10 */}
-                <span className="rounded-md bg-[#17375B]/10 px-2.5 py-0.5 text-sm font-bold text-[#17375B]">{(googleScore / 10).toFixed(1)}</span>
-                <span className="text-xs text-muted-foreground">/ 10</span>
-              </div>
+              <p className="text-base text-muted-foreground mt-1">No Google Reviews available yet.</p>
             )}
           </div>
 
+          {googleScore !== null && (
+            <div className="flex flex-col items-end gap-1">
+              {/* sourceScores.summary_score is 0–100; divide by 10 to display as 0–10 */}
+              <span className="rounded-md bg-[#17375B]/10 px-2.5 py-0.5 text-sm font-bold text-[#17375B]">
+                {(googleScore / 10).toFixed(1)} / 10
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Google Signal Score</span>
+                <span title="Calculated from review recency, volume, rating, and response patterns.">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </CardHeader>
 
@@ -212,7 +207,7 @@ export const ReviewsSection = ({
             })}
           </div>
         ) : (
-          <p className="text-muted-foreground">No Google reviews yet.</p>
+          <p className="text-muted-foreground">No Google Reviews available yet.</p>
         )}
 
         {/* Show All Reviews Modal */}
@@ -238,12 +233,12 @@ export const ReviewsSection = ({
                     <div className="text-4xl font-bold text-foreground">
                       {averageRating !== null ? averageRating.toFixed(1) : "—"}
                     </div>
+                    <Star className="h-6 w-6 fill-[#FFD700] text-[#FFD700]" />
                   </div>
                   <div className="mb-6">
-                    <h3 className="text-2xl font-bold text-foreground mb-2">Google Reviews</h3>
                     <p className="text-muted-foreground leading-relaxed">
                       {totalReviews > 0
-                        ? `${totalReviews} review${totalReviews === 1 ? "" : "s"} from Google.`
+                        ? `Based on ${totalReviews} review${totalReviews === 1 ? "" : "s"} from Google`
                         : "No reviews yet."}
                     </p>
                   </div>
@@ -269,9 +264,7 @@ export const ReviewsSection = ({
                   <h2 className="text-2xl font-bold mb-6 pl-8 md:pl-0">
                     {searchQuery.trim()
                       ? `${modalReviewsSorted.length} result${modalReviewsSorted.length === 1 ? "" : "s"} for "${searchQuery}"`
-                      : reviews.length < totalReviews
-                        ? `Showing ${reviews.length} of ${totalReviews.toLocaleString()} reviews`
-                        : `${totalReviews} reviews`}
+                      : `${reviews.length.toLocaleString()} available Google review${reviews.length === 1 ? "" : "s"}`}
                   </h2>
                   <div className="flex gap-3">
                     <div className="relative flex-1">
