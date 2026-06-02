@@ -269,6 +269,7 @@ const communitySignals = {
         rating={clinic.rating ?? null}
         reviewCount={clinic.totalReviewCount}
         isMinistryVerified={isMinistryVerified}
+        sourceScores={clinic.sourceScores}
       />
 
       {/* Section Navigation */}
@@ -346,6 +347,9 @@ const communitySignals = {
               rating={clinic.rating ?? null}
               reviewCount={clinic.totalReviewCount}
               websiteUrl={clinic.websiteUrl}
+              trustScore={clinic.trustScore}
+              trustBand={clinic.trustBand}
+              sourceScores={clinic.sourceScores}
             />
           </div>
         </div>
@@ -378,7 +382,9 @@ const communitySignals = {
           )}
 
           {FEATURE_CONFIG.profileRedditSignals && clinic.redditSignals && (
-            <RedditSignalsCard data={clinic.redditSignals} />
+            <div id="reddit-intel">
+              <RedditSignalsCard data={clinic.redditSignals} />
+            </div>
           )}
         </div>
       </div>

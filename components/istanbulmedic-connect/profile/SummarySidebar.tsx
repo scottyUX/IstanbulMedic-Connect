@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Share2, X, Globe, Check } from "lucide-react"
+import { Plus, Share2, X, Globe, Check, ShieldCheck, Star } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -16,13 +16,21 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { FeeLineItem } from "@/components/ui/fee-line-item"
 import { IconActionLink } from "@/components/ui/icon-action-link"
-import { PriceRatingBlock } from "@/components/ui/price-rating-block"
 import { VerificationBadge } from "@/components/ui/verification-badge"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
 import { useAuth } from "@/contexts/AuthContext"
 import { cn } from "@/lib/utils"
 import { ConsultationConfirmModal } from "@/components/istanbulmedic-connect/ConsultationConfirmModal"
 import { BookmarkButton } from "@/components/istanbulmedic-connect/BookmarkButton"
+import type { ClinicSourceScore } from "@/lib/api/clinics"
+
+const BAND_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  A: { label: "Excellent", color: "text-emerald-700", bg: "bg-emerald-50" },
+  B: { label: "Good",      color: "text-blue-700",    bg: "bg-blue-50"    },
+  C: { label: "Fair",      color: "text-amber-700",   bg: "bg-amber-50"   },
+  D: { label: "Limited",   color: "text-red-700",     bg: "bg-red-50"     },
+}
+
 
 interface SummarySidebarProps {
   clinicId: string
@@ -38,6 +46,9 @@ interface SummarySidebarProps {
   consultationFee?: string
   serviceCharge?: string
   totalEstimate?: string
+  trustScore?: number
+  trustBand?: "A" | "B" | "C" | "D" | null
+  sourceScores?: ClinicSourceScore[]
   onTalkToLeila?: () => void
   onAddToCompare?: () => void
   onSave?: () => void
@@ -56,10 +67,14 @@ export const SummarySidebar = ({
   consultationFee = "$0",
   serviceCharge = "$0",
   totalEstimate = "$1,200",
+  trustScore,
+  trustBand,
+  sourceScores = [],
   onTalkToLeila,
   onAddToCompare,
   onShare,
 }: SummarySidebarProps) => {
+  const bandConfig = trustBand ? BAND_CONFIG[trustBand] : null
   const [feeModalOpen, setFeeModalOpen] = useState<"consultation" | "service" | null>(null)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
@@ -119,16 +134,31 @@ export const SummarySidebar = ({
   }
 
   return (
-    <div className="sticky top-24">
+    <div className="sticky top-[148px] max-h-[calc(100vh-148px)] overflow-y-auto">
       <Card variant="sidebar">
-        <CardHeader className="pb-6">
-          <PriceRatingBlock
-            price={FEATURE_CONFIG.profilePricing ? priceEstimate : undefined}
-            priceLabel="est. starting"
-            rating={rating}
-            reviewCount={reviewCount}
-            reviewsHref="#reviews"
-          />
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between gap-3">
+            {trustScore !== undefined && (
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-[#3EBBB7] shrink-0" />
+                <span className="text-sm text-muted-foreground">Trust</span>
+                <span className="text-lg font-bold text-foreground">{trustScore}</span>
+                {bandConfig && (
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${bandConfig.bg} ${bandConfig.color}`}>
+                    {trustBand}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-1 text-sm font-semibold ml-auto">
+              <Star className={rating !== null ? "h-3 w-3 fill-[#FFD700] text-[#FFD700]" : "h-3 w-3 text-muted-foreground/40"} aria-hidden />
+              {rating !== null ? rating.toFixed(2) : "—"}
+              <span className="font-normal text-muted-foreground">·</span>
+              <a href="#reviews" className="font-normal text-muted-foreground underline underline-offset-4 hover:text-foreground">
+                {reviewCount} reviews
+              </a>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3">
