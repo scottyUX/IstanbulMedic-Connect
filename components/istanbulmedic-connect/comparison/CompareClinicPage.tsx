@@ -143,6 +143,7 @@ function ComparePane({
   label,
   headerBg,
   accentClass,
+  className,
   clinics,
   selectedId,
   disabledId,
@@ -153,6 +154,7 @@ function ComparePane({
   label: string
   headerBg: string
   accentClass: string
+  className?: string
   clinics: ClinicListItem[]
   selectedId: string | null
   disabledId: string | null
@@ -208,8 +210,7 @@ function ComparePane({
   }
 
   return (
-    <div className="flex flex-col rounded-2xl border border-border/60 overflow-hidden bg-[#FEFCF8]">
-      {/* ── Persistent header — always visible when a clinic is selected ── */}
+    <div className={cn("flex flex-col rounded-2xl border border-border/60 overflow-hidden bg-[#FEFCF8]", className)}>
       <div className={cn("shrink-0 px-4 py-3", headerBg)}>
         <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{label}</p>
         <div className="mt-0.5 flex items-center justify-between gap-2">
@@ -306,14 +307,19 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
 
   const [leftId,  setLeftId]  = useState<string | null>(searchParams.get("left")  ?? null)
   const [rightId, setRightId] = useState<string | null>(searchParams.get("right") ?? null)
+  const [mobilePane, setMobilePane] = useState<"left" | "right">("left")
   const isMounted = useRef(false)
 
-  // Scroll to top instantly on mount. The root layout always renders a Footer
+  // Scroll to top on mount. The root layout always renders a Footer
   // below this component, making the body taller than 100vh and leaving the
   // window scroll position from the previous page intact on navigation.
-  // The html element also has scroll-smooth, so we force instant behaviour.
+  // Use the numeric overload for broad mobile Safari compatibility.
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' })
+    try {
+      window.scrollTo(0, 0)
+    } catch {
+      // Ignore scroll API failures so page interactivity remains intact.
+    }
   }, [])
   const rawSort = searchParams.get("sort")
   const [sortBy, setSortBy] = useState<"A-Z" | "Z-A" | "Highest Rated" | "Lowest Rated">(
@@ -371,6 +377,9 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
     router.push(`${target.route}${qs ? `?${qs}` : ""}`)
   }
 
+  const leftClinic = sortedClinics.find(c => c.id === leftId) ?? null
+  const rightClinic = sortedClinics.find(c => c.id === rightId) ?? null
+
   return (
     <div className="flex flex-col bg-background overflow-hidden" style={{ height: "calc(100vh - 80px)" }}>
 
@@ -378,7 +387,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
       <div className="shrink-0 border-b border-border/60 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           {/* Source pills */}
-          <div className="flex items-center gap-2">
+          <div className="flex max-w-full items-center gap-2 overflow-x-auto pb-1">
             {SOURCES.map(s => (
               <button
                 key={s.id}
@@ -393,6 +402,43 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
                 {s.label}
               </button>
             ))}
+          </div>
+
+          <div className="flex w-full rounded-lg border border-border/60 bg-muted/30 p-1 md:hidden" aria-label="Choose comparison clinic">
+            <button
+              type="button"
+              aria-label="Switch to Clinic A"
+              aria-pressed={mobilePane === "left"}
+              onClick={() => setMobilePane("left")}
+              className={cn(
+                "min-w-0 flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                mobilePane === "left"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span className="block truncate">Clinic A</span>
+              <span className="block truncate text-[11px] font-normal opacity-75">
+                {leftClinic?.name ?? "Select a clinic"}
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label="Switch to Clinic B"
+              aria-pressed={mobilePane === "right"}
+              onClick={() => setMobilePane("right")}
+              className={cn(
+                "min-w-0 flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                mobilePane === "right"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span className="block truncate">Clinic B</span>
+              <span className="block truncate text-[11px] font-normal opacity-75">
+                {rightClinic?.name ?? "Select a clinic"}
+              </span>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -412,7 +458,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
             </div>
             {(leftId || rightId) && (
               <button
-                onClick={() => { setLeftId(null); setRightId(null) }}
+                onClick={() => { setLeftId(null); setRightId(null); setMobilePane("left") }}
                 className="text-sm text-[var(--im-color-primary)] hover:underline underline-offset-2 whitespace-nowrap"
               >
                 Clear selection
@@ -424,13 +470,13 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
 
       {/* ── Split panes ─────────────────────────────────────────── */}
       <div
-        className="flex-1 min-h-0 mx-auto w-full max-w-7xl px-4 pt-3 pb-3 grid gap-4"
-        style={{ gridTemplateColumns: "1fr 1fr" }}
+        className="grid flex-1 min-h-0 w-full max-w-7xl gap-4 px-4 pt-3 pb-3 mx-auto grid-cols-1 md:grid-cols-2"
       >
         <ComparePane
           label="Clinic A"
           headerBg="bg-[var(--im-color-primary)]"
           accentClass="text-[var(--im-color-primary)]"
+          className={mobilePane === "left" ? "flex" : "hidden md:flex"}
           clinics={sortedClinics}
           selectedId={leftId}
           disabledId={rightId}
@@ -442,6 +488,7 @@ export function CompareClinicPage({ clinics, source }: CompareClinicPageProps) {
           label="Clinic B"
           headerBg="bg-[var(--im-color-secondary)]"
           accentClass="text-[var(--im-color-secondary)]"
+          className={mobilePane === "right" ? "flex" : "hidden md:flex"}
           clinics={sortedClinics}
           selectedId={rightId}
           disabledId={leftId}
