@@ -2,6 +2,13 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+// Radix UI components (Slider, Select, etc.) use ResizeObserver, which jsdom doesn't provide.
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Cleanup after each test
 afterEach(() => {
   cleanup();

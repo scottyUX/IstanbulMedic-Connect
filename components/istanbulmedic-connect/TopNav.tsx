@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, LogOut, Menu, User } from "lucide-react"
+import { Bookmark, LayoutDashboard, LogOut, Menu, User } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import Container from "@/components/ui/container"
@@ -11,6 +11,8 @@ import Logo from "@/components/common/Logo"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
+import { useBookmarkCount } from "@/contexts/BookmarkCountContext"
+import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
 const NAV_ITEMS = [
   { label: "Home", href: "/" },
@@ -19,7 +21,6 @@ const NAV_ITEMS = [
   // { label: "Design System", href: "/design-system" },
 ] as const
 
-const CONSULTATION_LINK = "https://cal.com/team/istanbul-medic/istanbul-medic-15-minutes-consultation"
 
 export const TopNav = () => {
   const [open, setOpen] = useState(false)
@@ -32,6 +33,7 @@ export const TopNav = () => {
   const pathname = usePathname()
   const router = useRouter()
   const { isAuthenticated, loading: authLoading, logout } = useAuth()
+  const { count: bookmarkCount } = useBookmarkCount()
 
   const handleSignOut = async () => {
     setOpen(false)
@@ -171,15 +173,27 @@ export const TopNav = () => {
 
         {/* Desktop CTA - shrink-0 ensures both buttons stay visible */}
         <div className="hidden shrink-0 items-center gap-3 md:flex">
+          {FEATURE_CONFIG.bookConsultation && (
+            <Link
+              href="/bookmarks"
+              aria-label={`Saved clinics${bookmarkCount > 0 ? ` (${bookmarkCount})` : ""}`}
+              className="relative shrink-0 grid h-9 w-9 place-items-center rounded-full text-[#17375B] hover:bg-slate-100 transition-colors duration-200"
+            >
+              <Bookmark className="h-5 w-5" />
+              {bookmarkCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#3EBBB7] px-1 text-[10px] font-bold leading-none text-white">
+                  {bookmarkCount > 99 ? "99+" : bookmarkCount}
+                </span>
+              )}
+            </Link>
+          )}
           <Button
             variant="teal-primary"
-            href={CONSULTATION_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Book consultation"
-            className="shrink-0"
+            href="/profile?section=consultations"
+            aria-label="Consultations"
+            className="shrink-0 min-w-0"
           >
-            Book Consultation
+            Consultations
           </Button>
           <Button
             variant="leila-link"
@@ -306,15 +320,30 @@ export const TopNav = () => {
                         )
                       })}
 
+                      {FEATURE_CONFIG.bookConsultation && (
+                        <Link
+                          href="/bookmarks"
+                          onClick={() => setOpen(false)}
+                          className="flex items-center gap-3 rounded-2xl px-4 py-3 font-semibold text-[#0F2446] hover:text-[#0D1E32]"
+                        >
+                          <span className="relative">
+                            <Bookmark className="h-4 w-4 shrink-0" />
+                            {bookmarkCount > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#3EBBB7] px-0.5 text-[9px] font-bold leading-none text-white">
+                                {bookmarkCount > 99 ? "99+" : bookmarkCount}
+                              </span>
+                            )}
+                          </span>
+                          <span>Saved Clinics</span>
+                        </Link>
+                      )}
                       <Button
                         variant="teal-primary"
-                        href={CONSULTATION_LINK}
+                        href="/profile?section=consultations"
                         onClick={() => setOpen(false)}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="w-full shadow-[0_12px_30px_rgba(62,187,183,0.35)]"
                       >
-                        Book Consultation
+                        Consultations
                       </Button>
                       <Button
                         variant="leila-link"

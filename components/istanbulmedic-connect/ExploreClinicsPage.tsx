@@ -1,8 +1,10 @@
 "use client"
 
-import { Search } from "lucide-react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Search, GitCompareArrows } from "lucide-react"
+import Link from "next/link"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 
 import { ClinicCard } from "@/components/istanbulmedic-connect/ClinicCard"
 import { UnifiedFilterBar } from "@/components/istanbulmedic-connect/UnifiedFilterBar"
@@ -70,6 +72,10 @@ const buildQueryString = (filters: FilterState, sortBy: ClinicSortOption, page: 
     params.set("minReviews", String(filters.minReviews))
   }
 
+  if (filters.minTrustScore !== null) {
+    params.set("minTrustScore", String(filters.minTrustScore))
+  }
+
   if (sortBy && sortBy !== DEFAULT_SORT_OPTION) {
     params.set("sort", sortBy)
   }
@@ -91,12 +97,26 @@ export const ExploreClinicsPage = ({
   initialSort,
 }: ExploreClinicsPageProps) => {
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
+  const [pendingConsultationIds, setPendingConsultationIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    fetch('/api/consultations/pending-ids')
+      .then((res) => res.ok ? res.json() : { pendingClinicIds: [] })
+      .then(({ pendingClinicIds }: { pendingClinicIds: string[] }) => {
+        setPendingConsultationIds(new Set(pendingClinicIds))
+      })
+      .catch(() => {/* leave empty — non-critical, UI degrades gracefully */})
+  }, [isAuthenticated])
+
   const normalizedInitialSort = ENABLED_SORT_OPTIONS.includes(initialSort)
     ? initialSort
     : DEFAULT_SORT_OPTION
   const [filters, setFilters] = useState<FilterState>(initialFilters)
   const [sortBy, setSortBy] = useState<ClinicSortOption>(normalizedInitialSort)
   const isFirstRender = useRef(true)
+  const gridRef = useRef<HTMLDivElement>(null)
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
   const rangeStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1
@@ -131,6 +151,33 @@ export const ExploreClinicsPage = ({
 
   const clinics = useMemo(() => initialClinics, [initialClinics])
 
+  useLayoutEffect(() => {
+    const grid = gridRef.current
+    if (!grid) return
+
+    const equalize = () => {
+      const names = Array.from(grid.querySelectorAll<HTMLElement>('[data-clinic-name]'))
+      names.forEach(el => { el.style.minHeight = '' })
+
+      const rows = new Map<number, HTMLElement[]>()
+      names.forEach(el => {
+        const top = Math.round(el.getBoundingClientRect().top)
+        if (!rows.has(top)) rows.set(top, [])
+        rows.get(top)!.push(el)
+      })
+
+      rows.forEach(rowEls => {
+        const maxH = Math.max(...rowEls.map(el => el.getBoundingClientRect().height))
+        rowEls.forEach(el => { el.style.minHeight = `${maxH}px` })
+      })
+    }
+
+    equalize()
+    const ro = new ResizeObserver((_entries, _observer) => { equalize() })
+    ro.observe(grid)
+    return () => ro.disconnect()
+  }, [clinics])
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Hero Banner */}
@@ -143,7 +190,7 @@ export const ExploreClinicsPage = ({
                 className="text-4xl font-bold leading-tight text-[#0D1E32] lg:text-6xl"
                 style={{ fontFamily: "var(--im-font-heading), serif" }}
               >
-                Connect with a Trusted Hair Transplant Clinic
+                Connect with a Trusted Hair <span className="whitespace-nowrap">Transplant Clinic</span>
               </h1>
               <p className="mt-4 text-xl text-muted-foreground max-w-3xl">
                 We know how overwhelming it can be to choose the right clinic for your hair transplant. That’s why we’re here to take the stress away—connecting you with qualified clinics in seconds, completely free and with no obligations.
@@ -175,7 +222,7 @@ export const ExploreClinicsPage = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="im-text-body im-text-muted">Sort by:</span>
             <div className="relative">
               <Select value={sortBy} onValueChange={handleSortChange}>
@@ -194,21 +241,41 @@ export const ExploreClinicsPage = ({
           </div>
         </div>
 
+        {/* Compare Banner */}
+        <Link href="/clinics/compare" className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-[var(--im-color-primary)]/20 bg-[var(--im-color-primary)]/5 px-6 py-4 transition-colors hover:bg-[var(--im-color-primary)]/10">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--im-color-primary)] text-white">
+              <GitCompareArrows className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-semibold text-[var(--im-color-primary)]">Compare clinics side by side</p>
+              <p className="text-sm text-muted-foreground">Pick two clinics and see how they stack up on trust score, specialties, and more.</p>
+            </div>
+          </div>
+          <Button variant="default" size="sm" className="shrink-0 bg-[var(--im-color-primary)] hover:bg-[var(--im-color-primary)]/90">
+            Compare now →
+          </Button>
+        </Link>
+
         {/* Clinic Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" data-testid="clinics-grid">
+        <div ref={gridRef} className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" data-testid="clinics-grid">
           {clinics.length > 0 ? (
             clinics.map((clinic) => (
               <ClinicCard
                 key={clinic.id}
+                id={clinic.id}
                 name={clinic.name}
                 location={clinic.location}
                 image={clinic.image}
                 specialties={clinic.specialties}
                 trustScore={clinic.trustScore}
+                trustBand={clinic.trustBand}
                 description={clinic.description}
                 rating={clinic.rating}
                 reviewCount={clinic.reviewCount}
                 aiInsight={clinic.aiInsight}
+                initialConsultationRequested={pendingConsultationIds.has(clinic.id)}
+                isMinistryVerified={clinic.isMinistryVerified}
                 onViewProfile={() => router.push(`/clinics/${clinic.id}`)}
               />
             ))

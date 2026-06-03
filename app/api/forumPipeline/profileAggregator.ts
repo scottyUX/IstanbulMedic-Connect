@@ -11,10 +11,12 @@
  *  - common_concerns (top issue keywords)
  *  - notable_threads (top 5 by score/reply_count)
  *  - summary (LLM — single call on digest of notable threads)
+ *  - score (0–10 composite via computeForumScore)
  */
 
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
+import { computeForumScore, type ForumScorerThread } from '@/lib/scoring/forum'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -67,6 +69,20 @@ async function generateSummary(
   }
 }
 
+const IN_CHUNK_SIZE = 200
+
+async function inChunks<T>(
+  ids: string[],
+  fetcher: (chunk: string[]) => Promise<T[]>
+): Promise<T[]> {
+  const results: T[] = []
+  for (let i = 0; i < ids.length; i += IN_CHUNK_SIZE) {
+    const rows = await fetcher(ids.slice(i, i + IN_CHUNK_SIZE))
+    results.push(...rows)
+  }
+  return results
+}
+
 // ── Main aggregation ──────────────────────────────────────────────────────────
 
 export interface AggregatedProfile {
@@ -90,6 +106,7 @@ export interface AggregatedProfile {
     has_photos: boolean
   }[]
   summary: string | null
+  score: number | null
 }
 
 /**
@@ -105,7 +122,7 @@ export async function recomputeProfile(
   // Load all threads for this clinic + source
   const { data: threads, error: threadsError } = await supabase
     .from('forum_thread_index')
-    .select('id, title, thread_url, author_username, post_date, reply_count')
+    .select('id, title, thread_url, author_username, post_date, reply_count, clinic_attribution_method')
     .eq('clinic_id', clinicId)
     .eq('forum_source', forumSource)
 
@@ -131,36 +148,50 @@ export async function recomputeProfile(
 
   const threadIds = threads.map(t => t.id)
 
-  // Load LLM analysis (current only)
-  const { data: analyses, error: analysesError } = await supabase
-    .from('forum_thread_llm_analysis')
-    .select('thread_id, sentiment_label, satisfaction_label, main_topics, issue_keywords, is_repair_case, summary_short')
-    .in('thread_id', threadIds)
-    .eq('is_current', true)
+  // Load LLM analysis (current only) — chunked to avoid fetch size limits
+  const analyses = await inChunks(threadIds, async chunk => {
+    const { data, error } = await supabase
+      .from('forum_thread_llm_analysis')
+      .select('thread_id, sentiment_label, sentiment_score, satisfaction_label, main_topics, issue_keywords, is_repair_case, secondary_clinic_mentions, summary_short, sentiment_toward_clinic')
+      .in('thread_id', chunk)
+      .eq('is_current', true)
+    if (error) throw new Error(`[profileAggregator] Failed to load LLM analyses: ${error.message}`)
+    return data ?? []
+  })
 
-  if (analysesError) throw new Error(`[profileAggregator] Failed to load LLM analyses: ${analysesError.message}`)
-
-  // For Reddit: distinguish post-type rows from comment-type rows for mention_count vs thread_count
-  // For HRN: all rows are posts — mention_count === thread_count
+  // For Reddit: distinguish post-type rows from comment-type rows for mention_count vs thread_count.
+  // Inherited comments (clinic_attribution_method = 'inherited') enter the scorer at 0.5 weight.
+  // For HRN: all rows are posts — mention_count === thread_count, no inherited comments.
   let postTypeThreadIds: Set<string> = new Set(threadIds)
+  let inheritedCommentThreadIds: Set<string> = new Set()
   if (forumSource === 'reddit') {
-    const { data: redditContent, error: redditError } = await supabase
-      .from('reddit_thread_content')
-      .select('thread_id, post_type')
-      .in('thread_id', threadIds)
-    if (redditError) throw new Error(`[profileAggregator] Failed to load reddit_thread_content: ${redditError.message}`)
+    const redditContent = await inChunks(threadIds, async chunk => {
+      const { data, error } = await supabase
+        .from('reddit_thread_content')
+        .select('thread_id, post_type')
+        .in('thread_id', chunk)
+      if (error) throw new Error(`[profileAggregator] Failed to load reddit_thread_content: ${error.message}`)
+      return data ?? []
+    })
     postTypeThreadIds = new Set(
       (redditContent ?? []).filter(r => r.post_type === 'post').map(r => r.thread_id)
     )
+    inheritedCommentThreadIds = new Set(
+      threads
+        .filter(t => t.clinic_attribution_method === 'inherited' && !postTypeThreadIds.has(t.id))
+        .map(t => t.id)
+    )
   }
 
-  // Load signals
-  const { data: signals, error: signalsError } = await supabase
-    .from('forum_thread_signals')
-    .select('thread_id, signal_name, signal_value')
-    .in('thread_id', threadIds)
-
-  if (signalsError) throw new Error(`[profileAggregator] Failed to load signals: ${signalsError.message}`)
+  // Load signals — chunked to avoid fetch size limits
+  const signals = await inChunks(threadIds, async chunk => {
+    const { data, error } = await supabase
+      .from('forum_thread_signals')
+      .select('thread_id, signal_name, signal_value')
+      .in('thread_id', chunk)
+    if (error) throw new Error(`[profileAggregator] Failed to load signals: ${error.message}`)
+    return data ?? []
+  })
 
   // Build lookups
   const analysisMap = Object.fromEntries((analyses ?? []).map(a => [a.thread_id, a]))
@@ -177,7 +208,7 @@ export async function recomputeProfile(
 
   const photoThreadCount = threads.filter(t => signalsMap[t.id]?.['has_photos'] === true).length
   const longtermThreadCount = threads.filter(t => signalsMap[t.id]?.['has_longterm_update'] === true).length
-  const repairMentionCount = threads.filter(t => signalsMap[t.id]?.['is_repair_case'] === true).length
+  const repairMentionCount = threads.filter(t => analysisMap[t.id]?.is_repair_case === true).length
 
   const uniqueAuthors = new Set(threads.map(t => t.author_username).filter(Boolean))
   const sortedByDate = [...threads].sort((a, b) =>
@@ -191,7 +222,14 @@ export async function recomputeProfile(
   const sentimentDist: Record<string, number> = { positive: 0, mixed: 0, negative: 0 }
 
   for (const analysis of analyses ?? []) {
-    const label = analysis.sentiment_label
+    const isInheritedComment = inheritedCommentThreadIds.has(analysis.thread_id)
+    let label: string | null
+    if (isInheritedComment && analysis.sentiment_toward_clinic) {
+      if (analysis.sentiment_toward_clinic === 'not_applicable') continue
+      label = analysis.sentiment_toward_clinic
+    } else {
+      label = analysis.sentiment_label
+    }
     if (label && label in SENTIMENT_WEIGHTS) {
       sentimentWeights.push(SENTIMENT_WEIGHTS[label])
       sentimentDist[label] = (sentimentDist[label] ?? 0) + 1
@@ -251,6 +289,37 @@ export async function recomputeProfile(
     has_photos: signalsMap[t.id]?.['has_photos'] === true,
   }))
 
+  // ── Composite score ────────────────────────────────────────────────────────
+
+  const scorerThreads: ForumScorerThread[] = threads
+    .filter(t => postTypeThreadIds.has(t.id) || inheritedCommentThreadIds.has(t.id))
+    .filter(t => {
+      if (!inheritedCommentThreadIds.has(t.id)) return true
+      return analysisMap[t.id]?.sentiment_toward_clinic !== 'not_applicable'
+    })
+    .map(t => {
+      const a = analysisMap[t.id]
+      const s = signalsMap[t.id]
+      const isComment = inheritedCommentThreadIds.has(t.id)
+      const sentimentLabel = isComment && a?.sentiment_toward_clinic && a.sentiment_toward_clinic !== 'not_applicable'
+        ? a.sentiment_toward_clinic
+        : (a?.sentiment_label ?? null)
+      return {
+        postDate: t.post_date ?? null,
+        sentimentScore: a?.sentiment_score != null ? Number(a.sentiment_score) : null,
+        sentimentLabel,
+        isRepairCase: a?.is_repair_case === true,
+        isRepairPerformer: (a?.secondary_clinic_mentions as { role: string }[] | null)
+          ?.some(m => m.role === 'repair_source') ?? false,
+        issueKeywords: a?.issue_keywords ?? [],
+        hasLongtermUpdate: s?.['has_longterm_update'] === true,
+        isComment,
+      }
+    })
+
+  const forumScore = computeForumScore(scorerThreads)
+  console.log(`[score] clinic=${clinicId} postThreads=${scorerThreads.length} effectiveN=${forumScore?.effectiveN?.toFixed(2) ?? 'n/a'} score=${forumScore?.score ?? 'insufficient'}`)
+
   // ── LLM summary (single call) ──────────────────────────────────────────────
 
   const { data: clinicRow, error: clinicError } = await supabase
@@ -287,6 +356,7 @@ export async function recomputeProfile(
         common_concerns: commonConcerns,
         notable_threads: notableThreads,
         summary,
+        score: forumScore?.score ?? null,
         is_stale: false,
         updated_at: new Date().toISOString(),
         captured_at: new Date().toISOString(),

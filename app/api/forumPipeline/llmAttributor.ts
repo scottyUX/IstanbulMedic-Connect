@@ -24,6 +24,7 @@ function getSupabaseAdmin() {
 }
 
 const PROMPT_VERSION = 'v1.0'
+const COMMENT_PROMPT_VERSION = 'v1.1-comment'
 const MODEL_NAME = process.env.FORUM_LLM_MODEL ?? 'gpt-4o-mini'
 const MAX_TEXT_CHARS = 2500 // truncate long posts before sending to LLM
 
@@ -44,19 +45,20 @@ export interface ClinicNameEntry {
 const LlmOutputSchema = z.object({
   attributed_clinic_name: z.string().nullable(),
   attributed_doctor_name: z.string().nullable(),
-  sentiment: z.enum(['positive', 'mixed', 'negative']),
-  satisfaction: z.enum(['satisfied', 'mixed', 'regretful']),
-  main_topics: z.array(z.string()),
-  issue_keywords: z.array(z.string()),
-  is_repair_case: z.boolean(),
+  sentiment: z.enum(['positive', 'mixed', 'negative']).catch('mixed'),
+  satisfaction: z.enum(['satisfied', 'mixed', 'regretful']).catch('mixed'),
+  main_topics: z.array(z.string()).default([]),
+  issue_keywords: z.array(z.string()).default([]),
+  is_repair_case: z.boolean().default(false),
   secondary_clinic_mentions: z.array(z.object({
-    clinic_name: z.string(),
+    clinic_name: z.string().nullable(),
     doctor_name: z.string().nullable(),
-    role: z.enum(['mentioned', 'compared', 'repair_source']),
-    evidence: z.string(),
+    role: z.enum(['mentioned', 'compared', 'repair_source']).nullable(),
+    evidence: z.string().nullable(),
   })).default([]),
-  evidence_snippets: z.record(z.string()).default({}),
-  summary: z.string(),
+  evidence_snippets: z.record(z.string().nullable()).default({}),
+  summary: z.string().default(''),
+  sentiment_toward_clinic: z.enum(['positive', 'mixed', 'negative', 'not_applicable']).nullable().default(null),
 })
 
 type LlmOutput = z.infer<typeof LlmOutputSchema>
@@ -166,6 +168,38 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
   "evidence_snippets": {"sentiment": "<quote>", "is_repair_case": "<quote if true>"},
   "summary": "<1-2 neutral sentences>"
 }`
+}
+
+function buildCommentPrompt(title: string, body: string, clinicNames: string[], clinicDisplayName: string): string {
+  const text = truncateText([title, body].filter(Boolean).join('\n\n'))
+  const clinicList = clinicNames.slice(0, 50).join(', ')
+
+  return `You are analyzing a Reddit comment about hair transplants.
+This comment has been attributed to: ${clinicDisplayName}
+
+Clinic/doctor list (match only to these): ${clinicList}
+
+Comment:
+"""
+${text}
+"""
+
+Respond ONLY with valid JSON matching this exact schema (no markdown, no extra text):
+{
+  "attributed_clinic_name": "<the clinic this comment is primarily about, exact name from list, or null>",
+  "attributed_doctor_name": "<doctor name mentioned, or null>",
+  "sentiment": "positive" | "mixed" | "negative",
+  "satisfaction": "satisfied" | "mixed" | "regretful",
+  "sentiment_toward_clinic": "positive" | "mixed" | "negative" | "not_applicable",
+  "main_topics": ["<up to 4 from: density, hairline, donor_area, healing, communication, value, doctor_involvement, technician_quality, aftercare, natural_results, other>"],
+  "issue_keywords": ["<specific issues mentioned, e.g. shock_loss, scarring, poor_density>"],
+  "is_repair_case": true | false,
+  "secondary_clinic_mentions": [{"clinic_name": "<str>", "doctor_name": "<str|null>", "role": "mentioned|compared|repair_source", "evidence": "<quote>"}],
+  "evidence_snippets": {"sentiment": "<quote>", "is_repair_case": "<quote if true>"},
+  "summary": "<1-2 neutral sentences>"
+}
+
+For sentiment_toward_clinic: use "not_applicable" if the comment's sentiment is directed at a different clinic than ${clinicDisplayName}, or if the comment does not express a view about ${clinicDisplayName} at all.`
 }
 
 // Cost: ~$0.0004/thread at gpt-4o-mini rates ($0.15/M input, $0.60/M output, ~1065 in + ~350 out tokens).
@@ -288,6 +322,89 @@ export async function attributeThread(
   }
 
   return { threadId, attributed: !!resolvedClinicId, clinicId: resolvedClinicId, llmOutput }
+}
+
+// ── Sentiment-only pass (inherited comments) ──────────────────────────────────
+
+export interface SentimentOnlyResult {
+  threadId: string
+  clinicId: string
+  llmOutput: LlmOutput | null
+  error?: string
+}
+
+/**
+ * Runs LLM sentiment/topic analysis on an already-attributed thread WITHOUT
+ * changing clinic_id or clinic_attribution_method.
+ *
+ * Use this for inherited-comment rows: they already have clinic_id set via the
+ * 'inherited' method. Calling attributeThread() would overwrite that method
+ * (to 'llm'/'url') and remove the row from the inherited-comment scorer filter.
+ *
+ * Writes to forum_thread_llm_analysis and marks clinic_forum_profiles stale.
+ */
+export async function analyzeSentimentOnly(
+  threadId: string,
+  clinicId: string,
+  title: string,
+  body: string,
+  forumSource: string,
+  clinics: ClinicNameEntry[]
+): Promise<SentimentOnlyResult> {
+  const supabase = getSupabaseAdmin()
+
+  const clinicNames = clinics.map(c => c.displayName)
+  const clinicDisplayName = clinics.find(c => c.clinicId === clinicId)?.displayName ?? clinicId
+  const prompt = buildCommentPrompt(title, body, clinicNames, clinicDisplayName)
+  const llmOutput = await callLlm(prompt)
+
+  if (!llmOutput) {
+    return { threadId, clinicId, llmOutput: null, error: 'LLM call failed' }
+  }
+
+  // Invalidate previous is_current rows for this thread
+  await supabase
+    .from('forum_thread_llm_analysis')
+    .update({ is_current: false })
+    .eq('thread_id', threadId)
+    .eq('is_current', true)
+
+  // Insert new analysis row — clinic_id is already known, no need to resolve
+  const { error: insertError } = await supabase
+    .from('forum_thread_llm_analysis')
+    .insert({
+      thread_id: threadId,
+      attributed_clinic_name: llmOutput.attributed_clinic_name,
+      attributed_doctor_name: llmOutput.attributed_doctor_name,
+      attributed_clinic_id: clinicId,
+      sentiment_label: llmOutput.sentiment,
+      satisfaction_label: llmOutput.satisfaction,
+      summary_short: llmOutput.summary,
+      main_topics: llmOutput.main_topics.filter(t => (VALID_TOPICS as readonly string[]).includes(t)),
+      issue_keywords: llmOutput.issue_keywords,
+      is_repair_case: llmOutput.is_repair_case,
+      secondary_clinic_mentions: llmOutput.secondary_clinic_mentions ?? [],
+      evidence_snippets: llmOutput.evidence_snippets ?? {},
+      sentiment_toward_clinic: llmOutput.sentiment_toward_clinic,
+      model_name: MODEL_NAME,
+      prompt_version: COMMENT_PROMPT_VERSION,
+      is_current: true,
+    })
+
+  if (insertError) {
+    console.error('[llmAttributor] analyzeSentimentOnly: failed to insert analysis:', insertError)
+    return { threadId, clinicId, llmOutput, error: insertError.message }
+  }
+
+  // Mark clinic_forum_profiles stale so recompute picks up the new sentiment
+  await supabase
+    .from('clinic_forum_profiles')
+    .upsert(
+      { clinic_id: clinicId, forum_source: forumSource, is_stale: true },
+      { onConflict: 'clinic_id,forum_source' }
+    )
+
+  return { threadId, clinicId, llmOutput }
 }
 
 // ── Batch runner ──────────────────────────────────────────────────────────────

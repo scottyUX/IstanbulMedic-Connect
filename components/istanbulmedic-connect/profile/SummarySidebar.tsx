@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Bookmark, Share2, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Plus, Share2, X, Globe, Check } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -17,20 +18,26 @@ import { FeeLineItem } from "@/components/ui/fee-line-item"
 import { IconActionLink } from "@/components/ui/icon-action-link"
 import { PriceRatingBlock } from "@/components/ui/price-rating-block"
 import { VerificationBadge } from "@/components/ui/verification-badge"
-import { CONSULTATION_LINK } from "@/lib/constants"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
+import { useAuth } from "@/contexts/AuthContext"
+import { cn } from "@/lib/utils"
+import { ConsultationConfirmModal } from "@/components/istanbulmedic-connect/ConsultationConfirmModal"
+import { BookmarkButton } from "@/components/istanbulmedic-connect/BookmarkButton"
 
 interface SummarySidebarProps {
-  transparencyScore: number
-  topSpecialties: string[]
+  clinicId: string
+  clinicName: string
+  clinicLocation?: string
+  clinicImageUrl?: string | null
+  transparencyScore?: number
+  topSpecialties?: string[]
   rating: number | null
   reviewCount: number
+  websiteUrl?: string | null
   priceEstimate?: string
   consultationFee?: string
   serviceCharge?: string
   totalEstimate?: string
-  bookConsultationHref?: string
-  onBookConsultation?: () => void
   onTalkToLeila?: () => void
   onAddToCompare?: () => void
   onSave?: () => void
@@ -38,22 +45,78 @@ interface SummarySidebarProps {
 }
 
 export const SummarySidebar = ({
-  transparencyScore,
-  topSpecialties,
+  clinicId,
+  clinicName,
+  clinicLocation = "",
+  clinicImageUrl,
   rating,
   reviewCount,
+  websiteUrl,
   priceEstimate = "$1,200",
   consultationFee = "$0",
   serviceCharge = "$0",
   totalEstimate = "$1,200",
-  bookConsultationHref = CONSULTATION_LINK,
-  onBookConsultation,
   onTalkToLeila,
   onAddToCompare,
-  onSave,
   onShare,
 }: SummarySidebarProps) => {
   const [feeModalOpen, setFeeModalOpen] = useState<"consultation" | "service" | null>(null)
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [consultationRequested, setConsultationRequested] = useState(false)
+  const [pendingConsultationId, setPendingConsultationId] = useState<string | null>(null)
+  const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    fetch('/api/consultations/pending-ids')
+      .then((res) => res.ok ? res.json() : { pendingClinicIds: [], pendingConsultations: {} })
+      .then(({ pendingClinicIds, pendingConsultations }: { pendingClinicIds: string[], pendingConsultations: Record<string, string> }) => {
+        if (pendingClinicIds.includes(clinicId)) {
+          setConsultationRequested(true)
+          setPendingConsultationId(pendingConsultations[clinicId] ?? null)
+        }
+      })
+      .catch(() => {/* non-critical */})
+  }, [isAuthenticated, clinicId])
+  const router = useRouter()
+
+  // suppress unused-var warning — kept for future use
+  void clinicLocation
+  void clinicImageUrl
+
+  const handleConsultationClick = () => {
+    if (!isAuthenticated) {
+      sessionStorage.setItem('consultation_intent', JSON.stringify([clinicId]))
+      router.push(`/auth/login?next=${encodeURIComponent('/profile?section=consultations')}`)
+      return
+    }
+    if (!consultationRequested) {
+      setConfirmModalOpen(true)
+    }
+  }
+
+  const handleConsultationConfirm = async () => {
+    try {
+      const res = await fetch("/api/consultations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinicIds: [clinicId] }),
+      })
+      if (!res.ok) throw new Error('request failed')
+      setConsultationRequested(true)
+    } catch {
+      // leave UI unchanged — user can retry
+    }
+  }
+
+  const handleCancelConfirm = async () => {
+    if (!pendingConsultationId) throw new Error('no consultation id')
+    const res = await fetch(`/api/consultations/${pendingConsultationId}`, { method: 'PATCH' })
+    if (!res.ok) throw new Error('cancel failed')
+    setConsultationRequested(false)
+    setPendingConsultationId(null)
+  }
 
   return (
     <div className="sticky top-24">
@@ -70,17 +133,31 @@ export const SummarySidebar = ({
         <CardContent>
           <div className="grid gap-3">
             {FEATURE_CONFIG.bookConsultation && (
-              <Button
-                variant="teal-primary"
-                size="xl"
-                className="w-full font-medium"
-                href={bookConsultationHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={onBookConsultation}
-              >
-                Book Consultation
-              </Button>
+              consultationRequested ? (
+                <div className="space-y-2">
+                  <div className={cn(
+                    "flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-medium text-muted-foreground"
+                  )}>
+                    <Check className="h-4 w-4 text-[#3EBBB7]" />
+                    Consultation Requested
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCancelModalOpen(true)}
+                    className="w-full text-xs text-slate-400 hover:text-red-500 transition-colors text-center"
+                  >
+                    Cancel request
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  variant="teal-primary"
+                  className="w-full"
+                  onClick={handleConsultationClick}
+                >
+                  Request Free Consultation
+                </Button>
+              )
             )}
 
             <Button
@@ -91,6 +168,17 @@ export const SummarySidebar = ({
             >
               Talk to Leila
             </Button>
+
+            {FEATURE_CONFIG.bookConsultation && (
+              <BookmarkButton
+                clinicId={clinicId}
+                clinicName={clinicName}
+                label="Save Clinic"
+                labelSaved="Saved"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-medium hover:border-[#3EBBB7]"
+                iconClassName="h-4 w-4"
+              />
+            )}
           </div>
 
           {FEATURE_CONFIG.profilePricing && (
@@ -126,14 +214,17 @@ export const SummarySidebar = ({
             Add to Compare
           </IconActionLink>
         )}
-        {FEATURE_CONFIG.saveClinic && (
-          <IconActionLink icon={<Bookmark className="h-4 w-4" />} onClick={onSave}>
-            Save Clinic
-          </IconActionLink>
-        )}
         {FEATURE_CONFIG.share && (
           <IconActionLink icon={<Share2 className="h-4 w-4" />} onClick={onShare}>
             Share
+          </IconActionLink>
+        )}
+        {websiteUrl && (
+          <IconActionLink
+            icon={<Globe className="h-4 w-4" />}
+            onClick={() => window.open(websiteUrl, "_blank", "noopener,noreferrer")}
+          >
+            Visit Website
           </IconActionLink>
         )}
       </div>
@@ -176,6 +267,23 @@ export const SummarySidebar = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConsultationConfirmModal
+        open={confirmModalOpen}
+        onOpenChange={(open) => { if (!open) setConfirmModalOpen(false) }}
+        clinicName={clinicName}
+        isRemoving={false}
+        onConfirm={handleConsultationConfirm}
+      />
+
+      <ConsultationConfirmModal
+        open={cancelModalOpen}
+        onOpenChange={(open) => { if (!open) setCancelModalOpen(false) }}
+        clinicName={clinicName}
+        isRemoving={false}
+        isCancelling={true}
+        onConfirm={handleCancelConfirm}
+      />
     </div>
   )
 }

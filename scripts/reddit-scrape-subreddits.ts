@@ -14,20 +14,36 @@
  *   npx tsx scripts/reddit-scrape-subreddits.ts --sorts top:year
  *
  * timePeriod values: hour, day, week, month, year, all
+ *
+ * Comments (all posts scraped; inherited comments affect score at 0.5 weight; run forum-attribute-threads --include-inherited-comments after):
+ *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments
+ *   npx tsx scripts/reddit-scrape-subreddits.ts --include-comments --comments-per-post 75
+ *   Default: 100 comments per post (set in redditConfig.ts, override via REDDIT_COMMENTS_PER_POST)
  */
 
 import dotenv from 'dotenv'
+import { runRedditPipeline } from '../app/api/redditPipeline/redditPipeline'
+import type { SortSlice, SortOrder, TimePeriod } from '../app/api/redditPipeline/redditConfig'
+import WebSocket from 'ws'
+
 dotenv.config({ path: '.env.local' })
 
-const REQUIRED_ENV = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const
-const missingEnv = REQUIRED_ENV.filter(k => !process.env[k])
+// Node 20 lacks native WebSocket — polyfill for @supabase/realtime-js
+if (!globalThis.WebSocket) globalThis.WebSocket = WebSocket as unknown as typeof globalThis.WebSocket
+
+const {
+  NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+} = process.env
+
+const missingEnv = [
+  !NEXT_PUBLIC_SUPABASE_URL && 'NEXT_PUBLIC_SUPABASE_URL',
+  !SUPABASE_SERVICE_ROLE_KEY && 'SUPABASE_SERVICE_ROLE_KEY',
+].filter(Boolean) as string[]
 if (missingEnv.length > 0) {
   console.error(`Missing required env vars: ${missingEnv.join(', ')}`)
   process.exit(1)
 }
-
-import { runRedditPipeline } from '../app/api/redditPipeline/redditPipeline'
-import type { SortSlice, SortOrder, TimePeriod } from '../app/api/redditPipeline/redditConfig'
 
 // ── Parse CLI args ────────────────────────────────────────────────────────────
 
@@ -43,6 +59,8 @@ const subredditsArg = getArg('--subreddits')
 const maxPostsArg = getArg('--max-posts')
 const lookbackArg = getArg('--lookback-days')
 const sortsArg = getArg('--sorts')
+const includeComments = args.includes('--include-comments')
+const commentsPerPostArg = getArg('--comments-per-post')
 
 // Parse "--sorts new,top:all,controversial:all" into SortSlice[]
 const sortSlices: SortSlice[] | undefined = sortsArg
@@ -64,6 +82,8 @@ async function main() {
     maxPostsPerSubreddit: maxPostsArg ? parseInt(maxPostsArg) : undefined,
     lookbackDays: lookbackArg ? parseInt(lookbackArg) : undefined,
     sortSlices,
+    includeComments,
+    commentsPerPost: commentsPerPostArg ? parseInt(commentsPerPostArg) : undefined,
     dryRun,
   })
 

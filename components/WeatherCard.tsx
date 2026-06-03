@@ -1,11 +1,3 @@
-interface WeatherData {
-  location: string;
-  temperature: number;
-  conditions: string;
-  humidity: number;
-  windSpeed: number;
-}
-
 interface WeatherCardProps {
   location: string;
   temperature: number;

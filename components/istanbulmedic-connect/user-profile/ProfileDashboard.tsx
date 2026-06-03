@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import ProfileHome from './sections/ProfileHome'
 import ProfilePersonalInfo from './sections/ProfilePersonalInfo'
@@ -68,9 +69,40 @@ const NAV: {
   },
 ]
 
+function formatNameList(names: string[]): string {
+  if (names.length === 1) return names[0]
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
+}
+
 export default function ProfileDashboard() {
-  const [active, setActive] = useState<DashboardSection>('home')
-  const { profile, user, loading } = useAuth()
+  const searchParams = useSearchParams()
+  const urlSection = searchParams.get('section') as DashboardSection | null
+  const [active, setActive] = useState<DashboardSection>(
+    urlSection && NAV.some(n => n.id === urlSection) ? urlSection : 'home'
+  )
+  const [bannerResult, setBannerResult] = useState<{ createdNames: string[]; skippedNames: string[] } | null>(null)
+  const { profile, user, loading, consultationResult, clearConsultationResult, bookmarkSyncCount, clearBookmarkSyncCount } = useAuth()
+
+  useEffect(() => {
+    const section = searchParams.get('section') as DashboardSection | null
+    if (section) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('section')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (consultationResult) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBannerResult(consultationResult)
+      clearConsultationResult()
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActive('consultations')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consultationResult])
 
   useEffect(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -196,6 +228,33 @@ export default function ProfileDashboard() {
         {/* Extra top padding on mobile for the tab strip */}
         <div className="md:pt-0 pt-[52px]">
           <div className="max-w-4xl mx-auto px-6 py-8" id={`section-${active}`} role="tabpanel">
+            {bookmarkSyncCount > 0 && (
+              <div className="mb-6 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+                {bookmarkSyncCount} clinic{bookmarkSyncCount !== 1 ? 's have' : ' has'} been added to your saved clinics.{' '}
+                <a href="/bookmarks" onClick={clearBookmarkSyncCount} className="font-medium underline underline-offset-2 hover:text-teal-900">
+                  View saved clinics
+                </a>
+              </div>
+            )}
+            {bannerResult && bannerResult.createdNames.length > 0 && (
+              <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                Consultation{bannerResult.createdNames.length > 1 ? 's' : ''} submitted for{' '}
+                <span className="font-medium">{formatNameList(bannerResult.createdNames)}</span>.{' '}
+                We&apos;ll be in touch soon!
+                {bannerResult.skippedNames.length > 0 && (
+                  <span className="block mt-1 text-green-700">
+                    <span className="font-medium">{formatNameList(bannerResult.skippedNames)}</span>{' '}
+                    {bannerResult.skippedNames.length === 1 ? 'was' : 'were'} already requested.
+                  </span>
+                )}
+              </div>
+            )}
+            {bannerResult && bannerResult.createdNames.length === 0 && bannerResult.skippedNames.length > 0 && (
+              <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                You&apos;ve already requested a consultation for{' '}
+                <span className="font-medium">{formatNameList(bannerResult.skippedNames)}</span>.
+              </div>
+            )}
             {active === 'home' && <ProfileHome onNavigate={setActive} />}
             {active === 'personal-info' && <ProfilePersonalInfo />}
             {active === 'medical-history' && <ProfileMedicalHistory />}

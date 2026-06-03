@@ -54,7 +54,7 @@ export function SectionNav() {
     }
 
     setActiveSection(current)
-  }, [])
+  }, [SECTIONS])
 
   useEffect(() => {
     // Throttled scroll listener

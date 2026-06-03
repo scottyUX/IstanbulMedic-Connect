@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -199,6 +199,8 @@ const isValidPhone = (code: string, local: string): boolean => {
 
 export function GetStarted() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextParam = searchParams.get('next') ?? '/profile'
   const [step, setStep] = useState(0) // 0-indexed
   const [direction, setDirection] = useState(1) // 1 = forward, -1 = back
   const [data, setData] = useState<QualificationData>({})
@@ -418,10 +420,10 @@ export function GetStarted() {
         } finally {
           setSaving(false)
         }
-        router.push("/profile")
+        router.push(nextParam)
       } else {
         window.localStorage.setItem("im.qualification.complete", "true")
-        router.push("/auth/login?tab=signup&next=/profile")
+        router.push(`/auth/login?tab=signup&next=${encodeURIComponent(nextParam)}`)
       }
     } else {
       const next = step + 1
@@ -735,7 +737,7 @@ export function GetStarted() {
                   <p className="im-text-body-sm text-center text-slate-500">
                     Already have an account?{" "}
                     <Link
-                      href="/auth/login?next=/profile"
+                      href={`/auth/login?next=${encodeURIComponent(nextParam)}`}
                       className="font-semibold text-[#17375B] hover:underline underline-offset-2"
                     >
                       Sign in

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Dancing_Script, Geist, Geist_Mono, Merriweather, Poppins } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
+import { BookmarkCountProvider } from "@/contexts/BookmarkCountContext"
 import { LanguageProvider } from "@/contexts/LanguageContext"
 import { TopNav } from "@/components/istanbulmedic-connect/TopNav"
 import Footer from "@/components/common/Footer"
@@ -54,6 +55,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
+          <BookmarkCountProvider>
           <LanguageProvider>
             <TopNav />
             <div className="flex min-h-screen flex-col pt-[80px]">
@@ -61,6 +63,7 @@ export default function RootLayout({
               <Footer />
             </div>
           </LanguageProvider>
+          </BookmarkCountProvider>
         </AuthProvider>
       </body>
     </html>

@@ -156,6 +156,11 @@ export async function fetchPostComments(
   const commentsListing = data[1] as { data?: { children?: { data: unknown }[] } }
   const children = commentsListing?.data?.children ?? []
 
+  const moreCount = children.filter(c => (c.data as Record<string, unknown>)?.kind === 'more').length
+  if (moreCount > 0) {
+    console.debug(`[reddit] Post ${postId}: ${moreCount} truncated thread(s) skipped (kind=more)`)
+  }
+
   return children
     .filter((c) => {
       const d = c.data as Record<string, unknown>

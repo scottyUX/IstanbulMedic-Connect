@@ -97,12 +97,12 @@ const StaticGenUI = () => {
     handler: async ({ initialValue }) => {
       return JSON.stringify({ initialValue: initialValue || 0 });
     },
-    render: ({ status, args, result }) => {
+    render: ({ status, result }) => {
       if (status === "complete" && result) {
         try {
           const data = typeof result === "string" ? JSON.parse(result) : result;
           return <Calculator initialValue={data.initialValue || 0} />;
-        } catch (e) {
+        } catch {
           return <Calculator />;
         }
       }
@@ -128,12 +128,12 @@ const StaticGenUI = () => {
     handler: async ({ todos }) => {
       return JSON.stringify({ todos: todos || [] });
     },
-    render: ({ status, args, result }) => {
+    render: ({ status, result }) => {
       if (status === "complete" && result) {
         try {
           const data = typeof result === "string" ? JSON.parse(result) : result;
           return <TodoList initialTodos={data.todos || []} />;
-        } catch (e) {
+        } catch {
           return <TodoList />;
         }
       }
@@ -165,7 +165,7 @@ const StaticGenUI = () => {
     handler: async ({ note, title }) => {
       return JSON.stringify({ note: note || "", title: title || "Quick Note" });
     },
-    render: ({ status, args, result }) => {
+    render: ({ status, result }) => {
       if (status === "complete" && result) {
         try {
           const data = typeof result === "string" ? JSON.parse(result) : result;
@@ -175,7 +175,7 @@ const StaticGenUI = () => {
               title={data.title || "Quick Note"}
             />
           );
-        } catch (e) {
+        } catch {
           return <NotePad />;
         }
       }
