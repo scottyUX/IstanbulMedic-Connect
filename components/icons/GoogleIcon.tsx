@@ -9,6 +9,7 @@ interface GoogleIconProps {
 export const GoogleIcon = ({ className }: GoogleIconProps) => (
   <svg
     viewBox="0 0 24 24"
+    overflow="visible"
     fill="currentColor"
     className={cn("h-5 w-5 text-[#4285F4]", className)}
     xmlns="http://www.w3.org/2000/svg"
