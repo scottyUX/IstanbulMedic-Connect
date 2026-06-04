@@ -192,14 +192,14 @@ function derivePostFacts(posts: InstagramPost[], clinicId: string) {
   })
 
   // --- Top hashtags ---
-  const hashtagFreq: Record<string, number> = {}
+  const hashtagFreq = new Map<string, number>()
   for (const post of posts)
     for (const tag of post.hashtags ?? []) {
       const t = tag.toLowerCase()
-      hashtagFreq[t] = (hashtagFreq[t] || 0) + 1
+      hashtagFreq.set(t, (hashtagFreq.get(t) ?? 0) + 1)
     }
 
-  const topHashtags = Object.entries(hashtagFreq)
+  const topHashtags = [...hashtagFreq.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20)
     .map(([tag, count]) => ({ tag, count }))
@@ -222,7 +222,7 @@ function derivePostFacts(posts: InstagramPost[], clinicId: string) {
     plastic_surgery:  ['plasticsurgery', 'blepharoplasty', 'eyelidsurgery', 'rhinoplasty', 'breastlift'],
   }
 
-  const allTags = new Set(Object.keys(hashtagFreq))
+  const allTags = new Set(hashtagFreq.keys())
   const inferredServices = Object.entries(serviceKeywords)
     .filter(([, kw]) => kw.some(k => allTags.has(k)))
     .map(([svc]) => svc)
@@ -246,7 +246,7 @@ function derivePostFacts(posts: InstagramPost[], clinicId: string) {
     })
 
   // --- Website mentions in captions ---
-  const websitePattern = /(?:https?:\/\/)?(?:www\.)?([\w-]+\.(?:com|net|org|co\.[a-z]{2})(?:\/\S*)?)/gi
+  const websitePattern = /https?:\/\/(?:www\.)?[\w-]{1,63}\.(?:com|net|org|co\.[a-z]{2})(?:\/\S{0,200})?/gi
   const captionUrls = new Set<string>()
   for (const post of posts)
     for (const m of post.caption?.matchAll(websitePattern) ?? [])

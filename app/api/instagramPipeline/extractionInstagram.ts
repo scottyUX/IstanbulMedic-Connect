@@ -192,7 +192,7 @@ export function extractInstagramClaims(rawData: InstagramScraperResult) {
     likesCount: Number(post.likesCount ?? 0),
     commentsCount: Number(post.commentsCount ?? 0),
     firstComment: String(post.firstComment ?? ""),
-    latestComments: Array.isArray(post.latestComments) ? (post.latestComments as any[]) : [],
+    latestComments: Array.isArray(post.latestComments) ? (post.latestComments as unknown[]) : [],
     timestamp: String(post.timestamp ?? ""),
     displayUrl: String(post.displayUrl ?? ""),
     alt: String(post.alt ?? ""),

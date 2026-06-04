@@ -85,7 +85,7 @@ async function runPipeline() {
           languages: extractedClaims.extracted_claims.languages,
           geography: extractedClaims.extracted_claims.geography,
         },
-        posts: extractedClaims.extracted_claims.posts as InstagramPost[],
+        posts: extractedClaims.extracted_claims.posts as unknown as InstagramPost[],
       });
 
       if (!result.success) {
