@@ -1,6 +1,6 @@
 import { runInstagramScraper } from "./instagramService";
 import { extractInstagramClaims } from "./extractionInstagram";
-import { importInstagramData } from "../../../lib/instagram/importInstagramData";
+import { importInstagramData, type InstagramPost } from "../../../lib/instagram/importInstagramData";
 import * as fs from "fs";
 import * as path from "path";
 import dotenv from "dotenv";
@@ -85,7 +85,7 @@ async function runPipeline() {
           languages: extractedClaims.extracted_claims.languages,
           geography: extractedClaims.extracted_claims.geography,
         },
-        posts: extractedClaims.extracted_claims.posts,
+        posts: extractedClaims.extracted_claims.posts as InstagramPost[],
       });
 
       if (!result.success) {
