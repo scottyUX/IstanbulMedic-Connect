@@ -46,7 +46,7 @@ interface AssistantTurnBubbleProps {
 export const AssistantTurnBubble = ({ genUIMessages, textMessage }: AssistantTurnBubbleProps) => {
   const genUIs = genUIMessages.flatMap((m) => {
     const raw = (m as CopilotKitMessage).generativeUI?.();
-    if (!raw || raw === false || isCopilotBridge(raw)) return [];
+    if (!raw || isCopilotBridge(raw)) return [];
     return [{ id: m.id!, ui: raw }];
   });
 

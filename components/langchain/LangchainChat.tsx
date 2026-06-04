@@ -73,7 +73,7 @@ const LangchainChat = () => {
 
   const flushAssistantTurn = () => {
     if (pendingGenUI.length === 0 && !pendingText) return;
-    const key = pendingText?.id ?? pendingGenUI[0]?.id!;
+    const key = pendingText?.id ?? pendingGenUI[0].id;
     turns.push({
       type: "assistant",
       turn: { key, genUIMessages: pendingGenUI, textMessage: pendingText },

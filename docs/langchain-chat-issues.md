@@ -140,4 +140,91 @@ The model was rounding decimal scores in natural language output.
 
 ---
 
-*For the clinic profile card: consider adding Google rating to the review stats row (data available via `clinic_google_places`).*
+## 10. Database Allowlist Too Restrictive ✅ FIXED
+
+**What happens:**
+Leila could not answer questions about Instagram follower counts, registry licensing, score breakdowns, or team qualifications — even though that data existed in the database.
+
+**Root cause:**
+The `database_lookup` allowlist was conservative and excluded all social/pipeline tables by design, but also excluded several safe clinic-facing tables that had no prompt-injection risk.
+
+**Fix applied (2026-06-04):**
+Added 5 tables to the allowlist in [lib/agents/langchain/guardrails/schema-allowlist.ts](../lib/agents/langchain/guardrails/schema-allowlist.ts):
+- `clinic_social_media` — Instagram/social follower counts and handles
+- `clinic_registry_records` — license and registry status
+- `clinic_score_components` — per-pillar score breakdown with weights
+- `clinic_team_qualifications` — individual doctor/staff certifications
+- `clinic_compliance_history` — compliance events and violations
+
+Kept blocked: all `forum_thread_*`, `hrn_thread_content`, `reddit_thread_content`, `clinic_instagram_posts`, `clinic_reddit_posts` (scraped user content — prompt injection risk), plus all `user_*`, `consultations`, and internal provenance tables (`sources`, `source_documents`, `fact_evidence`, `analyses`).
+
+Added searchable columns and updated tool description in [lib/agents/langchain/tools/databaseLookup.ts](../lib/agents/langchain/tools/databaseLookup.ts). Updated system prompt schema section with descriptions for all new tables. Updated guardrail tests in [tests/agents/langchain/guardrails/schema-allowlist.test.ts](../tests/agents/langchain/guardrails/schema-allowlist.test.ts).
+
+---
+
+## 11. Instagram Score Re-Query Returns 0 Results ✅ FIXED
+
+**What happens:**
+After a `clinic_comparison` card showed an Instagram score of 92/100 for Cosmedica, asking "what is the instagram score for Cosmedica?" triggered a `database_lookup` on `clinic_source_scores` with a text search for "cosmedica" — returning 0 results and a "I don't have that data" response.
+
+**Root cause (two issues):**
+1. `MEMORY_RULE` was already present but Leila re-queried anyway instead of using data from the comparison result already in context.
+2. `clinic_source_scores` has no clinic name column — text search on `source_name`/`explanation` will never match a clinic name.
+
+**Fix applied (2026-06-04):**
+- Added a concrete WRONG/CORRECT example to `MEMORY_RULE` in [lib/agents/langchain/prompts/leila-system-prompt.ts](../lib/agents/langchain/prompts/leila-system-prompt.ts) covering this exact scenario.
+- Added an "IMPORTANT: no clinic name column" note to `clinic_source_scores` in the schema section, with the two-step lookup pattern (resolve clinic_id first, then filter by clinic_id + source_name).
+
+---
+
+## 12. clinic_comparison Missing Instagram and HRN Dimensions ✅ FIXED
+
+**What happens:**
+The comparison table had no Instagram or HRN (Hair Restoration Network forum) rows, even though both data sources exist in the database.
+
+**Fix applied (2026-06-04):**
+
+**Tool** ([lib/agents/langchain/tools/clinicComparison.ts](../lib/agents/langchain/tools/clinicComparison.ts)):
+- Added `instagram` dimension — fetches `clinic_social_media` (follower count, handle, verified) + `clinic_source_scores` (summary_score) in parallel; returns combined object.
+- Added `hrn` dimension — fetches `clinic_forum_profiles` with `forum_source='hrn'`; same shape as reddit.
+- Both added to `DEFAULT_DIMENSIONS` (rows auto-hide when all clinics have null data).
+
+**GenUI component** ([components/langchain/LangchainGenUI.tsx](../components/langchain/LangchainGenUI.tsx)):
+- `instagram` renders as `142K followers / @handle ✓ / Score: 74/100`; highlights clinic with highest source_score.
+- `hrn` renders identically to reddit (`8.2/10 · 43 threads · Mostly positive`); highlights highest score.
+
+---
+
+## 13. Clinic Profile Card Missing Key Signals ✅ FIXED
+
+**What happens:**
+The `ClinicProfileCard` rendered by `clinic_summary` was missing accreditations, community signals (Reddit + Instagram), registry status, procedures count, and Google rating — data that was either already returned by the tool but not rendered, or available with an extra fetch.
+
+**Fix applied (2026-06-04):**
+
+**Tool additions** ([lib/agents/langchain/tools/clinicSummary.ts](../lib/agents/langchain/tools/clinicSummary.ts)):
+Added 4 parallel fetches alongside `fetchClinicData`:
+- `clinic_social_media` → `instagram` (handle, follower_count, verified)
+- `clinic_forum_profiles` (reddit) → `reddit` (score, thread_count, sentiment_score)
+- `clinic_registry_records` → `registry_verified` boolean
+- `clinic_google_places` → `google` (rating, user_ratings_total)
+
+**Card additions** ([components/langchain/LangchainGenUI.tsx](../components/langchain/LangchainGenUI.tsx)):
+- **Trust badges row** — `✓ Licensed` chip (emerald, if registry_verified) + accreditation name chips (up to 3), displayed after the clinic header.
+- **Community section** — Reddit row (icon + score + thread count + sentiment label) and Instagram row (icon + follower count + @handle + verified checkmark), displayed after team.
+- **Stats row** — Added Google rating (`G` logo + star rating + total count) and procedures performed count. Removed the misleading "available reviews" count (was count of reviews in DB, not Google total).
+
+---
+
+## 14. Linter Errors (CI Failure) ✅ FIXED
+
+Fixed 1 error and 7 warnings across 6 files (2026-06-04):
+
+| File | Issue | Fix |
+|---|---|---|
+| `components/langchain/LangchainChat.tsx` | Non-null assertion on optional chain (`?.id!`) | Removed `?` — guard above guarantees array is non-empty |
+| `components/leila/LeilaHero.tsx` | `_onGetStarted` unused | Removed from destructuring |
+| `components/leila/LeilaInput.tsx` | `_onStop`, `_hideStopButton` unused | Removed from destructuring |
+| `components/ui/button.tsx` | `_type` unused (destructured to exclude from spread) | Added `eslint-disable-next-line` |
+| `components/ui/section.tsx` | `_noPadding` unused | Removed from destructuring |
+| `tests/components/ComparisonViews.test.tsx` | `<img>` in mock, unused `_id`/`_name` args | Added `eslint-disable-next-line` comments |
