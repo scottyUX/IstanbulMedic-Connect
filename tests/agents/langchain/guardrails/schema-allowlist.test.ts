@@ -11,8 +11,8 @@ describe("schema-allowlist guardrail", () => {
       expect(ALLOWED_TABLES).toBeInstanceOf(Set);
     });
 
-    it("contains the 14 expected clinic tables", () => {
-      expect(ALLOWED_TABLES.size).toBe(14);
+    it("contains the 21 expected clinic tables", () => {
+      expect(ALLOWED_TABLES.size).toBe(21);
       const expected = [
         "clinics",
         "clinic_locations",
@@ -21,13 +21,20 @@ describe("schema-allowlist guardrail", () => {
         "clinic_pricing",
         "clinic_packages",
         "clinic_scores",
+        "clinic_score_components",
         "clinic_languages",
         "clinic_team",
+        "clinic_team_qualifications",
         "clinic_reviews",
         "clinic_google_places",
         "clinic_mentions",
         "clinic_facts",
         "clinic_media",
+        "clinic_source_scores",
+        "clinic_forum_profiles",
+        "clinic_social_media",
+        "clinic_registry_records",
+        "clinic_compliance_history",
       ];
       for (const table of expected) {
         expect(ALLOWED_TABLES.has(table)).toBe(true);
@@ -44,13 +51,20 @@ describe("schema-allowlist guardrail", () => {
       ["clinic_pricing"],
       ["clinic_packages"],
       ["clinic_scores"],
+      ["clinic_score_components"],
       ["clinic_languages"],
       ["clinic_team"],
+      ["clinic_team_qualifications"],
       ["clinic_reviews"],
       ["clinic_google_places"],
       ["clinic_mentions"],
       ["clinic_facts"],
       ["clinic_media"],
+      ["clinic_source_scores"],
+      ["clinic_forum_profiles"],
+      ["clinic_social_media"],
+      ["clinic_registry_records"],
+      ["clinic_compliance_history"],
     ])("allows '%s' without throwing", (table) => {
       expect(() => assertTableAllowed(table)).not.toThrow();
     });
@@ -58,23 +72,35 @@ describe("schema-allowlist guardrail", () => {
 
   describe("assertTableAllowed — denied tables", () => {
     it.each([
+      // user PII
       "users",
       "user_profiles",
+      "user_treatment_profiles",
+      "user_prior_surgeries",
+      "user_prior_transplants",
+      "user_photos",
       "patient_profiles",
       "consultations",
       "consultation_requests",
       "user_uploads",
-      "scalp_photos",
-      "forum_posts",
-      "forum_comments",
-      "reddit_threads",
-      "reddit_comments",
-      "instagram_posts",
-      "instagram_media",
-      "hrn_threads",
+      // scraping pipeline (prompt injection risk)
+      "forum_thread_index",
+      "hrn_thread_content",
+      "reddit_thread_content",
+      "forum_thread_llm_analysis",
+      "forum_thread_signals",
+      "clinic_instagram_posts",
+      "clinic_reddit_posts",
+      "clinic_reddit_profiles",
+      "clinic_scraped_data",
+      // internal provenance
+      "sources",
+      "source_documents",
+      "fact_evidence",
+      "analyses",
+      // schema bypass attempts
       "auth.users",
       "storage.objects",
-      "sources",
     ])("rejects '%s' with a GuardrailError", (table) => {
       expect(() => assertTableAllowed(table)).toThrow(GuardrailError);
     });

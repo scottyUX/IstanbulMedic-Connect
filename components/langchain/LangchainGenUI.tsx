@@ -27,6 +27,11 @@ interface ClinicProfileCardProps {
     team?: { name?: string; role: string; credentials: string; years_experience?: number }[];
     review_count?: number;
     media?: { url: string; alt_text?: string; caption?: string; is_primary?: boolean }[];
+    accreditations?: { credential_name: string }[];
+    instagram?: { handle: string | null; follower_count: number | null; verified: boolean | null };
+    reddit?: { score: number | null; thread_count: number; sentiment_score: number | null };
+    registry_verified?: boolean;
+    google?: { rating: number | null; total: number | null };
   };
 }
 
@@ -77,6 +82,22 @@ const ClinicProfileCard = ({ summary }: ClinicProfileCardProps) => {
             </div>
           )}
         </div>
+
+        {/* Trust badges */}
+        {(s.registry_verified || (s.accreditations && s.accreditations.length > 0)) && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {s.registry_verified && (
+              <span className="flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-0.5 font-medium">
+                ✓ Licensed
+              </span>
+            )}
+            {s.accreditations?.slice(0, 3).map((a) => (
+              <span key={a.credential_name} className="text-xs bg-[#17375B]/10 text-[#17375B] rounded-full px-2.5 py-0.5 font-medium">
+                {a.credential_name}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Description */}
         {(s.short_description || s.description) && (
@@ -146,20 +167,85 @@ const ClinicProfileCard = ({ summary }: ClinicProfileCardProps) => {
           </div>
         )}
 
+        {/* Community signals */}
+        {(s.reddit || s.instagram) && (
+          <div className="mb-4">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Community</p>
+            <div className="space-y-2">
+              {s.reddit && (
+                <div className="flex items-center gap-2 text-sm">
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-[#FF4500] shrink-0">
+                    <path d="M10 0C4.478 0 0 4.478 0 10s4.478 10 10 10 10-4.478 10-10S15.522 0 10 0zm5.878 11.443a1.24 1.24 0 01-1.24 1.24 1.22 1.22 0 01-.834-.327 6.127 6.127 0 01-3.101.818l.525-2.467 1.71.358a.881.881 0 101.71-.042.88.88 0 00-.88.88l-1.91-.4-.588 2.763c-1.195-.028-2.27-.37-3.103-.818a1.237 1.237 0 11-1.595-1.885 2.41 2.41 0 01-.03-.379c0-1.936 2.254-3.508 5.034-3.508 2.78 0 5.034 1.572 5.034 3.508 0 .133-.01.265-.03.395.24.204.392.511.392.852l-.094.011zm-7.658-.51a.88.88 0 101.76 0 .88.88 0 00-1.76 0zm4.947.88a.88.88 0 100-1.761.88.88 0 000 1.76z"/>
+                  </svg>
+                  {s.reddit.score != null ? (
+                    <span className="font-medium text-gray-900">{s.reddit.score.toFixed(1)}/10</span>
+                  ) : (
+                    <span className="text-gray-400 text-xs italic">Insufficient data</span>
+                  )}
+                  {s.reddit.thread_count > 0 && (
+                    <span className="text-gray-500">· {s.reddit.thread_count} threads</span>
+                  )}
+                  {s.reddit.sentiment_score != null && (
+                    <span className={`text-xs font-medium ml-auto ${
+                      s.reddit.sentiment_score >= 0.65 ? "text-emerald-600" :
+                      s.reddit.sentiment_score >= 0.45 ? "text-amber-600" : "text-rose-500"
+                    }`}>
+                      {s.reddit.sentiment_score >= 0.65 ? "Positive" : s.reddit.sentiment_score >= 0.45 ? "Mixed" : "Negative"}
+                    </span>
+                  )}
+                </div>
+              )}
+              {s.instagram && (s.instagram.follower_count != null || s.instagram.handle) && (
+                <div className="flex items-center gap-2 text-sm">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-[#E1306C] shrink-0">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                  {s.instagram.follower_count != null && (
+                    <span className="font-medium text-gray-900">
+                      {s.instagram.follower_count >= 1_000_000
+                        ? `${(s.instagram.follower_count / 1_000_000).toFixed(1)}M`
+                        : s.instagram.follower_count >= 1_000
+                        ? `${(s.instagram.follower_count / 1_000).toFixed(1)}K`
+                        : s.instagram.follower_count.toLocaleString()} followers
+                    </span>
+                  )}
+                  {s.instagram.handle && (
+                    <span className="text-gray-500">
+                      @{s.instagram.handle}{s.instagram.verified ? " ✓" : ""}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Stats row */}
-        {(s.review_count != null || s.years_in_operation != null || (s.languages && s.languages.length > 0)) && (
-          <div className="flex items-center gap-3 pt-3 border-t border-gray-100 mb-4">
-            {s.review_count != null && (
+        {(s.google != null || s.years_in_operation != null || s.procedures_performed != null || (s.languages && s.languages.length > 0)) && (
+          <div className="flex items-center gap-3 pt-3 border-t border-gray-100 mb-4 flex-wrap">
+            {s.google?.rating != null && (
               <div className="flex items-center gap-1 text-xs text-gray-600">
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" aria-hidden>
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span className="font-medium">{s.google.rating.toFixed(1)}</span>
                 <span className="text-yellow-500">★</span>
-                <span className="font-medium">{s.review_count}</span>
-                <span className="text-gray-400">reviews</span>
+                {s.google.total != null && <span className="text-gray-400">({s.google.total.toLocaleString()})</span>}
               </div>
             )}
             {s.years_in_operation != null && (
               <div className="text-xs text-gray-600">
                 <span className="font-medium">{s.years_in_operation}</span>
                 <span className="text-gray-400"> yrs</span>
+              </div>
+            )}
+            {s.procedures_performed != null && (
+              <div className="text-xs text-gray-600">
+                <span className="font-medium">{s.procedures_performed.toLocaleString()}</span>
+                <span className="text-gray-400"> procedures</span>
               </div>
             )}
             {s.languages && s.languages.length > 0 && (
@@ -220,45 +306,6 @@ const ClinicProfileCard = ({ summary }: ClinicProfileCardProps) => {
   );
 };
 
-interface DatabaseResultsCardProps {
-  table: string;
-  count: number;
-  results: Record<string, unknown>[];
-}
-
-const DatabaseResultsCard = ({ table, count, results }: DatabaseResultsCardProps) => {
-  return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg max-w-lg">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 capitalize">
-          {table.replace(/_/g, " ")}
-        </h3>
-        <span className="text-xs bg-blue-50 text-blue-700 rounded-full px-2 py-0.5">
-          {count} result{count !== 1 ? "s" : ""}
-        </span>
-      </div>
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {results.slice(0, 5).map((row, i) => (
-          <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm">
-            {Object.entries(row)
-              .filter(([k]) => !["id", "clinic_id", "created_at", "updated_at", "source_id"].includes(k))
-              .slice(0, 4)
-              .map(([key, value]) => (
-                <div key={key} className="flex gap-2">
-                  <span className="text-gray-500 capitalize whitespace-nowrap">
-                    {key.replace(/_/g, " ")}:
-                  </span>
-                  <span className="text-gray-900 truncate">
-                    {typeof value === "object" ? JSON.stringify(value) : String(value ?? "—")}
-                  </span>
-                </div>
-              ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 interface LoadingCardProps {
   message: string;
@@ -373,6 +420,7 @@ interface ReviewsCardProps {
     review_date?: string;
     language?: string;
   }[];
+  google?: { rating: number | null; total: number | null } | null;
 }
 
 const REVIEW_TRUNCATE = 220;
@@ -413,7 +461,7 @@ const ReviewItem = ({ r }: { r: ReviewsCardProps["reviews"][number] }) => {
   );
 };
 
-const ReviewsCard = ({ clinic, aggregate, reviews }: ReviewsCardProps) => {
+const ReviewsCard = ({ clinic, aggregate, reviews, google }: ReviewsCardProps) => {
   const maxBucket = Math.max(...Object.values(aggregate.distribution), 1);
   const stars = aggregate.average_rating ?? 0;
   const profileUrl = `/clinics/${clinic.id}#reviews`;
@@ -440,6 +488,23 @@ const ReviewsCard = ({ clinic, aggregate, reviews }: ReviewsCardProps) => {
             </div>
           </div>
         </div>
+
+        {/* Google Places rating */}
+        {google?.rating != null && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-gray-50 rounded-xl">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden>
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            <span className="text-sm font-semibold text-gray-900">{google.rating.toFixed(1)}</span>
+            <span className="text-sm text-yellow-500">{"★".repeat(Math.round(google.rating))}<span className="text-gray-300">{"★".repeat(5 - Math.round(google.rating))}</span></span>
+            {google.total != null && (
+              <span className="text-xs text-gray-500 ml-auto">{google.total.toLocaleString()} Google reviews</span>
+            )}
+          </div>
+        )}
 
         {/* Distribution bars */}
         <div className="space-y-1 mb-1">
@@ -637,6 +702,29 @@ const formatDimensionValue = (dim: string, value: unknown): string => {
     }
     return parts.join(" · ") || "—";
   }
+  if (dim === "instagram" && typeof value === "object") {
+    const ig = value as { follower_count: number | null; account_handle: string | null; verified: boolean | null; source_score: number | null };
+    const parts: string[] = [];
+    if (ig.follower_count != null) {
+      const n = ig.follower_count;
+      const formatted = n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : n.toLocaleString();
+      parts.push(`${formatted} followers`);
+    }
+    if (ig.account_handle) parts.push(`@${ig.account_handle}${ig.verified ? " ✓" : ""}`);
+    if (ig.source_score != null) parts.push(`Score: ${ig.source_score}/100`);
+    return parts.join("\n") || "—";
+  }
+  if (dim === "hrn" && typeof value === "object") {
+    const h = value as { score: number | null; thread_count: number; sentiment_score: number | null };
+    const parts: string[] = [];
+    if (h.score != null) parts.push(`${h.score.toFixed(1)}/10`);
+    if (h.thread_count > 0) parts.push(`${h.thread_count} threads`);
+    if (h.sentiment_score != null) {
+      const label = h.sentiment_score >= 0.65 ? "Mostly positive" : h.sentiment_score >= 0.45 ? "Mixed" : "Mostly negative";
+      parts.push(label);
+    }
+    return parts.join(" · ") || "—";
+  }
   return String(value);
 };
 
@@ -676,6 +764,24 @@ function getBestClinicId(
     return best?.id ?? null;
   }
   if (dim === "reddit") {
+    let best: { id: string; score: number } | null = null;
+    for (const entry of row) {
+      const v = entry.value as { score?: number | null } | null;
+      if (v?.score != null && (!best || v.score > best.score))
+        best = { id: entry.clinic_id, score: v.score };
+    }
+    return best?.id ?? null;
+  }
+  if (dim === "instagram") {
+    let best: { id: string; score: number } | null = null;
+    for (const entry of row) {
+      const v = entry.value as { source_score?: number | null } | null;
+      if (v?.source_score != null && (!best || v.source_score > best.score))
+        best = { id: entry.clinic_id, score: v.source_score };
+    }
+    return best?.id ?? null;
+  }
+  if (dim === "hrn") {
     let best: { id: string; score: number } | null = null;
     for (const entry of row) {
       const v = entry.value as { score?: number | null } | null;
@@ -884,18 +990,23 @@ const LangchainGenUI = () => {
       },
     ],
     // @ts-expect-error - CopilotKit accepts null returns in render functions
-    render: (props: { status: string; result?: string }) => {
-      const { status, result } = props;
+    render: (props: { status: string; result?: string; args?: { table?: string } }) => {
+      const { status, result, args } = props;
       if (status === "complete" && result) {
         try {
           const data = typeof result === "string" ? JSON.parse(result) : result;
-          if (data.results && data.metadata) {
+          if (data.metadata) {
+            const label = data.metadata.table.replace(/_/g, " ");
+            const count: number = data.metadata.count ?? 0;
             return (
-              <DatabaseResultsCard
-                table={data.metadata.table}
-                count={data.metadata.count}
-                results={data.results}
-              />
+              <div className="inline-flex items-center gap-1.5 text-xs text-gray-400 py-0.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3 flex-shrink-0">
+                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                </svg>
+                <span>{label}</span>
+                <span>·</span>
+                <span>{count} {count === 1 ? "result" : "results"}</span>
+              </div>
             );
           }
         } catch {
@@ -903,12 +1014,11 @@ const LangchainGenUI = () => {
         }
       }
       if (status === "inProgress" || status === "executing") {
+        const table = args?.table?.replace(/_/g, " ") ?? "database";
         return (
-          <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm max-w-lg">
-            <div className="flex items-center gap-3 text-gray-600">
-              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm">Searching database...</span>
-            </div>
+          <div className="inline-flex items-center gap-1.5 text-xs text-gray-400 py-0.5">
+            <div className="w-3 h-3 border border-gray-300 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <span>Searching {table}…</span>
           </div>
         );
       }

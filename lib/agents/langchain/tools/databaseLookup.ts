@@ -13,19 +13,26 @@ const SEARCHABLE_COLUMNS: Record<string, string[]> = {
   clinic_reviews: ["review_text"],
   clinic_services: [],
   clinic_team: ["name", "credentials"],
+  clinic_team_qualifications: ["qualification", "source"],
   clinic_scores: [],
+  clinic_score_components: ["component_key", "explanation"],
   clinic_credentials: ["credential_name", "issuing_body"],
   clinic_languages: [],
   clinic_mentions: ["mention_text"],
   clinic_facts: ["fact_key"],
   clinic_media: ["alt_text", "caption"],
   clinic_google_places: [],
+  clinic_source_scores: ["source_name", "explanation"],
+  clinic_forum_profiles: ["summary", "forum_source"],
+  clinic_social_media: ["platform", "account_handle"],
+  clinic_registry_records: ["source", "license_number", "license_status"],
+  clinic_compliance_history: ["event_type", "description"],
 };
 
 export const databaseLookupTool = new DynamicStructuredTool({
   name: "database_lookup",
   description:
-    "Look up information from the database. Available tables: clinics (name, city, status, contact info), clinic_locations (addresses, coordinates), clinic_pricing (service prices), clinic_packages (treatment packages with inclusions), clinic_reviews (patient reviews and ratings), clinic_services (offered procedures), clinic_team (doctors and staff), clinic_scores (quality scores and bands), clinic_credentials (accreditations and licenses), clinic_languages (language support), clinic_mentions (source mentions and sentiment), clinic_facts (computed facts about clinics), clinic_media (photos and images), clinic_google_places (Google reviews and ratings). Most tables have a clinic_id column for filtering by clinic.",
+    "Look up information from the database. Available tables: clinics (name, city, status, contact info), clinic_locations (addresses, coordinates), clinic_pricing (service prices), clinic_packages (treatment packages with inclusions), clinic_reviews (patient reviews and ratings), clinic_services (offered procedures), clinic_team (doctors and staff), clinic_team_qualifications (doctor/staff qualifications and certifications), clinic_scores (overall quality scores and bands), clinic_score_components (per-pillar score breakdown with weights), clinic_credentials (accreditations and licenses), clinic_languages (language support), clinic_mentions (source mentions and sentiment), clinic_facts (computed facts about clinics), clinic_media (photos and images), clinic_google_places (Google reviews and ratings), clinic_source_scores (per-source quality scores: google, reddit, instagram, hrn), clinic_social_media (social media accounts with follower counts and handles), clinic_registry_records (license and registry records), clinic_compliance_history (compliance events and violations), clinic_forum_profiles (aggregated forum signals per clinic). Most tables have a clinic_id column for filtering by clinic.",
   schema: z.object({
     table: z
       .string()
@@ -50,8 +57,17 @@ export const databaseLookupTool = new DynamicStructuredTool({
       .number()
       .optional()
       .describe("Maximum number of results to return, defaults to 10"),
+    order_by: z
+      .object({
+        column: z.string(),
+        direction: z.enum(["asc", "desc"]),
+      })
+      .optional()
+      .describe(
+        "Optional sort order, e.g. { column: 'overall_score', direction: 'desc' } to get highest scores first"
+      ),
   }),
-  func: async ({ table, query, filters, select, limit }) => {
+  func: async ({ table, query, filters, select, limit, order_by }) => {
     const startTime = Date.now();
 
     try {
@@ -79,6 +95,13 @@ export const databaseLookupTool = new DynamicStructuredTool({
             .join(",");
           queryBuilder = queryBuilder.or(orFilter);
         }
+      }
+
+      if (order_by) {
+        queryBuilder = queryBuilder.order(order_by.column, {
+          ascending: order_by.direction === "asc",
+          nullsFirst: false,
+        });
       }
 
       queryBuilder = queryBuilder.limit(limit ?? 10);

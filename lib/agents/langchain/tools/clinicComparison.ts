@@ -19,11 +19,13 @@ const ALL_DIMENSIONS = [
   "google",
   "reddit",
   "registry",
+  "instagram",
+  "hrn",
 ] as const;
 
 type Dimension = (typeof ALL_DIMENSIONS)[number];
 
-const DEFAULT_DIMENSIONS: Dimension[] = ["pricing", "score", "team", "google", "reddit", "registry"];
+const DEFAULT_DIMENSIONS: Dimension[] = ["pricing", "score", "team", "google", "reddit", "instagram", "hrn", "registry"];
 
 interface UnresolvedClinic {
   type: "clinic_id" | "clinic_name";
@@ -52,10 +54,25 @@ interface ReviewRatingRow {
   rating: string | null;
 }
 
+interface InstagramSocialRow {
+  follower_count: number | null;
+  account_handle: string | null;
+  verified: boolean | null;
+}
+
+interface HRNProfileRow {
+  score: unknown;
+  thread_count: number | null;
+  sentiment_score: unknown;
+}
+
 interface ClinicSignals {
   reddit: RedditProfileRow | null;
   registry: RegistryRecordRow[];
   reviews: ReviewRatingRow[];
+  instagram: InstagramSocialRow | null;
+  instagramScore: number | null;
+  hrn: HRNProfileRow | null;
 }
 
 function pickDimensionValue(
@@ -100,13 +117,32 @@ function pickDimensionValue(
       if (signals.registry.length === 0) return null;
       return signals.registry;
     }
+    case "instagram": {
+      const ig = signals.instagram;
+      if (!ig && signals.instagramScore == null) return null;
+      return {
+        follower_count: ig?.follower_count ?? null,
+        account_handle: ig?.account_handle ?? null,
+        verified: ig?.verified ?? null,
+        source_score: signals.instagramScore,
+      };
+    }
+    case "hrn": {
+      const h = signals.hrn;
+      if (!h) return null;
+      return {
+        score: h.score != null ? Number(h.score) : null,
+        thread_count: h.thread_count ?? 0,
+        sentiment_score: h.sentiment_score != null ? Number(h.sentiment_score) : null,
+      };
+    }
   }
 }
 
 export const clinicComparisonTool = new DynamicStructuredTool({
   name: "clinic_comparison",
   description:
-    "Compare 2-4 clinics side by side across one or more dimensions (pricing, score, team, services, languages, location, accreditations, google, reddit, registry). Provide clinic_ids (UUIDs), clinic_names (partial matches), or a mix of both — total must be between 2 and 4. Defaults to pricing, score, team, google, reddit, registry. Add services or languages when explicitly relevant.",
+    "Compare 2-4 clinics side by side across one or more dimensions (pricing, score, team, services, languages, location, accreditations, google, reddit, instagram, hrn, registry). Provide clinic_ids (UUIDs), clinic_names (partial matches), or a mix of both — total must be between 2 and 4. Defaults to pricing, score, team, google, reddit, instagram, hrn, registry. Add services or languages when explicitly relevant.",
   schema: z
     .object({
       clinic_ids: z.array(z.string().uuid()).optional(),
@@ -155,7 +191,7 @@ export const clinicComparisonTool = new DynamicStructuredTool({
       // Fetch bundle + signals for each clinic in parallel.
       const bundlesAndSignals = await Promise.all(
         resolved.map(async (c) => {
-          const [bundle, redditResult, registryResult, reviewsResult] = await Promise.all([
+          const [bundle, redditResult, registryResult, reviewsResult, instagramSocialResult, sourceScoresResult, hrnResult] = await Promise.all([
             fetchClinicData(supabase, c),
             supabase
               .from("clinic_forum_profiles")
@@ -174,13 +210,38 @@ export const clinicComparisonTool = new DynamicStructuredTool({
               .eq("clinic_id", c.id)
               .not("rating", "is", null)
               .limit(200),
+            supabase
+              .from("clinic_social_media")
+              .select("follower_count, account_handle, verified")
+              .eq("clinic_id", c.id)
+              .eq("platform", "instagram")
+              .maybeSingle(),
+            supabase
+              .from("clinic_source_scores")
+              .select("source_name, summary_score")
+              .eq("clinic_id", c.id)
+              .in("source_name", ["instagram", "hrn"]),
+            supabase
+              .from("clinic_forum_profiles")
+              .select("score, thread_count, sentiment_score")
+              .eq("clinic_id", c.id)
+              .eq("forum_source", "hrn")
+              .maybeSingle(),
           ]);
+
+          const scoresBySource = Object.fromEntries(
+            (sourceScoresResult.data ?? []).map((r) => [r.source_name, r.summary_score])
+          );
+
           return {
             bundle,
             signals: {
               reddit: (redditResult.data ?? null) as RedditProfileRow | null,
               registry: (registryResult.data ?? []) as RegistryRecordRow[],
               reviews: (reviewsResult.data ?? []) as ReviewRatingRow[],
+              instagram: (instagramSocialResult.data ?? null) as InstagramSocialRow | null,
+              instagramScore: (scoresBySource["instagram"] ?? null) as number | null,
+              hrn: (hrnResult.data ?? null) as HRNProfileRow | null,
             } satisfies ClinicSignals,
           };
         }),

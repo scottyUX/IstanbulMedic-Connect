@@ -28,6 +28,14 @@ vi.mock('@/components/langchain/MessageBubble', () => ({
       {typeof message.content === 'string' ? message.content : ''}
     </div>
   ),
+  AssistantTurnBubble: ({ textMessage, genUIMessages }: { textMessage: { id: string; content: unknown } | null; genUIMessages: { id: string }[] }) => (
+    <div
+      data-testid="bubble-assistant"
+      data-message-id={textMessage?.id ?? genUIMessages[0]?.id}
+    >
+      {typeof textMessage?.content === 'string' ? textMessage.content : ''}
+    </div>
+  ),
 }));
 
 vi.mock('@/components/langchain/TypingIndicator', () => ({

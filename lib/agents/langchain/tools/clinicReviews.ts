@@ -78,16 +78,23 @@ export const clinicReviewsTool = new DynamicStructuredTool({
         });
       }
 
-      // Fetch up to 200 reviews for accurate aggregates.
-      const { data, error, count } = await supabase
-        .from("clinic_reviews")
-        .select(
-          "id, rating, review_text, review_date, language",
-          { count: "exact" },
-        )
-        .eq("clinic_id", clinic.id)
-        .order("review_date", { ascending: false })
-        .limit(200);
+      // Fetch reviews + Google Places data in parallel.
+      const [{ data, error, count }, googleResult] = await Promise.all([
+        supabase
+          .from("clinic_reviews")
+          .select(
+            "id, rating, review_text, review_date, language",
+            { count: "exact" },
+          )
+          .eq("clinic_id", clinic.id)
+          .order("review_date", { ascending: false })
+          .limit(200),
+        supabase
+          .from("clinic_google_places")
+          .select("rating, user_ratings_total")
+          .eq("clinic_id", clinic.id)
+          .maybeSingle(),
+      ]);
 
       if (error) {
         return JSON.stringify({
@@ -136,10 +143,15 @@ export const clinicReviewsTool = new DynamicStructuredTool({
         }),
       );
 
+      const google = googleResult.data
+        ? { rating: googleResult.data.rating, total: googleResult.data.user_ratings_total }
+        : null;
+
       return JSON.stringify({
         clinic: { id: clinic.id, display_name: clinic.display_name },
         aggregate,
         reviews,
+        ...(google ? { google } : {}),
         metadata: { tookMs: Date.now() - startTime },
       });
     } catch (error) {

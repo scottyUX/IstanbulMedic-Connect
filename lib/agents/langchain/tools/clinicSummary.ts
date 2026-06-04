@@ -81,6 +81,18 @@ interface ClinicSummary {
     years_experience?: number;
   }[];
   review_count?: number;
+  instagram?: {
+    handle: string | null;
+    follower_count: number | null;
+    verified: boolean | null;
+  };
+  reddit?: {
+    score: number | null;
+    thread_count: number;
+    sentiment_score: number | null;
+  };
+  registry_verified?: boolean;
+  google?: { rating: number | null; total: number | null };
 }
 
 // ============================================================================
@@ -136,7 +148,31 @@ export const clinicSummaryTool = new DynamicStructuredTool({
         });
       }
 
-      const bundle = await fetchClinicData(supabase, clinic);
+      const [bundle, socialResult, redditResult, registryResult, googleResult] = await Promise.all([
+        fetchClinicData(supabase, clinic),
+        supabase
+          .from("clinic_social_media")
+          .select("account_handle, follower_count, verified")
+          .eq("clinic_id", clinic.id)
+          .eq("platform", "instagram")
+          .maybeSingle(),
+        supabase
+          .from("clinic_forum_profiles")
+          .select("score, thread_count, sentiment_score")
+          .eq("clinic_id", clinic.id)
+          .eq("forum_source", "reddit")
+          .maybeSingle(),
+        supabase
+          .from("clinic_registry_records")
+          .select("license_status")
+          .eq("clinic_id", clinic.id)
+          .limit(5),
+        supabase
+          .from("clinic_google_places")
+          .select("rating, user_ratings_total")
+          .eq("clinic_id", clinic.id)
+          .maybeSingle(),
+      ]);
 
       const summary: ClinicSummary = {
         id: clinic.id,
@@ -260,6 +296,34 @@ export const clinicSummaryTool = new DynamicStructuredTool({
 
       if (bundle.reviewCount > 0) {
         summary.review_count = bundle.reviewCount;
+      }
+
+      if (socialResult.data) {
+        summary.instagram = {
+          handle: socialResult.data.account_handle,
+          follower_count: socialResult.data.follower_count,
+          verified: socialResult.data.verified,
+        };
+      }
+
+      if (redditResult.data) {
+        const r = redditResult.data;
+        summary.reddit = {
+          score: r.score != null ? Number(r.score) : null,
+          thread_count: r.thread_count ?? 0,
+          sentiment_score: r.sentiment_score != null ? Number(r.sentiment_score) : null,
+        };
+      }
+
+      if ((registryResult.data ?? []).some((r) => r.license_status === "active")) {
+        summary.registry_verified = true;
+      }
+
+      if (googleResult.data) {
+        summary.google = {
+          rating: googleResult.data.rating,
+          total: googleResult.data.user_ratings_total,
+        };
       }
 
       return JSON.stringify({

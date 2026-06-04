@@ -81,9 +81,36 @@ export interface ClinicDataBundle {
   reviewCount: number;
 }
 
+// Common words that are too generic to identify a specific clinic.
+const NAME_STOP_WORDS = new Set([
+  "dr", "hair", "clinic", "transplant", "turkey", "istanbul", "center",
+  "centre", "medical", "health", "care", "the", "and", "for", "of", "in",
+]);
+
+function significantWords(name: string): string[] {
+  return name
+    .split(/[\s\-.,&|/]+/)
+    .map((w) => w.replace(/[^a-zA-Z0-9]/g, ""))
+    .filter((w) => w.length > 1 && !NAME_STOP_WORDS.has(w.toLowerCase()));
+}
+
+async function ilikeClinic(
+  supabase: SupabaseClient,
+  pattern: string,
+): Promise<ClinicCore | null> {
+  const { data, error } = await supabase
+    .from("clinics")
+    .select("*")
+    .ilike("display_name", pattern)
+    .limit(5);
+  if (error || !data || data.length === 0) return null;
+  return (data.find((c) => c.status === "active") ?? data[0]) as ClinicCore;
+}
+
 /**
  * Resolve a clinic row by ID or by name search.
- * Returns the first matching clinic, preferring `active` status on name search.
+ * Falls back to word-by-word matching when the full name query returns nothing,
+ * which handles ASCII/Turkish character mismatches (e.g. "i" vs "ı").
  */
 export async function resolveClinic(
   supabase: SupabaseClient,
@@ -100,14 +127,14 @@ export async function resolveClinic(
     return data[0] as ClinicCore;
   }
   if (clinicName) {
-    const { data, error } = await supabase
-      .from("clinics")
-      .select("*")
-      .ilike("display_name", `%${clinicName}%`)
-      .limit(5);
-    if (error || !data || data.length === 0) return null;
-    const active = data.find((c) => c.status === "active");
-    return (active ?? data[0]) as ClinicCore;
+    const full = await ilikeClinic(supabase, `%${clinicName}%`);
+    if (full) return full;
+
+    // Full-name query returned nothing — try each significant word in order.
+    for (const word of significantWords(clinicName)) {
+      const match = await ilikeClinic(supabase, `%${word}%`);
+      if (match) return match;
+    }
   }
   return null;
 }

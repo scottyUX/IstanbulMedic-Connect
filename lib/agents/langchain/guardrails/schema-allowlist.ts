@@ -16,13 +16,20 @@ export const ALLOWED_TABLES: ReadonlySet<string> = new Set([
   "clinic_pricing",
   "clinic_packages",
   "clinic_scores",
+  "clinic_score_components",
   "clinic_languages",
   "clinic_team",
+  "clinic_team_qualifications",
   "clinic_reviews",
   "clinic_google_places",
   "clinic_mentions",
   "clinic_facts",
   "clinic_media",
+  "clinic_source_scores",
+  "clinic_forum_profiles",
+  "clinic_social_media",
+  "clinic_registry_records",
+  "clinic_compliance_history",
 ]);
 
 /**

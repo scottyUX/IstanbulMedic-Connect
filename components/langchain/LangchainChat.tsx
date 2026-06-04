@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useCopilotChatInternal } from "@copilotkit/react-core";
 import type { Message } from "@ag-ui/core";
 import type { CopilotKitMessage } from "@/types/langchain";
-import MessageBubble from "./MessageBubble";
+import MessageBubble, { AssistantTurnBubble } from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
 import LangchainInput from "./LangchainInput";
 
@@ -26,6 +26,17 @@ function isCopilotBridge(r: unknown): boolean {
   );
 }
 
+// One assistant turn: all tool-call GenUI messages preceding the text response.
+type AssistantTurn = {
+  key: string;
+  genUIMessages: Message[];
+  textMessage: Message | null;
+};
+
+type RenderedTurn =
+  | { type: "user"; message: Message }
+  | { type: "assistant"; turn: AssistantTurn };
+
 const LangchainChat = () => {
   const { messages, sendMessage, isLoading } = useCopilotChatInternal();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,6 +46,7 @@ const LangchainChat = () => {
   const [inputBarHeight, setInputBarHeight] = useState(96);
   const [awaitingAssistant, setAwaitingAssistant] = useState(false);
 
+  // Keep only user messages and assistant messages that have real content or real GenUI.
   const filteredMessages = (messages as Message[]).filter((m) => {
     if (m.id?.startsWith("coagent-state-render-")) return false;
     if (!VISIBLE_ROLES.has(m.role)) return false;
@@ -43,38 +55,51 @@ const LangchainChat = () => {
         typeof m.content === "string" && m.content.trim().length > 0;
       const genUIResult = (m as CopilotKitMessage).generativeUI?.();
       const hasRealGenUI =
-        genUIResult != null && genUIResult !== false && !isCopilotBridge(genUIResult);
+        genUIResult != null &&
+        genUIResult !== false &&
+        !isCopilotBridge(genUIResult);
       return hasText || hasRealGenUI;
     }
     return true;
   });
 
-  // Swap adjacent text-only / genUI-only assistant pairs so the card renders above the text.
-  // The text message is created first by the adapter (TEXT_MESSAGE_START fires before tool calls),
-  // so without this it would appear above the card even though the card arrived visually first.
-  const hasRealGenUI = (m: Message) => {
-    const r = (m as CopilotKitMessage).generativeUI?.();
-    if (r == null || r === false) return false;
-    return !isCopilotBridge(r);
+  // Group all assistant messages between two user messages into one turn.
+  // TEXT_MESSAGE_START is emitted before tool calls, so the text message (msg-*)
+  // can appear before the tool call messages (call_*) in the array. Collecting
+  // both regardless of order and flushing on each user message handles either ordering.
+  const turns: RenderedTurn[] = [];
+  let pendingGenUI: Message[] = [];
+  let pendingText: Message | null = null;
+
+  const flushAssistantTurn = () => {
+    if (pendingGenUI.length === 0 && !pendingText) return;
+    const key = pendingText?.id ?? pendingGenUI[0]?.id!;
+    turns.push({
+      type: "assistant",
+      turn: { key, genUIMessages: pendingGenUI, textMessage: pendingText },
+    });
+    pendingGenUI = [];
+    pendingText = null;
   };
-  const orderedMessages = [...filteredMessages];
-  for (let i = 0; i < orderedMessages.length - 1; i++) {
-    const curr = orderedMessages[i];
-    const next = orderedMessages[i + 1];
-    if (curr.role !== "assistant" || next.role !== "assistant") continue;
-    const currHasText = typeof curr.content === "string" && curr.content.trim().length > 0;
-    const nextHasText = typeof next.content === "string" && next.content.trim().length > 0;
-    if (currHasText && !hasRealGenUI(curr) && hasRealGenUI(next) && !nextHasText) {
-      orderedMessages[i] = next;
-      orderedMessages[i + 1] = curr;
+
+  for (const msg of filteredMessages) {
+    if (msg.role === "user") {
+      flushAssistantTurn();
+      turns.push({ type: "user", message: msg });
+    } else if (msg.role === "assistant") {
+      const hasText =
+        typeof msg.content === "string" && msg.content.trim().length > 0;
+      if (hasText) {
+        pendingText = msg;
+      } else {
+        pendingGenUI.push(msg);
+      }
     }
   }
+  flushAssistantTurn();
 
-  const lastVisibleMessage = orderedMessages[orderedMessages.length - 1];
+  const lastVisibleMessage = filteredMessages[filteredMessages.length - 1];
   const showTypingIndicator = awaitingAssistant || isLoading;
-  // Excludes isLoading: CopilotKit briefly sets isLoading=true on init, which used to
-  // flash the conversation UI before settling. awaitingAssistant is only ever set by
-  // user action, so it correctly gates the greeting without the init-flash.
   const showGreeting = filteredMessages.length === 0 && !awaitingAssistant;
 
   // Detect manual scroll-up so auto-scroll doesn't fight the user
@@ -90,8 +115,6 @@ const LangchainChat = () => {
   }, []);
 
   // Auto-scroll to bottom on new messages / loading state, unless user scrolled up.
-  // rAF defers until after browser layout so scrollHeight is correct even when the
-  // greeting UI unmounts and the first message mounts in the same render cycle.
   useEffect(() => {
     if (userScrolledUpRef.current) return;
     const frame = requestAnimationFrame(() => {
@@ -184,9 +207,18 @@ const LangchainChat = () => {
           style={{ paddingBottom: inputBarHeight + 16 }}
         >
           <div className="max-w-2xl mx-auto">
-            {orderedMessages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))}
+            {turns.map((turn) => {
+              if (turn.type === "user") {
+                return <MessageBubble key={turn.message.id} message={turn.message} />;
+              }
+              return (
+                <AssistantTurnBubble
+                  key={turn.turn.key}
+                  genUIMessages={turn.turn.genUIMessages}
+                  textMessage={turn.turn.textMessage}
+                />
+              );
+            })}
             {showTypingIndicator && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
