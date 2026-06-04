@@ -63,7 +63,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     
     // If href is provided, render as Link
     if (href) {
-      // Filter out button-specific props that shouldn't be on anchor
+      // Exclude `type` — it's a button-only attribute and invalid on <a>
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { type: _type, ...anchorProps } = props as React.AnchorHTMLAttributes<HTMLAnchorElement> & { type?: string }
       return (
         <Link
