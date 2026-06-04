@@ -232,15 +232,15 @@ describe('POST /api/import/instagram', () => {
     it('updates clinic website_url when clinic has no existing website', async () => {
       mockSupabaseSuccess(false) // clinicHasWebsite = false
       const res = await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
-      const json = await res.json()
-      expect(json.results.clinicUpdated).toBeDefined()
+      const { summary } = await res.json()
+      expect(summary.clinicWebsiteUpdated).toBe(true)
     })
 
     it('does NOT update clinic website_url when one already exists', async () => {
       mockSupabaseSuccess(true) // clinicHasWebsite = true
       const res = await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
-      const json = await res.json()
-      expect(json.results.clinicUpdated).toBeUndefined()
+      const { summary } = await res.json()
+      expect(summary.clinicWebsiteUpdated).toBe(false)
     })
   })
 
@@ -609,8 +609,8 @@ describe('POST /api/import/instagram', () => {
       // Override clinic select – should NOT be called when no externalUrls
       const res = await POST(makeRequest({ clinicId: 'clinic-123', instagramData: dataNoUrls }))
       expect(res.status).toBe(200)
-      const json = await res.json()
-      expect(json.results.clinicUpdated).toBeUndefined()
+      const { summary } = await res.json()
+      expect(summary.clinicWebsiteUpdated).toBe(false)
     })
 
     it('handles missing optional extracted_claims fields', async () => {

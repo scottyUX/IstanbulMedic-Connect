@@ -1,5 +1,6 @@
 import { runInstagramScraper } from "./instagramService";
 import { extractInstagramClaims } from "./extractionInstagram";
+import { importInstagramData } from "../../../lib/instagram/importInstagramData";
 import * as fs from "fs";
 import * as path from "path";
 import dotenv from "dotenv";
@@ -8,11 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 // Load .env.local
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
-// Secrets from env (set in .env.local locally, Vercel dashboard in production)
 const apiToken = process.env.APIFY_API_TOKEN as string;
-// POST endpoint for the Instagram import route handler
-const endpoint = process.env.INSTAGRAM_IMPORT_ENDPOINT || "http://localhost:3000/api/import/instagram";
-
 if (!apiToken) throw new Error("Missing env variable: APIFY_API_TOKEN");
 
 const supabase = createClient(
@@ -51,27 +48,6 @@ async function getClinicId(clinicName: string): Promise<string | null> {
   return newClinic.id;
 }
 
-async function uploadToSupabase(payload: {
-  clinicId: string;
-  instagramData: Record<string, unknown>;
-}): Promise<{ success: boolean; error?: string }> {
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    return {
-      success: false,
-      error: errorData.error || `HTTP ${response.status}`,
-    };
-  }
-
-  return { success: true };
-}
-
 async function runPipeline() {
   console.log(`Instagram Pipeline - ${new Date().toISOString()}`);
   console.log(`Clinics to scrape: ${clinics.length}`);
@@ -93,37 +69,35 @@ async function runPipeline() {
       const rawData = await runInstagramScraper({ apiToken, instagramUrl });
       const extractedClaims = extractInstagramClaims(rawData);
 
-      // Save JSON files
+      // Save JSON files locally (useful for debugging; discarded in CI)
       fs.writeFileSync("./instagram-raw-data.json", JSON.stringify(rawData, null, 2));
       fs.writeFileSync("./instagram-extracted-claims.json", JSON.stringify(extractedClaims, null, 2));
       console.log(`  Saved JSON files`);
 
-      const uploadResult = await uploadToSupabase({
-        clinicId,
-        instagramData: {
-          instagram: extractedClaims.instagram,
-          extracted_claims: {
-            identity: extractedClaims.extracted_claims.identity,
-            social: extractedClaims.extracted_claims.social,
-            contact: extractedClaims.extracted_claims.contact,
-            services: extractedClaims.extracted_claims.services,
-            positioning: extractedClaims.extracted_claims.positioning,
-            languages: extractedClaims.extracted_claims.languages,
-            geography: extractedClaims.extracted_claims.geography,
-          },
-          posts: extractedClaims.extracted_claims.posts,
+      const result = await importInstagramData(clinicId, {
+        instagram: extractedClaims.instagram,
+        extracted_claims: {
+          identity: extractedClaims.extracted_claims.identity,
+          social: extractedClaims.extracted_claims.social,
+          contact: extractedClaims.extracted_claims.contact,
+          services: extractedClaims.extracted_claims.services,
+          positioning: extractedClaims.extracted_claims.positioning,
+          languages: extractedClaims.extracted_claims.languages,
+          geography: extractedClaims.extracted_claims.geography,
         },
+        posts: extractedClaims.extracted_claims.posts,
       });
 
-      if (!uploadResult.success) {
-        console.error(`  Upload failed: ${uploadResult.error}`);
+      if (!result.success) {
+        console.error(`  Import failed`);
+        errors.push({ url: instagramUrl, error: "importInstagramData returned failure" });
       } else {
-        console.log(`  Uploaded to Supabase`);
+        const { summary } = result;
+        console.log(`  Imported — facts: ${summary.factsCreated}, posts: ${summary.postsUpserted}`);
+        succeeded++;
       }
-
-      succeeded++;
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error)
+      const msg = error instanceof Error ? error.message : String(error);
       console.error(`  Failed: ${msg}`);
       errors.push({ url: instagramUrl, error: msg });
     }
