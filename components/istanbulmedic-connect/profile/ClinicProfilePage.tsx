@@ -37,7 +37,7 @@ interface ClinicProfilePageProps {
   clinic: ClinicDetail
   registryRecords: RegistryRecord[]
   complianceHistory: ComplianceEvent[]
-  backHref: string
+  backHref?: string
 }
 
 const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
@@ -266,7 +266,7 @@ const communitySignals = {
       <div className="border-b border-border/40 bg-background">
         <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
           <Link
-            href={backHref}
+            href={backHref ?? '/clinics'}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
