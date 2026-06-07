@@ -99,6 +99,8 @@ export const SummarySidebar = ({
   // suppress unused-var warning — kept for future use
   void clinicLocation
   void clinicImageUrl
+  void priceEstimate
+  void sourceScores
 
   const handleConsultationClick = () => {
     if (!isAuthenticated) {
@@ -142,7 +144,7 @@ export const SummarySidebar = ({
               <div className="flex items-center gap-1.5">
                 <ShieldCheck className="h-4 w-4 text-[#3EBBB7] shrink-0" />
                 <span className="text-sm text-muted-foreground">Trust</span>
-                <span className="text-lg font-bold text-foreground">{trustScore}</span>
+                <span className="text-sm font-semibold text-foreground">{trustScore}</span>
                 {bandConfig && (
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${bandConfig.bg} ${bandConfig.color}`}>
                     {trustBand}
