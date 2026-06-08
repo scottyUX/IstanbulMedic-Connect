@@ -30,12 +30,15 @@ export function SectionNav() {
   const [visibleIds, setVisibleIds] = useState<Set<string> | null>(null)
 
   useLayoutEffect(() => {
-    setVisibleIds(new Set(
-      ALL_SECTIONS
-        .filter(s => !s.configKey || FEATURE_CONFIG[s.configKey])
-        .map(s => s.id)
-        .filter(id => document.getElementById(id) !== null)
-    ))
+    if (visibleIds === null) {
+      setVisibleIds(new Set(
+        ALL_SECTIONS
+          .filter(s => !s.configKey || FEATURE_CONFIG[s.configKey])
+          .map(s => s.id)
+          .filter(id => document.getElementById(id) !== null)
+      ))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Before mount: show all feature-enabled sections; after mount: only those with a DOM element
