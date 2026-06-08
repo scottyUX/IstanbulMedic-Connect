@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Bookmark, LayoutDashboard, LogOut, Menu, User } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 
@@ -31,18 +31,21 @@ export const TopNav = () => {
   const headerRef = useRef<HTMLElement>(null)
   const prefetchedRoutes = useRef<Set<string>>(new Set())
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const router = useRouter()
 
-  // Build the sign-in href so the user is sent back to exactly where they were
-  // after logging in (e.g. the comparison page with its clinic selections intact).
+  // Navigate to sign-in, passing the current page as the post-login destination.
+  // Reading window.location.search at click time avoids useSearchParams(), which
+  // would require a Suspense boundary around every page that includes TopNav.
   // Auth pages are excluded to prevent redirect loops.
-  const loginHref = useMemo(() => {
-    if (pathname.startsWith('/auth')) return '/auth/login'
-    const qs = searchParams.toString()
-    const currentPath = qs ? `${pathname}?${qs}` : pathname
-    return `/auth/login?next=${encodeURIComponent(currentPath)}`
-  }, [pathname, searchParams])
+  const handleSignInClick = useCallback(() => {
+    if (pathname.startsWith('/auth')) {
+      router.push('/auth/login')
+      return
+    }
+    const qs = window.location.search
+    const currentPath = qs ? `${pathname}${qs}` : pathname
+    router.push(`/auth/login?next=${encodeURIComponent(currentPath)}`)
+  }, [pathname, router])
   const { isAuthenticated, loading: authLoading, logout } = useAuth()
   const { count: bookmarkCount } = useBookmarkCount()
 
@@ -260,7 +263,7 @@ export const TopNav = () => {
           ) : (
             <Button
               variant="outline"
-              href={loginHref}
+              onClick={handleSignInClick}
               className="shrink-0 border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white"
             >
               Sign in / Sign up
@@ -392,8 +395,7 @@ export const TopNav = () => {
                       ) : (
                         <Button
                           variant="outline"
-                          href={loginHref}
-                          onClick={() => setOpen(false)}
+                          onClick={() => { setOpen(false); handleSignInClick() }}
                           className="w-full border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white"
                         >
                           Sign in / Sign up
