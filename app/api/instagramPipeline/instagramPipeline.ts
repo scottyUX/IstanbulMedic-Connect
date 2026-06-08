@@ -31,7 +31,10 @@ async function getClinicId(clinicName: string): Promise<string | null> {
 
   if (data) return data.id;
 
-  // Not found — create a new clinic
+  // Not found — create a new clinic.
+  // NOTE: display_name lookup is case/whitespace sensitive. If clinics.json doesn't
+  // exactly match the DB value, a duplicate clinic row will be created silently.
+  // Verify clinics.json names against the DB before adding new entries.
   console.log(`  Clinic not found, creating: "${clinicName}"`);
   const { data: newClinic, error: insertError } = await supabase
     .from("clinics")
@@ -48,7 +51,7 @@ async function getClinicId(clinicName: string): Promise<string | null> {
   return newClinic.id;
 }
 
-async function runPipeline() {
+async function runPipeline(): Promise<number> {
   console.log(`Instagram Pipeline - ${new Date().toISOString()}`);
   console.log(`Clinics to scrape: ${clinics.length}`);
 
@@ -114,6 +117,13 @@ async function runPipeline() {
       console.log(`  - ${e.url}: ${e.error}`);
     }
   }
+
+  return errors.length;
 }
 
-runPipeline();
+runPipeline().then((failCount) => {
+  if (failCount > 0) {
+    console.error(`\nExiting with code 1: ${failCount} clinic(s) failed.`);
+    process.exit(1);
+  }
+});

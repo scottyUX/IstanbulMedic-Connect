@@ -399,20 +399,43 @@ export async function importInstagramData(
   if (sourceError) throw sourceError
 
   // ── 2. Source document (raw) ────────────────────────────────────────────────
-  const { data: document, error: documentError } = await supabase
+  // source_documents has no unique constraint beyond PK, so we select-then-update
+  // to avoid creating a new row on every monthly run for the same clinic.
+  const { data: existingDoc } = await supabase
     .from('source_documents')
-    .insert({
-      source_id: source.id,
-      doc_type: 'post',
-      title: `Instagram Profile Data - @${instagramData.instagram.username}`,
-      raw_text: JSON.stringify(instagramData, null, 2),
-      language: 'English',
-      published_at: new Date().toISOString(),
-    })
-    .select()
-    .single()
+    .select('id')
+    .eq('source_id', source.id)
+    .maybeSingle()
 
-  if (documentError) throw documentError
+  let document: { id: string }
+  if (existingDoc) {
+    const { data: updatedDoc, error: updateDocError } = await supabase
+      .from('source_documents')
+      .update({
+        raw_text: JSON.stringify(instagramData, null, 2),
+        published_at: new Date().toISOString(),
+      })
+      .eq('id', existingDoc.id)
+      .select()
+      .single()
+    if (updateDocError) throw updateDocError
+    document = updatedDoc
+  } else {
+    const { data: newDoc, error: documentError } = await supabase
+      .from('source_documents')
+      .insert({
+        source_id: source.id,
+        doc_type: 'post',
+        title: `Instagram Profile Data - @${instagramData.instagram.username}`,
+        raw_text: JSON.stringify(instagramData, null, 2),
+        language: 'English',
+        published_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+    if (documentError) throw documentError
+    document = newDoc
+  }
 
   // ── 3. clinic_social_media ──────────────────────────────────────────────────
   const igProfile = instagramData.extracted_claims.social?.instagram
