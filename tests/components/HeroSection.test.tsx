@@ -83,11 +83,11 @@ describe('HeroSection', () => {
     expect(screen.getByText('No clinic photos uploaded yet')).toBeInTheDocument();
   });
 
-  it('shows Patient Favorite banner when trustBand is A', () => {
+  it('shows IM Favorite banner when trustBand is A', () => {
     render(<HeroSection {...defaultProps} trustBand="A" />);
-    expect(screen.getByText('Patient')).toBeInTheDocument();
-    expect(screen.getByText('favorite')).toBeInTheDocument();
-    expect(screen.getByText('One of the most loved clinics on Istanbul Medic Connect')).toBeInTheDocument();
+    expect(screen.getByText('IM')).toBeInTheDocument();
+    expect(screen.getByText('Favorite')).toBeInTheDocument();
+    expect(screen.getByText('One of the most trusted clinics on Istanbul Medic Connect')).toBeInTheDocument();
     expect(screen.getByText('Awarded our highest trust rating — Band A.')).toBeInTheDocument();
   });
 
@@ -96,14 +96,14 @@ describe('HeroSection', () => {
     expect(screen.getByText('Trust Score')).toBeInTheDocument();
   });
 
-  it('does not show Patient Favorite banner when trustBand is B', () => {
+  it('does not show IM Favorite banner when trustBand is B', () => {
     render(<HeroSection {...defaultProps} trustBand="B" />);
-    expect(screen.queryByText('One of the most loved clinics')).not.toBeInTheDocument();
+    expect(screen.queryByText('One of the most trusted clinics')).not.toBeInTheDocument();
   });
 
-  it('does not show Patient Favorite banner when trustBand is not provided', () => {
+  it('does not show IM Favorite banner when trustBand is not provided', () => {
     render(<HeroSection {...defaultProps} />);
-    expect(screen.queryByText('One of the most loved clinics')).not.toBeInTheDocument();
+    expect(screen.queryByText('One of the most trusted clinics')).not.toBeInTheDocument();
   });
 
   it('renders images with correct alt text', () => {

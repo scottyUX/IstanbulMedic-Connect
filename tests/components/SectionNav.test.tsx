@@ -6,14 +6,26 @@ describe('SectionNav', () => {
   // Mock scrollTo
   const mockScrollTo = vi.fn();
 
+  // SectionNav's useEffect filters tabs to only those with a matching DOM element.
+  // We add the section elements that FEATURE_CONFIG enables so buttons appear.
+  const VISIBLE_SECTION_IDS = ['score-breakdown', 'overview', 'location', 'doctors', 'reviews', 'instagram-intel', 'hrn-signals', 'reddit-signals'];
+
   beforeEach(() => {
     window.scrollTo = mockScrollTo;
-    // Reset scroll position
     Object.defineProperty(window, 'scrollY', { value: 0, writable: true });
+    for (const id of VISIBLE_SECTION_IDS) {
+      const el = document.createElement('div');
+      el.id = id;
+      el.getBoundingClientRect = vi.fn().mockReturnValue({ top: 500 });
+      document.body.appendChild(el);
+    }
   });
 
   afterEach(() => {
     mockScrollTo.mockClear();
+    for (const id of VISIBLE_SECTION_IDS) {
+      document.getElementById(id)?.remove();
+    }
   });
 
   // NOTE: SectionNav now dynamically filters tabs based on FEATURE_CONFIG
@@ -49,12 +61,6 @@ describe('SectionNav', () => {
   });
 
   it('scrolls to section when tab clicked', () => {
-    // Create mock section element
-    const mockElement = document.createElement('div');
-    mockElement.id = 'location';
-    mockElement.getBoundingClientRect = vi.fn().mockReturnValue({ top: 500 });
-    document.body.appendChild(mockElement);
-
     render(<SectionNav />);
     fireEvent.click(screen.getByRole('button', { name: 'Location' }));
 
@@ -62,15 +68,15 @@ describe('SectionNav', () => {
       top: expect.any(Number),
       behavior: 'smooth',
     });
-
-    document.body.removeChild(mockElement);
   });
 
-  it('does not scroll if section element not found', () => {
+  it('scrolls to section when Reviews tab clicked', () => {
     render(<SectionNav />);
     fireEvent.click(screen.getByRole('button', { name: 'Reviews' }));
-    // scrollTo should not be called if element doesn't exist
-    // (depends on implementation, might not call or call with undefined behavior)
+    expect(mockScrollTo).toHaveBeenCalledWith({
+      top: expect.any(Number),
+      behavior: 'smooth',
+    });
   });
 
   it('renders nav element', () => {
@@ -78,11 +84,9 @@ describe('SectionNav', () => {
     expect(screen.getByRole('navigation')).toBeInTheDocument();
   });
 
-  // NOTE: Tab count depends on FEATURE_CONFIG - currently only Location and Reviews are visible
   it('has correct number of visible tabs', () => {
     render(<SectionNav />);
     const buttons = screen.getAllByRole('button');
-    // Currently only Location and Reviews tabs are visible
     expect(buttons.length).toBeGreaterThanOrEqual(2);
   });
 

@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
 import type { ClinicSourceScore } from "@/lib/api/clinics"
+import { GoogleIcon } from "@/components/icons/GoogleIcon"
+import { RedditIcon } from "@/components/icons/RedditIcon"
+import { InstagramIcon } from "@/components/icons/InstagramIcon"
 
 const BAND_CONFIG: Record<string, { color: string; bg: string }> = {
   A: { color: "text-emerald-700", bg: "bg-emerald-50" },
@@ -16,8 +19,6 @@ const BAND_CONFIG: Record<string, { color: string; bg: string }> = {
   C: { color: "text-amber-700",   bg: "bg-amber-50"   },
   D: { color: "text-red-700",     bg: "bg-red-50"     },
 }
-
-const SOURCE_ICON: Record<string, string> = { google: "G", reddit: "R", instagram: "I" }
 
 interface HeroSectionProps {
   clinicName: string
@@ -155,12 +156,10 @@ export const HeroSection = ({
                     className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1.5"
                     data-testid="google-score-chip"
                     onClick={() => {
-                      document.getElementById("score-breakdown")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth", block: "start" })
                     }}
                   >
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#17375B] text-[10px] font-bold text-white">
-                      {SOURCE_ICON.google}
-                    </span>
+                    <GoogleIcon className="h-4 w-4 shrink-0" />
                     Google {googleScore.summary_score}
                   </Button>
                 </>
@@ -178,9 +177,7 @@ export const HeroSection = ({
                       document.getElementById("instagram-intel")?.scrollIntoView({ behavior: "smooth", block: "start" })
                     }}
                   >
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#17375B] text-[10px] font-bold text-white">
-                      {SOURCE_ICON.instagram}
-                    </span>
+                    <InstagramIcon className="h-4 w-4 shrink-0" />
                     Instagram {instagramScore.summary_score}
                   </Button>
                 </>
@@ -195,12 +192,10 @@ export const HeroSection = ({
                     className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1.5"
                     data-testid="reddit-score-chip"
                     onClick={() => {
-                      document.getElementById("reddit-intel")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      document.getElementById("reddit-signals")?.scrollIntoView({ behavior: "smooth", block: "start" })
                     }}
                   >
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#17375B] text-[10px] font-bold text-white">
-                      {SOURCE_ICON.reddit}
-                    </span>
+                    <RedditIcon className="h-4 w-4 shrink-0" />
                     Reddit {redditScore.summary_score}
                   </Button>
                 </>
@@ -223,7 +218,7 @@ export const HeroSection = ({
             </div>
           </div>
 
-          {/* Patient Favorite Banner - only show if clinic has Band A trust score */}
+          {/* IM Favorite Banner - only show if clinic has Band A trust score */}
           {trustBand === "A" && (
             <div className="border border-border/60 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-background shadow-sm">
 
@@ -234,15 +229,15 @@ export const HeroSection = ({
                   <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-[#FFD700] fill-[#FFD700] animate-pulse" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="im-heading-4 text-foreground">Patient</span>
-                  <span className="im-heading-4 text-foreground">favorite</span>
+                  <span className="im-heading-4 text-foreground">IM</span>
+                  <span className="im-heading-4 text-foreground">Favorite</span>
                 </div>
               </div>
 
               {/* Middle: Text */}
               <div className="flex-1 text-center md:text-left px-4">
                 <p className="im-text-body-lg font-medium text-foreground">
-                  One of the most loved clinics on Istanbul Medic Connect
+                  One of the most trusted clinics on Istanbul Medic Connect
                 </p>
                 <p className="text-muted-foreground">
                   Awarded our highest trust rating — Band A.

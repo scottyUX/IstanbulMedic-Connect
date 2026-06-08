@@ -32,16 +32,15 @@ export interface EvidenceTransparencyResult {
 
 const WEIGHTS = {
   google_review_volume_score: 0.20,
-  reddit_volume_score:        0.08,
-  reddit_unique_voices_score: 0.12,
-  reddit_long_term_score:     0.10,
-  reddit_photo_threads_score: 0.08,
+  reddit_volume_score:        0.05,
+  reddit_unique_voices_score: 0.15,
+  reddit_long_term_score:     0.15,
   hrn_threads_score:          0.00,
   hrn_12m_followups_score:    0.00,
-  registry_listed:            0.07,
-  license_verifiable:         0.03,
+  registry_listed:            0.10,
+  license_verifiable:         0.05,
   credentials_score:          0.15,
-  source_breadth_score:       0.17,
+  source_breadth_score:       0.15,
 } as const;
 
 function computeSourceBreadth(sourceCount: number): number {
@@ -63,7 +62,6 @@ export function computeEvidenceTransparencyScore(
     reddit_volume_score:        hasReddit ? inputs.reddit!.reddit_volume_score        : REDDIT_VOLUME_FLOOR,
     reddit_unique_voices_score: hasReddit ? inputs.reddit!.reddit_unique_voices_score : REDDIT_VOLUME_FLOOR,
     reddit_long_term_score:     hasReddit ? inputs.reddit!.reddit_long_term_score     : REDDIT_VOLUME_FLOOR,
-    reddit_photo_threads_score: hasReddit ? inputs.reddit!.reddit_photo_threads_score : REDDIT_VOLUME_FLOOR,
 
     // HRN — stubbed at 0
     hrn_threads_score:          inputs.hrn_threads_score ?? 0,
