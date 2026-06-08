@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { useEffect, useLayoutEffect, useState, useCallback, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
@@ -29,7 +29,7 @@ const ALL_SECTIONS: Section[] = [
 export function SectionNav() {
   const [visibleIds, setVisibleIds] = useState<Set<string> | null>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setVisibleIds(new Set(
       ALL_SECTIONS
         .filter(s => !s.configKey || FEATURE_CONFIG[s.configKey])

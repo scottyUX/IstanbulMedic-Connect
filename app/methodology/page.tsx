@@ -172,7 +172,7 @@ export default function MethodologyPage() {
           <h1 className="im-heading-1 text-foreground mb-4">How Trust Scores Work</h1>
           <p className="text-base text-muted-foreground leading-relaxed max-w-xl">
             Every clinic gets a Trust Score built from public data across independent sources.
-            Here's how raw data becomes a number you can act on.
+            Here&apos;s how raw data becomes a number you can act on.
           </p>
         </div>
       </div>
@@ -256,7 +256,7 @@ export default function MethodologyPage() {
             </div>
           </div>
           <p className="text-xs text-center text-muted-foreground mt-4 leading-relaxed">
-            Reputation leads because it's the most intuitive public signal. Evidence &
+            Reputation leads because it&apos;s the most intuitive public signal. Evidence &
             Transparency carries enough weight to meaningfully shift the final score.
           </p>
         </div>

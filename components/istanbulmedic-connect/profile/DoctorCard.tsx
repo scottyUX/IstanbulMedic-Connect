@@ -39,7 +39,7 @@ function formatVerifiedDate(iso: string | null | undefined): string | null {
 }
 
 export const DoctorCard = ({ doctor, className }: DoctorCardProps) => {
-  const initials =
+  const _initials =
     doctor.name
       ?.split(" ")
       .filter(Boolean)

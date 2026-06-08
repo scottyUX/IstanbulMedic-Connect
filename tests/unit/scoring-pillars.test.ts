@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { computeReputationScore, type ReputationInputs } from '@/lib/scoring/pillars/reputation';
-import { computeEvidenceTransparencyScore, type EvidenceTransparencyInputs } from '@/lib/scoring/pillars/evidenceTransparency';
+import { computeReputationScore } from '@/lib/scoring/pillars/reputation';
+import { computeEvidenceTransparencyScore } from '@/lib/scoring/pillars/evidenceTransparency';
 import type { GoogleMetrics } from '@/lib/scoring/metrics/google';
 import type { RedditMetrics } from '@/lib/scoring/metrics/reddit';
 import type { RegistryMetrics } from '@/lib/scoring/metrics/registry';
