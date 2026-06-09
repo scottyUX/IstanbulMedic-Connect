@@ -50,8 +50,9 @@ interface RegistryRecordRow {
   licensed_since: string | null;
 }
 
-interface ReviewRatingRow {
-  rating: string | null;
+interface GooglePlacesRow {
+  rating: number | null;
+  user_ratings_total: number | null;
 }
 
 interface InstagramSocialRow {
@@ -69,7 +70,7 @@ interface HRNProfileRow {
 interface ClinicSignals {
   reddit: RedditProfileRow | null;
   registry: RegistryRecordRow[];
-  reviews: ReviewRatingRow[];
+  googlePlaces: GooglePlacesRow | null;
   instagram: InstagramSocialRow | null;
   instagramScore: number | null;
   hrn: HRNProfileRow | null;
@@ -96,12 +97,12 @@ function pickDimensionValue(
     case "accreditations":
       return bundle.credentials.length > 0 ? bundle.credentials : null;
     case "google": {
-      const ratings = signals.reviews
-        .map((r) => parseFloat(String(r.rating ?? "")))
-        .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
-      if (ratings.length === 0) return null;
-      const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-      return { average_rating: Number(avg.toFixed(2)), review_count: ratings.length };
+      const gp = signals.googlePlaces;
+      if (!gp || gp.rating == null) return null;
+      return {
+        average_rating: Number(Number(gp.rating).toFixed(2)),
+        review_count: gp.user_ratings_total ?? null,
+      };
     }
     case "reddit": {
       const r = signals.reddit;
@@ -192,7 +193,7 @@ export const clinicComparisonTool = new DynamicStructuredTool({
       // Fetch bundle + signals for each clinic in parallel.
       const bundlesAndSignals = await Promise.all(
         resolved.map(async (c) => {
-          const [bundle, redditResult, registryResult, reviewsResult, instagramSocialResult, sourceScoresResult, hrnResult] = await Promise.all([
+          const [bundle, redditResult, registryResult, googlePlacesResult, instagramSocialResult, sourceScoresResult, hrnResult] = await Promise.all([
             fetchClinicData(supabase, c),
             supabase
               .from("clinic_forum_profiles")
@@ -206,11 +207,10 @@ export const clinicComparisonTool = new DynamicStructuredTool({
               .eq("clinic_id", c.id)
               .limit(5),
             supabase
-              .from("clinic_reviews")
-              .select("rating")
+              .from("clinic_google_places")
+              .select("rating, user_ratings_total")
               .eq("clinic_id", c.id)
-              .not("rating", "is", null)
-              .limit(200),
+              .maybeSingle(),
             supabase
               .from("clinic_social_media")
               .select("follower_count, account_handle, verified")
@@ -239,7 +239,7 @@ export const clinicComparisonTool = new DynamicStructuredTool({
             signals: {
               reddit: (redditResult.data ?? null) as RedditProfileRow | null,
               registry: (registryResult.data ?? []) as RegistryRecordRow[],
-              reviews: (reviewsResult.data ?? []) as ReviewRatingRow[],
+              googlePlaces: (googlePlacesResult.data ?? null) as GooglePlacesRow | null,
               instagram: (instagramSocialResult.data ?? null) as InstagramSocialRow | null,
               instagramScore: (scoresBySource["instagram"] ?? null) as number | null,
               hrn: (hrnResult.data ?? null) as HRNProfileRow | null,
@@ -261,12 +261,14 @@ export const clinicComparisonTool = new DynamicStructuredTool({
 
       const response: Record<string, unknown> = {
         clinics: resolved.map((c, i) => {
-          const media = bundlesAndSignals[i].bundle.media;
-          const primary = media.find((m) => m.is_primary) ?? media[0];
+          const bundle = bundlesAndSignals[i].bundle;
+          const primary = bundle.media.find((m) => m.is_primary) ?? bundle.media[0];
           return {
             id: c.id,
             display_name: c.display_name,
             ...(primary ? { image_url: primary.url } : {}),
+            ...(c.website_url ? { website_url: c.website_url } : {}),
+            ...(bundle.location ? { city: bundle.location.city, country: bundle.location.country } : {}),
           };
         }),
         comparison,

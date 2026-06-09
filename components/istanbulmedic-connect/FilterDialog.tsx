@@ -79,6 +79,7 @@ export function FilterDialog({
             minRating: null,
             minReviews: null,
             minTrustScore: null,
+            ministryVerified: false,
         })
     }
 
@@ -245,6 +246,31 @@ export function FilterDialog({
                                             <span>0</span>
                                             <span>100</span>
                                         </div>
+                                    </div>
+                                </section>
+                                <Separator />
+                            </>
+                        )}
+
+                        {/* Ministry Verified */}
+                        {FILTER_CONFIG.ministryVerified && (
+                            <>
+                                <section>
+                                    <div className="flex items-start justify-between gap-6">
+                                        <div>
+                                            <h3 className="im-heading-4">Ministry Verified</h3>
+                                            <p className="im-text-body-xs im-text-muted mt-1">
+                                                Only show clinics listed in Turkey&apos;s official Ministry of Health registry with an active license.
+                                            </p>
+                                        </div>
+                                        <Checkbox
+                                            id="ministry-verified"
+                                            checked={localFilters.ministryVerified}
+                                            onCheckedChange={(checked) =>
+                                                setLocalFilters({ ...localFilters, ministryVerified: checked as boolean })
+                                            }
+                                            className="mt-0.5 h-5 w-5 shrink-0 border-2 border-input data-[state=checked]:border-[var(--im-color-primary)] data-[state=checked]:bg-[var(--im-color-primary)] data-[state=checked]:text-white"
+                                        />
                                     </div>
                                 </section>
                                 <Separator />

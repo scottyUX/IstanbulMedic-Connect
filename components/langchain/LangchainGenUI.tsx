@@ -174,8 +174,8 @@ const ClinicProfileCard = ({ summary }: ClinicProfileCardProps) => {
             <div className="space-y-2">
               {s.reddit && (
                 <div className="flex items-center gap-2 text-sm">
-                  <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-[#FF4500] shrink-0">
-                    <path d="M10 0C4.478 0 0 4.478 0 10s4.478 10 10 10 10-4.478 10-10S15.522 0 10 0zm5.878 11.443a1.24 1.24 0 01-1.24 1.24 1.22 1.22 0 01-.834-.327 6.127 6.127 0 01-3.101.818l.525-2.467 1.71.358a.881.881 0 101.71-.042.88.88 0 00-.88.88l-1.91-.4-.588 2.763c-1.195-.028-2.27-.37-3.103-.818a1.237 1.237 0 11-1.595-1.885 2.41 2.41 0 01-.03-.379c0-1.936 2.254-3.508 5.034-3.508 2.78 0 5.034 1.572 5.034 3.508 0 .133-.01.265-.03.395.24.204.392.511.392.852l-.094.011zm-7.658-.51a.88.88 0 101.76 0 .88.88 0 00-1.76 0zm4.947.88a.88.88 0 100-1.761.88.88 0 000 1.76z"/>
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-[#FF4500] shrink-0">
+                    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
                   </svg>
                   {s.reddit.score != null ? (
                     <span className="font-medium text-gray-900">{s.reddit.score.toFixed(1)}/10</span>
@@ -210,9 +210,14 @@ const ClinicProfileCard = ({ summary }: ClinicProfileCardProps) => {
                     </span>
                   )}
                   {s.instagram.handle && (
-                    <span className="text-gray-500">
+                    <a
+                      href={`https://instagram.com/${s.instagram.handle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-500 hover:underline"
+                    >
                       @{s.instagram.handle}{s.instagram.verified ? " ✓" : ""}
-                    </span>
+                    </a>
                   )}
                 </div>
               )}
@@ -408,7 +413,7 @@ const DoctorProfileCard = ({ doctors }: DoctorProfileCardProps) => {
 
 interface ReviewsCardProps {
   clinic: { id: string; display_name: string };
-  aggregate: {
+  aggregate?: {
     average_rating: number | null;
     total_count: number;
     distribution: Record<string, number>;
@@ -461,71 +466,43 @@ const ReviewItem = ({ r }: { r: ReviewsCardProps["reviews"][number] }) => {
   );
 };
 
-const ReviewsCard = ({ clinic, aggregate, reviews, google }: ReviewsCardProps) => {
-  const maxBucket = Math.max(...Object.values(aggregate.distribution), 1);
-  const stars = aggregate.average_rating ?? 0;
+const ReviewsCard = ({ clinic, reviews, google }: ReviewsCardProps) => {
   const profileUrl = `/clinics/${clinic.id}#reviews`;
+  const googleRating = google?.rating ?? null;
+  const googleStars = googleRating != null ? Math.round(googleRating) : 0;
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden w-[380px]">
       <div className="p-5">
         {/* Header */}
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-base font-semibold text-[#17375B] leading-tight">{clinic.display_name}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-2xl font-bold text-gray-900 leading-none">
-                {aggregate.average_rating != null ? aggregate.average_rating.toFixed(1) : "—"}
-              </span>
-              <span aria-hidden className="text-base leading-none">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <span key={i} style={{ color: i < Math.round(stars) ? "#FFD700" : "#D1D5DB" }}>★</span>
-                ))}
-              </span>
-              <span className="text-xs text-gray-500">
-                {aggregate.total_count} review{aggregate.total_count === 1 ? "" : "s"}
-              </span>
+            <div className="flex items-center gap-2 mt-1.5">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden>
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              {googleRating != null ? (
+                <>
+                  <span className="text-2xl font-bold text-gray-900 leading-none">{googleRating.toFixed(1)}</span>
+                  <span aria-hidden className="text-base leading-none">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} style={{ color: i < googleStars ? "#FFD700" : "#D1D5DB" }}>★</span>
+                    ))}
+                  </span>
+                  {google?.total != null && (
+                    <span className="text-xs text-gray-500">({google.total.toLocaleString()} Google reviews)</span>
+                  )}
+                </>
+              ) : (
+                <span className="text-sm text-gray-400">No Google rating available</span>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Google Places rating */}
-        {google?.rating != null && (
-          <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-gray-50 rounded-xl">
-            <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden>
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            <span className="text-sm font-semibold text-gray-900">{google.rating.toFixed(1)}</span>
-            <span className="text-sm text-yellow-500">{"★".repeat(Math.round(google.rating))}<span className="text-gray-300">{"★".repeat(5 - Math.round(google.rating))}</span></span>
-            {google.total != null && (
-              <span className="text-xs text-gray-500 ml-auto">{google.total.toLocaleString()} Google reviews</span>
-            )}
-          </div>
-        )}
-
-        {/* Distribution bars */}
-        <div className="space-y-1 mb-1">
-          {[5, 4, 3, 2, 1].map((bucket) => {
-            const count = aggregate.distribution[bucket] ?? 0;
-            const pct = (count / maxBucket) * 100;
-            return (
-              <div key={bucket} className="flex items-center gap-2 text-xs">
-                <span className="w-3 text-gray-500 text-right">{bucket}</span>
-                <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: "#FFD700" }} />
-                </div>
-                <span className="w-5 text-right text-gray-400">{count}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <p className="text-[10px] text-gray-400 mb-4">
-          Distribution based on {aggregate.total_count} review{aggregate.total_count === 1 ? "" : "s"} in our database
-        </p>
 
         {/* Reviews */}
         <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Most recent</p>
@@ -627,7 +604,14 @@ const PackagesCard = ({ clinic, packages }: PackagesCardProps) => {
 };
 
 interface ClinicComparisonTableProps {
-  clinics: { id: string; display_name: string; image_url?: string }[];
+  clinics: {
+    id: string;
+    display_name: string;
+    image_url?: string;
+    website_url?: string;
+    city?: string;
+    country?: string;
+  }[];
   comparison: Record<string, { clinic_id: string; value: unknown }[]>;
   unresolved?: { type: string; value: string }[];
 }
@@ -688,8 +672,9 @@ const formatDimensionValue = (dim: string, value: unknown): string => {
     return `${value.length}`;
   }
   if (dim === "google" && value !== null && typeof value === "object") {
-    const g = value as { average_rating: number; review_count: number };
-    return `${g.average_rating.toFixed(1)} ★  ·  ${g.review_count} reviews`;
+    const g = value as { average_rating: number; review_count: number | null };
+    const count = g.review_count != null ? `  ·  ${g.review_count.toLocaleString()} reviews` : "";
+    return `${g.average_rating.toFixed(1)} ★${count}`;
   }
   if (dim === "reddit" && value !== null && typeof value === "object") {
     const r = value as { score: number | null; thread_count: number; sentiment_score: number | null };
@@ -793,86 +778,220 @@ function getBestClinicId(
   return null;
 }
 
+function DimIcon({ dim }: { dim: string }): React.ReactNode {
+  const cls = "w-3.5 h-3.5";
+  switch (dim) {
+    case "pricing":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${cls} text-gray-400`}>
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+          <line x1="7" y1="7" x2="7.01" y2="7"/>
+        </svg>
+      );
+    case "score":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${cls} text-gray-400`}>
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      );
+    case "team":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${cls} text-gray-400`}>
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+      );
+    case "google":
+      return (
+        <svg viewBox="0 0 24 24" className={cls}>
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+      );
+    case "reddit":
+      return (
+        <svg viewBox="0 0 20 20" fill="currentColor" className={`${cls} text-[#FF4500]`}>
+          <path d="M10 0C4.478 0 0 4.478 0 10s4.478 10 10 10 10-4.478 10-10S15.522 0 10 0zm5.878 11.443a1.24 1.24 0 01-1.24 1.24 1.22 1.22 0 01-.834-.327 6.127 6.127 0 01-3.101.818l.525-2.467 1.71.358a.881.881 0 101.71-.042.88.88 0 00-.88.88l-1.91-.4-.588 2.763c-1.195-.028-2.27-.37-3.103-.818a1.237 1.237 0 11-1.595-1.885 2.41 2.41 0 01-.03-.379c0-1.936 2.254-3.508 5.034-3.508 2.78 0 5.034 1.572 5.034 3.508 0 .133-.01.265-.03.395.24.204.392.511.392.852l-.094.011zm-7.658-.51a.88.88 0 101.76 0 .88.88 0 00-1.76 0zm4.947.88a.88.88 0 100-1.761.88.88 0 000 1.76z"/>
+        </svg>
+      );
+    case "instagram":
+      return (
+        <svg viewBox="0 0 24 24" fill="currentColor" className={`${cls} text-[#E1306C]`}>
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+        </svg>
+      );
+    case "hrn":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${cls} text-gray-400`}>
+          <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
+        </svg>
+      );
+    case "registry":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${cls} text-emerald-500`}>
+          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      );
+    case "location":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${cls} text-gray-400`}>
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
+      );
+    case "languages":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${cls} text-gray-400`}>
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+        </svg>
+      );
+    case "accreditations":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${cls} text-gray-400`}>
+          <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+        </svg>
+      );
+    case "services":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${cls} text-gray-400`}>
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+const DIM_LABEL: Record<string, string> = {
+  pricing: "Price", score: "Score", team: "Team", google: "Google",
+  reddit: "Reddit", instagram: "Instagram", hrn: "HRN", registry: "Registry",
+  location: "Location", languages: "Languages", accreditations: "Accred.", services: "Services",
+};
+
 const ClinicComparisonTable = ({
   clinics,
   comparison,
   unresolved,
 }: ClinicComparisonTableProps) => {
   const dimensions = Object.keys(comparison);
+
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-md w-[380px] overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr>
-            <th className="pb-2 pr-2" />
-            {clinics.map((c) => {
-              const initials = c.display_name
-                .split(" ").filter(Boolean).slice(0, 2)
-                .map((w) => w[0]?.toUpperCase() ?? "").join("");
-              return (
-                <th key={c.id} className="text-left pb-2 px-2 min-w-[110px]">
-                  {c.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={c.image_url}
-                      alt={c.display_name}
-                      className="w-full h-14 object-cover rounded-lg mb-1.5"
-                    />
-                  ) : (
-                    <div className="w-full h-14 rounded-lg bg-[#17375B]/10 flex items-center justify-center mb-1.5">
-                      <span className="text-[#17375B] text-sm font-semibold">{initials}</span>
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden w-[520px]">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="align-top border-b-2 border-gray-100">
+              <th className="w-14 p-0" />
+              {clinics.map((c) => {
+                const initials = c.display_name
+                  .split(" ").filter(Boolean).slice(0, 2)
+                  .map((w) => w[0]?.toUpperCase() ?? "").join("");
+                const safeWebsite = c.website_url?.match(/^https?:\/\//) ? c.website_url : null;
+                return (
+                  <th key={c.id} className="p-0 min-w-[200px] text-left align-top border-l border-gray-100 first:border-l-0">
+                    {c.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.image_url} alt={c.display_name} className="w-full h-20 object-cover" />
+                    ) : (
+                      <div className="w-full h-20 bg-[#17375B]/10 flex items-center justify-center">
+                        <span className="text-[#17375B] text-xl font-semibold">{initials}</span>
+                      </div>
+                    )}
+                    <div className="p-2.5 pb-3">
+                      <a
+                        href={`/clinics/${c.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-[#17375B] hover:underline leading-tight block mb-1"
+                      >
+                        {c.display_name}
+                      </a>
+                      {(c.city || c.country) && (
+                        <p className="text-[10px] text-gray-400 mb-2">
+                          📍 {[c.city, c.country].filter(Boolean).join(", ")}
+                        </p>
+                      )}
+                      {safeWebsite && (
+                          <a
+                            href={safeWebsite}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 border border-[#3EBBB7] text-[#3EBBB7] text-[10px] font-medium rounded-lg px-2 py-1 hover:bg-[#3EBBB7]/10 transition-colors"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3">
+                              <circle cx="12" cy="12" r="10"/>
+                              <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
+                            </svg>
+                            Site
+                          </a>
+                        )}
                     </div>
-                  )}
-                  <a
-                    href={`/clinics/${c.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-semibold text-[#17375B] hover:underline leading-tight block"
-                  >
-                    {c.display_name}
-                  </a>
-                </th>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {dimensions.map((dim) => {
+              const row = comparison[dim];
+              if (row.every((entry) => entry.value == null)) return null;
+              const bestId = getBestClinicId(dim, row);
+              return (
+                <tr key={dim} className="border-t border-gray-100">
+                  <td className="py-3 pl-3 pr-1 align-middle">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <DimIcon dim={dim} />
+                      <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wide text-center leading-tight">
+                        {DIM_LABEL[dim] ?? dim}
+                      </span>
+                    </div>
+                  </td>
+                  {clinics.map((c) => {
+                    const entry = row.find((r) => r.clinic_id === c.id);
+                    const cellText = formatDimensionValue(dim, entry?.value);
+                    const igHandle =
+                      dim === "instagram"
+                        ? (entry?.value as { account_handle?: string | null } | null)?.account_handle
+                        : null;
+                    return (
+                      <td
+                        key={c.id}
+                        className={`py-3 px-2 align-top max-w-[200px] whitespace-pre-line text-xs border-l border-gray-50 ${
+                          bestId === c.id ? "text-[#3EBBB7] font-medium" : "text-gray-700"
+                        }`}
+                      >
+                        {igHandle ? (
+                          <a
+                            href={`https://instagram.com/${igHandle}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {cellText}
+                          </a>
+                        ) : (
+                          cellText
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
               );
             })}
-          </tr>
-        </thead>
-        <tbody>
-          {dimensions.map((dim) => {
-            const row = comparison[dim];
-            if (row.every((entry) => entry.value == null)) return null;
-            const bestId = getBestClinicId(dim, row);
-            return (
-              <tr key={dim} className="border-t border-gray-100">
-                <td className="py-2 pr-2 text-xs font-medium text-gray-400 uppercase tracking-wide align-top whitespace-nowrap">
-                  {dim}
-                </td>
-                {clinics.map((c) => {
-                  const entry = row.find((r) => r.clinic_id === c.id);
-                  return (
-                    <td
-                      key={c.id}
-                      className={`py-2 px-2 align-top max-w-[140px] whitespace-pre-line ${
-                        bestId === c.id
-                          ? "text-[#3EBBB7] font-medium"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      {formatDimensionValue(dim, entry?.value)}
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
+
       {unresolved && unresolved.length > 0 && (
-        <p className="text-xs text-gray-400 italic mt-3">
+        <p className="text-xs text-gray-400 italic mx-4 mt-2">
           Could not find: {unresolved.map((u) => u.value).join(", ")}
         </p>
       )}
 
-      <div className="mt-4 pt-3 border-t border-gray-100">
+      <div className="px-4 pb-4 pt-3 border-t border-gray-100">
         <a
           href={
             clinics.length === 2
@@ -1112,12 +1231,13 @@ const LangchainGenUI = () => {
         try {
           const data = typeof result === "string" ? JSON.parse(result) : result;
           if (data.error) return <ErrorCard message={data.error} />;
-          if (data.aggregate && data.reviews) {
+          if (data.reviews) {
             return (
               <ReviewsCard
                 clinic={data.clinic}
                 aggregate={data.aggregate}
                 reviews={data.reviews}
+                google={data.google}
               />
             );
           }

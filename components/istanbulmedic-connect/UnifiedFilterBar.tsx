@@ -34,6 +34,10 @@ export const UnifiedFilterBar = ({
     const activeLanguageCount = Object.values(filters.languages).filter(Boolean).length
     const activeAccreditationCount = Object.values(filters.accreditations).filter(Boolean).length
     const totalActiveFilters = activeTreatmentCount + activeLanguageCount + activeAccreditationCount
+      + (filters.ministryVerified ? 1 : 0)
+      + (filters.minRating !== null ? 1 : 0)
+      + (filters.minReviews !== null ? 1 : 0)
+      + (filters.minTrustScore !== null ? 1 : 0)
 
     return (
         <div className={cn("w-full", className)}>

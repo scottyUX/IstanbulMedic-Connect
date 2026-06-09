@@ -128,7 +128,6 @@ export const clinicReviewsTool = new DynamicStructuredTool({
 
       return JSON.stringify({
         clinic: { id: clinic.id, display_name: clinic.display_name },
-        aggregate,
         reviews,
         ...(google ? { google } : {}),
         metadata: { tookMs: Date.now() - startTime },

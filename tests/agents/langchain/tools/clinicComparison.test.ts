@@ -295,14 +295,14 @@ describe("clinicComparisonTool", () => {
   });
 
   describe("signal dimensions", () => {
-    it("populates google dimension from clinic_reviews average", async () => {
+    it("populates google dimension from clinic_google_places aggregate", async () => {
       mockCreateClient.mockResolvedValue(
         buildMockSupabase({
           clinicsById: { [CLINIC_A.id]: CLINIC_A, [CLINIC_B.id]: CLINIC_B },
           perClinic: {
             [CLINIC_A.id]: {
-              clinic_reviews: {
-                data: [{ rating: "5" }, { rating: "4" }, { rating: "5" }],
+              clinic_google_places: {
+                data: [{ rating: 4.8, user_ratings_total: 1664 }],
                 error: null,
               },
             },
@@ -318,8 +318,8 @@ describe("clinicComparisonTool", () => {
       const aGoogle = googleRow.find((e) => e.clinic_id === CLINIC_A.id)!;
       const bGoogle = googleRow.find((e) => e.clinic_id === CLINIC_B.id)!;
 
-      expect((aGoogle.value as { average_rating: number; review_count: number }).average_rating).toBeCloseTo(4.67, 1);
-      expect((aGoogle.value as { review_count: number }).review_count).toBe(3);
+      expect((aGoogle.value as { average_rating: number }).average_rating).toBeCloseTo(4.8, 1);
+      expect((aGoogle.value as { review_count: number }).review_count).toBe(1664);
       expect(bGoogle.value).toBeNull();
     });
 

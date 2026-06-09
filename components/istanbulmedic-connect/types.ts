@@ -30,4 +30,5 @@ export interface FilterState {
   minRating: number | null      // null = "Any"
   minReviews: number | null     // null = "Any"
   minTrustScore: number | null  // null = "Any"
+  ministryVerified: boolean
 }

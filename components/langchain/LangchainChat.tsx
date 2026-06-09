@@ -9,10 +9,10 @@ import TypingIndicator from "./TypingIndicator";
 import LangchainInput from "./LangchainInput";
 
 const QUICK_SUGGESTIONS = [
-  "Schedule a free consultation",
   "What is a hair transplant?",
-  "How much does it cost?",
-  "What is the recovery time?",
+  "Compare the 2 clinics with the highest trust scores in Istanbul",
+  "Can you help me book a consultation?",
+  "Which clinics have the highest trust scores?",
 ];
 
 const VISIBLE_ROLES = new Set(["user", "assistant"]);
@@ -197,6 +197,9 @@ const LangchainChat = () => {
                 </button>
               ))}
             </div>
+            <p className="text-sm text-gray-400 mt-4">
+              You can also ask me about any clinic&apos;s trust scores, registry verifications, surgeons, patient reviews and ratings, or source scores.
+            </p>
           </div>
         </div>
       ) : (

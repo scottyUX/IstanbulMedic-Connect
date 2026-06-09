@@ -80,7 +80,7 @@ interface ClinicSummary {
     credentials: string;
     years_experience?: number;
   }[];
-  review_count?: number;
+  platform_review_count?: number;
   instagram?: {
     handle: string | null;
     follower_count: number | null;
@@ -295,7 +295,7 @@ export const clinicSummaryTool = new DynamicStructuredTool({
       }
 
       if (bundle.reviewCount > 0) {
-        summary.review_count = bundle.reviewCount;
+        summary.platform_review_count = bundle.reviewCount;
       }
 
       if (socialResult.data) {
