@@ -21,6 +21,7 @@ export interface InstagramSourceScore {
   confidence_score: number;
   metrics_json: Record<string, number>;
   breakdown_json: { weights: Record<string, number> };
+  explanation: string;
 }
 
 const WEIGHTS = {
@@ -78,5 +79,6 @@ export function computeInstagramSourceScore(data: InstagramRawSourceData): Insta
     confidence_score: computeConfidence(data),
     metrics_json: metrics,
     breakdown_json: { weights: { ...WEIGHTS } },
+    explanation: "Based on follower count, verified status, and posting activity.",
   };
 }

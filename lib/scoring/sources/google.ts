@@ -13,6 +13,7 @@ export interface GoogleSourceScore {
   breakdown_json: {
     weights: Record<keyof GoogleMetrics, number>;
   };
+  explanation: string;
 }
 
 const WEIGHTS = {
@@ -38,5 +39,6 @@ export function computeGoogleSourceScore(metrics: GoogleMetrics): GoogleSourceSc
     confidence_score: Math.min(Math.max(confidence_score, 0), 100),
     metrics_json: metrics,
     breakdown_json: { weights: WEIGHTS },
+    explanation: "Based on star rating and total review count from Google Maps.",
   };
 }

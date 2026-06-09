@@ -67,9 +67,17 @@ describe('OverviewSection', () => {
 
   // ── Techniques ─────────────────────────────────────────────────────────────
 
-  it('renders techniques joined as a string', () => {
-    render(<OverviewSection {...defaultProps} techniques={['FUE', 'DHI', 'Sapphire FUE']} />);
-    expect(screen.getByText('FUE, DHI, Sapphire FUE')).toBeInTheDocument();
+  it('renders techniques as badges', () => {
+    render(
+      <OverviewSection
+        {...defaultProps}
+        techniques={['FUE', 'DHI', 'Sapphire FUE']}
+      />
+    );
+
+    expect(screen.getByText('FUE')).toBeInTheDocument();
+    expect(screen.getByText('DHI')).toBeInTheDocument();
+    expect(screen.getByText('Sapphire FUE')).toBeInTheDocument();
   });
 
   it('renders single technique without comma', () => {

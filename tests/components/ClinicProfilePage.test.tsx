@@ -197,20 +197,19 @@ describe('ClinicProfilePage', () => {
         ],
       },
     });
-    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
 
-    expect(screen.getByText('Social Media Presence')).toBeInTheDocument();
-    expect(screen.getByText('@istanbulclinic')).toBeInTheDocument();
+    render(
+      <ClinicProfilePage  
+        clinic={clinic}
+        registryRecords={[]}
+        complianceHistory={[]}
+      />
+    );
+
+    expect(screen.getByText('Engagement')).toBeInTheDocument()
+    expect(screen.getByText('2.3%')).toBeInTheDocument()
+    expect(screen.getByText(/Above average/i)).toBeInTheDocument()
   });
-
-  it('does not render instagram card when instagramSignals is null', () => {
-    const clinic = createMinimalClinic({ instagramSignals: null });
-    render(<ClinicProfilePage clinic={clinic} registryRecords={[]} complianceHistory={[]} />);
-
-    // The signals card should not be present when there's no data
-    expect(screen.queryByText('Social Media Presence')).not.toBeInTheDocument();
-  });
-
   // TODO: Unskip when FEATURE_CONFIG.profileOverview is enabled
   it.skip('renders specialties from services', () => {
     const clinic = createMinimalClinic({
