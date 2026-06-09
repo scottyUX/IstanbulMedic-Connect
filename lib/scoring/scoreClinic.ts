@@ -21,8 +21,10 @@ const SCORE_VERSION = "v1.0";
 
 export async function scoreClinic(
   supabase: SupabaseClient,
-  clinicId: string
+  clinicId: string,
+  options?: { dryRun?: boolean }
 ): Promise<void> {
+  const dryRun = options?.dryRun ?? false;
   // ─────────────────────────────────────────────────────────────────────────
   // 1. Fetch raw data in parallel
   // ─────────────────────────────────────────────────────────────────────────
@@ -181,113 +183,115 @@ export async function scoreClinic(
   // 6. Persist results
   // ─────────────────────────────────────────────────────────────────────────
 
-  // --- clinic_source_scores (Google) ---
-  await supabase
-    .from("clinic_source_scores")
-    .update({ is_current: false })
-    .eq("clinic_id", clinicId)
-    .eq("source_name", "google")
-    .eq("is_current", true);
-
-  const { error: sourceError } = await supabase
-    .from("clinic_source_scores")
-    .upsert({
-      clinic_id:        clinicId,
-      source_name:      "google",
-      score_version:    SCORE_VERSION,
-      summary_score:    googleSource.summary_score,
-      confidence_score: googleSource.confidence_score,
-      metrics_json:     googleSource.metrics_json,
-      breakdown_json:   googleSource.breakdown_json,
-      is_current:       true,
-    }, { onConflict: "clinic_id,source_name,score_version" });
-
-  if (sourceError) throw new Error(`Source score insert failed: ${sourceError.message}`);
-
-  // --- clinic_source_scores (Reddit) ---
-  if (redditSource) {
+  if (!dryRun) {
+    // --- clinic_source_scores (Google) ---
     await supabase
       .from("clinic_source_scores")
       .update({ is_current: false })
       .eq("clinic_id", clinicId)
-      .eq("source_name", "reddit")
+      .eq("source_name", "google")
       .eq("is_current", true);
 
-    const { error: redditSourceError } = await supabase
+    const { error: sourceError } = await supabase
       .from("clinic_source_scores")
       .upsert({
         clinic_id:        clinicId,
-        source_name:      "reddit",
+        source_name:      "google",
         score_version:    SCORE_VERSION,
-        summary_score:    redditSource.summary_score,
-        confidence_score: redditSource.confidence_score,
-        metrics_json:     redditSource.metrics_json,
-        breakdown_json:   redditSource.breakdown_json,
+        summary_score:    googleSource.summary_score,
+        confidence_score: googleSource.confidence_score,
+        metrics_json:     googleSource.metrics_json,
+        breakdown_json:   googleSource.breakdown_json,
         is_current:       true,
       }, { onConflict: "clinic_id,source_name,score_version" });
 
-    if (redditSourceError) throw new Error(`Reddit source score insert failed: ${redditSourceError.message}`);
-  }
+    if (sourceError) throw new Error(`Source score insert failed: ${sourceError.message}`);
 
-  // --- clinic_source_scores (Instagram) ---
-  if (instagramSource) {
-    await supabase
-      .from("clinic_source_scores")
-      .update({ is_current: false })
-      .eq("clinic_id", clinicId)
-      .eq("source_name", "instagram")
-      .eq("is_current", true);
+    // --- clinic_source_scores (Reddit) ---
+    if (redditSource) {
+      await supabase
+        .from("clinic_source_scores")
+        .update({ is_current: false })
+        .eq("clinic_id", clinicId)
+        .eq("source_name", "reddit")
+        .eq("is_current", true);
 
-    const { error: instagramSourceError } = await supabase
-      .from("clinic_source_scores")
+      const { error: redditSourceError } = await supabase
+        .from("clinic_source_scores")
+        .upsert({
+          clinic_id:        clinicId,
+          source_name:      "reddit",
+          score_version:    SCORE_VERSION,
+          summary_score:    redditSource.summary_score,
+          confidence_score: redditSource.confidence_score,
+          metrics_json:     redditSource.metrics_json,
+          breakdown_json:   redditSource.breakdown_json,
+          is_current:       true,
+        }, { onConflict: "clinic_id,source_name,score_version" });
+
+      if (redditSourceError) throw new Error(`Reddit source score insert failed: ${redditSourceError.message}`);
+    }
+
+    // --- clinic_source_scores (Instagram) ---
+    if (instagramSource) {
+      await supabase
+        .from("clinic_source_scores")
+        .update({ is_current: false })
+        .eq("clinic_id", clinicId)
+        .eq("source_name", "instagram")
+        .eq("is_current", true);
+
+      const { error: instagramSourceError } = await supabase
+        .from("clinic_source_scores")
+        .upsert({
+          clinic_id:        clinicId,
+          source_name:      "instagram",
+          score_version:    SCORE_VERSION,
+          summary_score:    instagramSource.summary_score,
+          confidence_score: instagramSource.confidence_score,
+          metrics_json:     instagramSource.metrics_json,
+          breakdown_json:   instagramSource.breakdown_json,
+          is_current:       true,
+        }, { onConflict: "clinic_id,source_name,score_version" });
+
+      if (instagramSourceError) throw new Error(`Instagram source score insert failed: ${instagramSourceError.message}`);
+    }
+
+    // --- clinic_score_components (pillars) ---
+    const { error: componentsError } = await supabase
+      .from("clinic_score_components")
+      .upsert([
+        {
+          clinic_id:     clinicId,
+          component_key: "reputation",
+          score:         reputation.score,
+          weight:        overall.reputation_weight,
+          explanation:   "",
+        },
+        {
+          clinic_id:     clinicId,
+          component_key: "evidence_transparency",
+          score:         evidence.score,
+          weight:        overall.evidence_transparency_weight,
+          explanation:   "",
+        },
+      ], { onConflict: "clinic_id,component_key" });
+
+    if (componentsError) throw new Error(`Components upsert failed: ${componentsError.message}`);
+
+    // --- clinic_scores (overall) ---
+    const { error: overallError } = await supabase
+      .from("clinic_scores")
       .upsert({
-        clinic_id:        clinicId,
-        source_name:      "instagram",
-        score_version:    SCORE_VERSION,
-        summary_score:    instagramSource.summary_score,
-        confidence_score: instagramSource.confidence_score,
-        metrics_json:     instagramSource.metrics_json,
-        breakdown_json:   instagramSource.breakdown_json,
-        is_current:       true,
-      }, { onConflict: "clinic_id,source_name,score_version" });
+        clinic_id:     clinicId,
+        overall_score: overall.overall_score,
+        band:          overall.band,
+        version:       SCORE_VERSION,
+        computed_at:   new Date().toISOString(),
+      }, { onConflict: "clinic_id" });
 
-    if (instagramSourceError) throw new Error(`Instagram source score insert failed: ${instagramSourceError.message}`);
+    if (overallError) throw new Error(`Overall score upsert failed: ${overallError.message}`);
   }
-
-  // --- clinic_score_components (pillars) ---
-  const { error: componentsError } = await supabase
-    .from("clinic_score_components")
-    .upsert([
-      {
-        clinic_id:     clinicId,
-        component_key: "reputation",
-        score:         reputation.score,
-        weight:        overall.reputation_weight,
-        explanation:   "",
-      },
-      {
-        clinic_id:     clinicId,
-        component_key: "evidence_transparency",
-        score:         evidence.score,
-        weight:        overall.evidence_transparency_weight,
-        explanation:   "",
-      },
-    ], { onConflict: "clinic_id,component_key" });
- 
-  if (componentsError) throw new Error(`Components upsert failed: ${componentsError.message}`);
-
-  // --- clinic_scores (overall) ---
-  const { error: overallError } = await supabase
-    .from("clinic_scores")
-    .upsert({
-      clinic_id:     clinicId,
-      overall_score: overall.overall_score,
-      band:          overall.band,
-      version:       SCORE_VERSION,
-      computed_at:   new Date().toISOString(),
-    }, { onConflict: "clinic_id" });
-
-  if (overallError) throw new Error(`Overall score upsert failed: ${overallError.message}`);
 
   console.log(
     `✅ ${clinicId} → overall: ${overall.overall_score} (${overall.band}) | ` +

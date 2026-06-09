@@ -31,6 +31,8 @@ const AUTHORITATIVE_SOURCES = [
   "ishrs",
   "abhrs",
   "ebopras",
+  "tprecd",   // Turkish board-certified plastic surgeons association
+  "iahrs",    // International Alliance of Hair Restoration Surgeons
   "turkish_medical_association",
   "ministry_of_health",
 ];

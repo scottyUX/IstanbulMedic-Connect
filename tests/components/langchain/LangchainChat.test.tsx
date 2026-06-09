@@ -96,10 +96,10 @@ describe('LangchainChat', () => {
 
     it('shows 4 quick suggestion buttons', () => {
       render(<LangchainChat />);
-      expect(screen.getByText('Schedule a free consultation')).toBeInTheDocument();
       expect(screen.getByText('What is a hair transplant?')).toBeInTheDocument();
-      expect(screen.getByText('How much does it cost?')).toBeInTheDocument();
-      expect(screen.getByText('What is the recovery time?')).toBeInTheDocument();
+      expect(screen.getByText('Compare the 2 clinics with the highest trust scores in Istanbul')).toBeInTheDocument();
+      expect(screen.getByText('Can you help me book a consultation?')).toBeInTheDocument();
+      expect(screen.getByText('Which clinics have the highest trust scores?')).toBeInTheDocument();
     });
 
     it('does not show a typing indicator when idle', () => {

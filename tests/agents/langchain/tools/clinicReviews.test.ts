@@ -115,34 +115,6 @@ describe("clinicReviewsTool", () => {
   });
 
   describe("aggregate", () => {
-    it("includes total_count matching the exact count from Supabase", async () => {
-      mockCreateClient.mockResolvedValue(buildMockSupabase());
-      const r = await clinicReviewsTool.invoke({ clinic_id: CLINIC_VERA.id });
-      const parsed = JSON.parse(r);
-      expect(parsed.aggregate.total_count).toBe(7);
-    });
-
-    it("computes average_rating using parseFloat (string column safe)", async () => {
-      mockCreateClient.mockResolvedValue(buildMockSupabase());
-      const r = await clinicReviewsTool.invoke({ clinic_id: CLINIC_VERA.id });
-      const parsed = JSON.parse(r);
-      // (5+5+4+4+3+2+1) / 7 = 24/7 = 3.43
-      expect(parsed.aggregate.average_rating).toBeCloseTo(3.43, 1);
-    });
-
-    it("computes rating distribution by bucket 1..5", async () => {
-      mockCreateClient.mockResolvedValue(buildMockSupabase());
-      const r = await clinicReviewsTool.invoke({ clinic_id: CLINIC_VERA.id });
-      const parsed = JSON.parse(r);
-      expect(parsed.aggregate.distribution).toEqual({
-        1: 1,
-        2: 1,
-        3: 1,
-        4: 2,
-        5: 2,
-      });
-    });
-
     it("filters by min_rating client-side (no string lex compare)", async () => {
       mockCreateClient.mockResolvedValue(buildMockSupabase());
       const r = await clinicReviewsTool.invoke({
@@ -156,17 +128,6 @@ describe("clinicReviewsTool", () => {
       }
     });
 
-    it("total_count reflects filtered subset when min_rating is set", async () => {
-      mockCreateClient.mockResolvedValue(buildMockSupabase());
-      const r = await clinicReviewsTool.invoke({
-        clinic_id: CLINIC_VERA.id,
-        min_rating: 4,
-      });
-      const parsed = JSON.parse(r);
-      // REVIEWS with rating >= 4: ratings 5, 5, 4, 4 → 4 reviews
-      // total_count must match the filtered count (4), not the Supabase unfiltered count (7)
-      expect(parsed.aggregate.total_count).toBe(4);
-    });
   });
 
   describe("display reviews", () => {
@@ -209,8 +170,7 @@ describe("clinicReviewsTool", () => {
       const parsed = JSON.parse(r);
 
       expect(parsed.reviews).toEqual([]);
-      expect(parsed.aggregate.total_count).toBe(0);
-      expect(parsed.aggregate.average_rating).toBeNull();
+      expect(parsed.aggregate).toBeUndefined();
     });
   });
 

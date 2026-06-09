@@ -435,7 +435,7 @@ describe('clinicSummaryTool', () => {
     });
 
     it('includes review count', () => {
-      expect(parsed.summary.review_count).toBe(42);
+      expect(parsed.summary.platform_review_count).toBe(42);
     });
 
     it('includes media images with null fields stripped', () => {
@@ -510,7 +510,7 @@ describe('clinicSummaryTool', () => {
       expect(parsed.summary.score).toBeUndefined();
       expect(parsed.summary.languages).toBeUndefined();
       expect(parsed.summary.team).toBeUndefined();
-      expect(parsed.summary.review_count).toBeUndefined();
+      expect(parsed.summary.platform_review_count).toBeUndefined();
     });
   });
 

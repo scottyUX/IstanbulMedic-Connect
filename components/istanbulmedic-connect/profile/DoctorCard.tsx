@@ -39,14 +39,6 @@ function formatVerifiedDate(iso: string | null | undefined): string | null {
 }
 
 export const DoctorCard = ({ doctor, className }: DoctorCardProps) => {
-  const initials =
-    doctor.name
-      ?.split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "DR"
-
   const verified = doctor.verifiedQualifications ?? []
   const lastVerifiedLabel = formatVerifiedDate(doctor.lastVerifiedAt)
 

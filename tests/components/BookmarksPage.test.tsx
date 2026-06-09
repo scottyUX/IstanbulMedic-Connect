@@ -202,9 +202,12 @@ describe('BookmarksPage', () => {
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
 
-    // Button should still be present — clinic is still requestable
-    expect(screen.getByRole('button', { name: /request consultation/i })).toBeInTheDocument()
-    expect(screen.queryByText(/requested/i)).not.toBeInTheDocument()
+    // waitFor needed: Radix Dialog removes aria-hidden from background content
+    // asynchronously on close, so getByRole would miss the button without it.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /request consultation/i })).toBeInTheDocument()
+      expect(screen.queryByText(/requested/i)).not.toBeInTheDocument()
+    })
   })
 
   // ── Bulk select + request ───────────────────────────────────────────────────

@@ -53,7 +53,7 @@ describe('ReviewsSection', () => {
 
   it('shows no reviews message when average rating is null', () => {
     render(<ReviewsSection {...defaultProps} averageRating={null} />);
-    expect(screen.getByText('No Google reviews yet.')).toBeInTheDocument();
+    expect(screen.getByText('No Google Reviews available yet.')).toBeInTheDocument();
   });
 
   it('renders review count', () => {
@@ -75,7 +75,7 @@ describe('ReviewsSection', () => {
 
   it('shows no reviews message when totalReviews is 0', () => {
     render(<ReviewsSection {...defaultProps} totalReviews={0} reviews={[]} />);
-    expect(screen.getByText(/No Google reviews yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No Google Reviews available yet/)).toBeInTheDocument();
   });
 
   it('renders review author names', () => {
@@ -281,6 +281,6 @@ describe('ReviewsSection modal search', () => {
     fireEvent.click(screen.getByText('Clear search'));
 
     // Should show all reviews again
-    expect(screen.getByText('3 reviews')).toBeInTheDocument();
+    expect(screen.getByText(/3 available Google reviews/)).toBeInTheDocument();
   });
 });

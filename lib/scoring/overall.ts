@@ -5,10 +5,10 @@
 //   overall_score = 0.60 * reputation_score + 0.40 * evidence_transparency_score
 //
 // Bands:
-//   A = 70–100
-//   B = 60–69
-//   C = 40–59
-//   D = 0–39
+//   A = 80–100
+//   B = 70–79
+//   C = 60–69
+//   D = 0–59
 
 export type ScoreBand = "A" | "B" | "C" | "D";
 
@@ -23,9 +23,9 @@ const REPUTATION_WEIGHT = 0.60;
 const EVIDENCE_WEIGHT = 0.40;
 
 export function computeBand(score: number): ScoreBand {
-  if (score >= 70) return "A";
-  if (score >= 60) return "B";
-  if (score >= 40) return "C";
+  if (score >= 80) return "A";
+  if (score >= 70) return "B";
+  if (score >= 60) return "C";
   return "D";
 }
 

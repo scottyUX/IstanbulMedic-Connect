@@ -98,10 +98,8 @@ export default function ProfileDashboard() {
 
   useEffect(() => {
     if (consultationResult) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBannerResult(consultationResult)
       clearConsultationResult()
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActive('consultations')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

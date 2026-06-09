@@ -23,6 +23,14 @@ import { cn } from "@/lib/utils"
 import { FILTER_CONFIG } from "@/lib/filterConfig"
 import type { FilterState, TreatmentType, Language, Accreditation } from "./types"
 
+function getBandInfo(score: number | null): { label: string; className: string } | null {
+    if (score === null || score === 0) return null
+    if (score >= 80) return { label: "Band A — Excellent", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" }
+    if (score >= 70) return { label: "Band B or better", className: "bg-blue-50 text-blue-700 border border-blue-200" }
+    if (score >= 60) return { label: "Band C or better", className: "bg-amber-50 text-amber-700 border border-amber-200" }
+    return { label: "Band D or better", className: "bg-red-50 text-red-700 border border-red-200" }
+}
+
 interface FilterDialogProps {
     filters: FilterState
     onFilterChange: (newFilters: FilterState) => void
@@ -127,7 +135,7 @@ export function FilterDialog({
                                                     : "bg-[var(--im-color-primary)] text-white"
                                             )}
                                         >
-                                            {localFilters.minRating == null ? "Any" : `${localFilters.minRating.toFixed(1)}+`}
+                                            {localFilters.minRating == null ? "Any" : localFilters.minRating === 5 ? "5.0" : `${localFilters.minRating.toFixed(1)}+`}
                                         </span>
                                     </div>
                                     <p className="im-text-body-xs im-text-muted mb-4">
@@ -168,7 +176,7 @@ export function FilterDialog({
                                                     : "bg-[var(--im-color-primary)] text-white"
                                             )}
                                         >
-                                            {localFilters.minReviews == null ? "Any" : `${localFilters.minReviews}+`}
+                                            {localFilters.minReviews == null ? "Any" : localFilters.minReviews === 2000 ? "2,000" : `${localFilters.minReviews}+`}
                                         </span>
                                     </div>
                                     <p className="im-text-body-xs im-text-muted mb-4">
@@ -178,8 +186,8 @@ export function FilterDialog({
                                         <Slider
                                             value={[localFilters.minReviews ?? 0]}
                                             min={0}
-                                            max={500}
-                                            step={10}
+                                            max={2000}
+                                            step={50}
                                             onValueChange={([val]) =>
                                                 setLocalFilters({ ...localFilters, minReviews: val === 0 ? null : val })
                                             }
@@ -187,7 +195,7 @@ export function FilterDialog({
                                         />
                                         <div className="flex justify-between text-xs text-muted-foreground mt-1">
                                             <span>Any</span>
-                                            <span>500+</span>
+                                            <span>2,000</span>
                                         </div>
                                     </div>
                                 </section>
@@ -209,29 +217,13 @@ export function FilterDialog({
                                                     : "bg-[var(--im-color-primary)] text-white"
                                             )}
                                         >
-                                            {localFilters.minTrustScore == null ? "Any" : `${localFilters.minTrustScore}+`}
+                                            {localFilters.minTrustScore == null ? "Any" : localFilters.minTrustScore === 100 ? "100" : `${localFilters.minTrustScore}+`}
                                         </span>
                                     </div>
                                     <p className="im-text-body-xs im-text-muted mb-4">
                                         Filter by our trust score based on verified sources.
                                     </p>
                                     <div className="px-2">
-                                        {/* Band checkpoints: C(40–59) B(60–79) A(80–100) */}
-                                        <div className="relative mb-1">
-                                            {[
-                                                { label: "C", pct: 40 },
-                                                { label: "B", pct: 60 },
-                                                { label: "A", pct: 70 },
-                                            ].map(({ label, pct }) => (
-                                                <span
-                                                    key={label}
-                                                    className="absolute -translate-x-1/2 text-xs font-medium text-muted-foreground"
-                                                    style={{ left: `${pct}%` }}
-                                                >
-                                                    {label}
-                                                </span>
-                                            ))}
-                                        </div>
                                         <Slider
                                             value={[localFilters.minTrustScore ?? 0]}
                                             min={0}
@@ -242,9 +234,17 @@ export function FilterDialog({
                                             }
                                             className="w-full py-4"
                                         />
-                                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                                            <span>0</span>
-                                            <span>100</span>
+                                        <div className="flex justify-between items-center mt-1">
+                                            <span className="text-xs text-muted-foreground">0</span>
+                                            {(() => {
+                                                const band = getBandInfo(localFilters.minTrustScore)
+                                                return band ? (
+                                                    <span className={cn("text-xs font-medium px-2.5 py-0.5 rounded-full", band.className)}>
+                                                        {band.label}
+                                                    </span>
+                                                ) : null
+                                            })()}
+                                            <span className="text-xs text-muted-foreground">100</span>
                                         </div>
                                     </div>
                                 </section>
