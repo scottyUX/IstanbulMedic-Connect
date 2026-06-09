@@ -30,7 +30,7 @@ export interface ReputationInputs {
 export interface ReputationResult {
   score: number;
   metrics_json: Record<string, number>;
-  breakdown_json: { weights: Record<string, number> };
+  breakdown_json: { weights: Record<string, number>; additive?: Record<string, number> };
 }
 
 const WEIGHTS = {
