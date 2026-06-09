@@ -12,12 +12,13 @@ export interface GoogleMetrics {
 }
 
 /**
- * Normalize Google star rating (0–5) to a 0–100 score.
- * A 5.0 → 100, a 4.0 → 75, a 3.0 → 50, etc.
+ * Normalize Google star rating anchored at 3.5–5.0.
+ * 3.5 → 0, 5.0 → 100. Scores below 3.5 are clamped to 0.
+ * Avoids compressing all real clinics (4.2–5.0) into an 84–100 band.
  */
 function normalizeRating(rating: number | null): number {
   if (rating === null) return 0;
-  return Math.round((Math.min(Math.max(rating, 0), 5) / 5) * 100);
+  return Math.round(Math.min(Math.max((rating - 3.5) / 1.5, 0), 1) * 100);
 }
 
 /**

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { useEffect, useLayoutEffect, useState, useCallback, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
 
@@ -11,6 +11,7 @@ interface Section {
 }
 
 const ALL_SECTIONS: Section[] = [
+  { id: "score-breakdown", label: "Trust Score" },
   { id: "overview", label: "Overview", configKey: "profileOverview" },
   { id: "location", label: "Location", configKey: "locationMap" },
   { id: "pricing", label: "Pricing", configKey: "profilePricing" },
@@ -21,15 +22,32 @@ const ALL_SECTIONS: Section[] = [
   { id: "reviews", label: "Reviews", configKey: "reviews" },
   { id: "community", label: "Community", configKey: "profileCommunitySignals" },
   { id: "instagram-intel", label: "Social", configKey: "profileInstagram" },
+  { id: "hrn-signals", label: "HRN", configKey: "profileHRN" },
+  { id: "reddit-signals", label: "Reddit", configKey: "profileRedditSignals" },
 ]
 
 export function SectionNav() {
-  // Filter sections based on feature config
+  const [visibleIds, setVisibleIds] = useState<Set<string> | null>(null)
+
+  useLayoutEffect(() => {
+    if (visibleIds === null) {
+      setVisibleIds(new Set(
+        ALL_SECTIONS
+          .filter(s => !s.configKey || FEATURE_CONFIG[s.configKey])
+          .map(s => s.id)
+          .filter(id => document.getElementById(id) !== null)
+      ))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Before mount: show all feature-enabled sections; after mount: only those with a DOM element
   const SECTIONS = useMemo(() =>
     ALL_SECTIONS.filter(section =>
-      !section.configKey || FEATURE_CONFIG[section.configKey]
+      (!section.configKey || FEATURE_CONFIG[section.configKey]) &&
+      (visibleIds === null || visibleIds.has(section.id))
     ),
-    []
+    [visibleIds]
   )
 
   const [activeSection, setActiveSection] = useState<string>(SECTIONS[0]?.id ?? "location")

@@ -13,8 +13,7 @@ export interface RedditRawData {
 }
 
 export interface RedditMetrics {
-  reddit_sentiment_score: number;        // 0–100
-  reddit_caution_penalty: number;        // 0–100
+  reddit_sentiment_score: number;        // 0–100 (caution-adjusted)
   reddit_volume_score: number;           // 0–100
   reddit_unique_voices_score: number;    // 0–100
   reddit_long_term_score: number;        // 0–100
@@ -33,7 +32,7 @@ function normalizeSentiment(sentiment: number | null): number {
 
 /**
  * Normalize a count to 0–100 using log scale.
- * 0 → 0, ~10 → ~50, ~100 → ~83, 500+ → ~100
+ * 0 → 0, ~10 → ~50, ~100 → ~83, max+ → ~100
  */
 function normalizeCount(count: number, max = 500): number {
   if (count <= 0) return 0;
@@ -41,14 +40,14 @@ function normalizeCount(count: number, max = 500): number {
 }
 
 /**
- * Repair mention ratio — penalizes clinics with high repair mention rates.
- * 0 repair mentions → 0 penalty, >20% of threads are repair mentions → high penalty.
+ * Reduce raw sentiment by repair mention ratio.
+ * Repair ratio > 20% starts cutting into the score; at 70%+ it zeroes out.
  */
-function computeRepairPenalty(repairMentions: number, totalThreads: number): number {
-  if (totalThreads === 0) return 0;
-  const ratio = repairMentions / totalThreads;
-  const adjusted = Math.max(ratio - 0.2, 0); // ignore first 20% — some repair mentions are normal
-  return Math.round(Math.min(adjusted * 200, 100));
+function applyCautionAdjustment(sentimentScore: number, repairMentions: number, totalThreads: number): number {
+  if (totalThreads === 0) return sentimentScore;
+  const repairRatio = repairMentions / totalThreads;
+  const cautionFactor = Math.max(repairRatio - 0.2, 0) * 2;
+  return Math.round(sentimentScore * Math.max(1 - cautionFactor, 0));
 }
 
 /**
@@ -64,10 +63,12 @@ function isSentimentMissing(data: RedditRawData): boolean {
 }
 
 export function computeRedditMetrics(data: RedditRawData): RedditMetrics {
+  const baseSentiment = isSentimentMissing(data) ? 50 : normalizeSentiment(data.sentiment_score);
+  const adjustedSentiment = applyCautionAdjustment(baseSentiment, data.repair_mention_count, data.thread_count);
+
   return {
-    reddit_sentiment_score:     isSentimentMissing(data) ? 50 : normalizeSentiment(data.sentiment_score),
-    reddit_caution_penalty:     computeRepairPenalty(data.repair_mention_count, data.thread_count),
-    reddit_volume_score:        normalizeCount(data.thread_count),
+    reddit_sentiment_score:     adjustedSentiment,
+    reddit_volume_score:        normalizeCount(data.thread_count, 50),
     reddit_unique_voices_score: normalizeCount(data.unique_authors_count ?? 0),
     reddit_long_term_score:     normalizeCount(data.longterm_thread_count, 50),
     reddit_photo_threads_score: normalizeCount(data.photo_thread_count, 50),

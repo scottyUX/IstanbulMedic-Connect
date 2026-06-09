@@ -9,6 +9,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts', './tests/setup.tsx'],
+    env: {
+      USE_MOCK_HRN: 'false',
+    },
     include: [
       'tests/**/*.test.{ts,tsx}',
       'app/**/*.test.{ts,tsx}',
