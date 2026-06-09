@@ -396,6 +396,24 @@ describe("clinicComparisonTool", () => {
       expect(parsed.unresolved).toBeDefined();
       expect(parsed.unresolved.length).toBeGreaterThan(0);
     });
+
+    it("reports duplicate clinic as unresolved rather than silently dropping it", async () => {
+      mockCreateClient.mockResolvedValue(
+        buildMockSupabase({
+          clinicsById: { [CLINIC_A.id]: CLINIC_A, [CLINIC_B.id]: CLINIC_B },
+        }),
+      );
+      // CLINIC_A passed twice — first resolves normally, second is a duplicate
+      const r = await clinicComparisonTool.invoke({
+        clinic_ids: [CLINIC_A.id, CLINIC_B.id, CLINIC_A.id],
+      });
+      const parsed = JSON.parse(r);
+
+      expect(parsed.clinics).toHaveLength(2);
+      expect(parsed.unresolved).toBeDefined();
+      expect(parsed.unresolved.length).toBe(1);
+      expect(parsed.unresolved[0].value).toBe(CLINIC_A.id);
+    });
   });
 
   describe("error handling", () => {

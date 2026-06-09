@@ -183,7 +183,8 @@ export const clinicComparisonTool = new DynamicStructuredTool({
         if (r.clinic && !seenIds.has(r.clinic.id)) {
           resolved.push(r.clinic);
           seenIds.add(r.clinic.id);
-        } else if (!r.clinic) {
+        } else {
+          // Covers both "not found" and "duplicate id" — report so the caller knows.
           unresolved.push(r.request);
         }
       }

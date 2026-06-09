@@ -155,6 +155,18 @@ describe("clinicReviewsTool", () => {
         expect(parseFloat(rv.rating)).toBeGreaterThanOrEqual(4);
       }
     });
+
+    it("total_count reflects filtered subset when min_rating is set", async () => {
+      mockCreateClient.mockResolvedValue(buildMockSupabase());
+      const r = await clinicReviewsTool.invoke({
+        clinic_id: CLINIC_VERA.id,
+        min_rating: 4,
+      });
+      const parsed = JSON.parse(r);
+      // REVIEWS with rating >= 4: ratings 5, 5, 4, 4 → 4 reviews
+      // total_count must match the filtered count (4), not the Supabase unfiltered count (7)
+      expect(parsed.aggregate.total_count).toBe(4);
+    });
   });
 
   describe("display reviews", () => {

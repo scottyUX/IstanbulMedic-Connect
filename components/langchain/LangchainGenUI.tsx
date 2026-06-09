@@ -687,11 +687,11 @@ const formatDimensionValue = (dim: string, value: unknown): string => {
     }
     return `${value.length}`;
   }
-  if (dim === "google" && typeof value === "object") {
+  if (dim === "google" && value !== null && typeof value === "object") {
     const g = value as { average_rating: number; review_count: number };
     return `${g.average_rating.toFixed(1)} ★  ·  ${g.review_count} reviews`;
   }
-  if (dim === "reddit" && typeof value === "object") {
+  if (dim === "reddit" && value !== null && typeof value === "object") {
     const r = value as { score: number | null; thread_count: number; sentiment_score: number | null };
     const parts: string[] = [];
     if (r.score != null) parts.push(`${r.score.toFixed(1)}/10`);
@@ -702,7 +702,7 @@ const formatDimensionValue = (dim: string, value: unknown): string => {
     }
     return parts.join(" · ") || "—";
   }
-  if (dim === "instagram" && typeof value === "object") {
+  if (dim === "instagram" && value !== null && typeof value === "object") {
     const ig = value as { follower_count: number | null; account_handle: string | null; verified: boolean | null; source_score: number | null };
     const parts: string[] = [];
     if (ig.follower_count != null) {
@@ -714,7 +714,7 @@ const formatDimensionValue = (dim: string, value: unknown): string => {
     if (ig.source_score != null) parts.push(`Score: ${ig.source_score}/100`);
     return parts.join("\n") || "—";
   }
-  if (dim === "hrn" && typeof value === "object") {
+  if (dim === "hrn" && value !== null && typeof value === "object") {
     const h = value as { score: number | null; thread_count: number; sentiment_score: number | null };
     const parts: string[] = [];
     if (h.score != null) parts.push(`${h.score.toFixed(1)}/10`);

@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { resolveClinic } from "./_shared";
 
 interface Review {
   id: string;
@@ -22,31 +23,6 @@ function stripNulls<T extends Record<string, unknown>>(obj: T): Partial<T> {
     if (v !== null && v !== undefined) cleaned[k] = v;
   }
   return cleaned as Partial<T>;
-}
-
-async function resolveClinic(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  clinic_id?: string,
-  clinic_name?: string,
-) {
-  if (clinic_id) {
-    const { data } = await supabase
-      .from("clinics")
-      .select("id, display_name, status")
-      .eq("id", clinic_id)
-      .limit(1);
-    return data?.[0] ?? null;
-  }
-  if (clinic_name) {
-    const { data } = await supabase
-      .from("clinics")
-      .select("id, display_name, status")
-      .ilike("display_name", `%${clinic_name}%`)
-      .limit(5);
-    if (!data || data.length === 0) return null;
-    return data.find((c) => c.status === "active") ?? data[0];
-  }
-  return null;
 }
 
 export const clinicReviewsTool = new DynamicStructuredTool({
@@ -129,7 +105,10 @@ export const clinicReviewsTool = new DynamicStructuredTool({
 
       const aggregate: Aggregate = {
         average_rating: scored > 0 ? Number((sum / scored).toFixed(2)) : null,
-        total_count: count ?? filtered.length,
+        // When filtering by min_rating the distribution is over filtered rows only —
+        // use filtered.length so the card's "Distribution based on N reviews" caption
+        // matches the bars rather than the total unfiltered count.
+        total_count: min_rating != null ? filtered.length : (count ?? filtered.length),
         distribution,
       };
 
