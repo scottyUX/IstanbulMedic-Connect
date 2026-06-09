@@ -7,19 +7,21 @@ const {
   mockSelect,
   mockEq,
   mockOr,
+  mockOrder,
   mockLimit,
   mockQueryResult,
 } = vi.hoisted(() => {
   const mockQueryResult = { data: [{ id: 1, name: 'Test Clinic' }], error: null };
   const mockLimit = vi.fn().mockResolvedValue(mockQueryResult);
-  const mockOr = vi.fn().mockReturnValue({ limit: mockLimit });
+  const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+  const mockOr = vi.fn().mockReturnValue({ order: mockOrder, limit: mockLimit });
   const mockEq: ReturnType<typeof vi.fn> = vi.fn();
-  mockEq.mockReturnValue({ or: mockOr, limit: mockLimit, eq: mockEq });
-  const mockSelect = vi.fn().mockReturnValue({ eq: mockEq, or: mockOr, limit: mockLimit });
+  mockEq.mockReturnValue({ or: mockOr, order: mockOrder, limit: mockLimit, eq: mockEq });
+  const mockSelect = vi.fn().mockReturnValue({ eq: mockEq, or: mockOr, order: mockOrder, limit: mockLimit });
   const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
   const mockCreateClient = vi.fn().mockResolvedValue({ from: mockFrom });
 
-  return { mockCreateClient, mockFrom, mockSelect, mockEq, mockOr, mockLimit, mockQueryResult };
+  return { mockCreateClient, mockFrom, mockSelect, mockEq, mockOr, mockOrder, mockLimit, mockQueryResult };
 });
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -33,9 +35,10 @@ describe('databaseLookupTool', () => {
     vi.clearAllMocks();
     mockCreateClient.mockResolvedValue({ from: mockFrom });
     mockFrom.mockReturnValue({ select: mockSelect });
-    mockSelect.mockReturnValue({ eq: mockEq, or: mockOr, limit: mockLimit });
-    mockEq.mockReturnValue({ or: mockOr, limit: mockLimit, eq: mockEq });
-    mockOr.mockReturnValue({ limit: mockLimit });
+    mockSelect.mockReturnValue({ eq: mockEq, or: mockOr, order: mockOrder, limit: mockLimit });
+    mockEq.mockReturnValue({ or: mockOr, order: mockOrder, limit: mockLimit, eq: mockEq });
+    mockOr.mockReturnValue({ order: mockOrder, limit: mockLimit });
+    mockOrder.mockReturnValue({ limit: mockLimit });
     mockLimit.mockResolvedValue(mockQueryResult);
   });
 
@@ -154,6 +157,35 @@ describe('databaseLookupTool', () => {
   });
 
   // ===========================================================================
+  // Order by
+  // ===========================================================================
+
+  describe('order_by', () => {
+    it('applies descending order when direction is desc', async () => {
+      await databaseLookupTool.invoke({
+        table: 'clinic_scores',
+        order_by: { column: 'overall_score', direction: 'desc' },
+      });
+
+      expect(mockOrder).toHaveBeenCalledWith('overall_score', { ascending: false, nullsFirst: false });
+    });
+
+    it('applies ascending order when direction is asc', async () => {
+      await databaseLookupTool.invoke({
+        table: 'clinic_scores',
+        order_by: { column: 'overall_score', direction: 'asc' },
+      });
+
+      expect(mockOrder).toHaveBeenCalledWith('overall_score', { ascending: true, nullsFirst: false });
+    });
+
+    it('does not call order when order_by is omitted', async () => {
+      await databaseLookupTool.invoke({ table: 'clinics' });
+      expect(mockOrder).not.toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================================================
   // Error handling
   // ===========================================================================
 
@@ -180,10 +212,20 @@ describe('databaseLookupTool', () => {
       expect(parsed.error).toBe('Missing Supabase env');
     });
 
-    it('rejects invalid table name via schema validation', async () => {
-      await expect(
-        databaseLookupTool.invoke({ table: 'invalid_table' } as unknown as Parameters<typeof databaseLookupTool.invoke>[0])
-      ).rejects.toThrow();
+    it('returns guardrail error JSON for tables outside the allowlist', async () => {
+      const result = await databaseLookupTool.invoke({ table: 'users' });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain('users');
+      expect(parsed.guardrail).toBe('schema_allowlist');
+      expect(parsed.metadata.table).toBe('users');
+    });
+
+    it('returns guardrail error JSON for sources (data-pipeline metadata)', async () => {
+      const result = await databaseLookupTool.invoke({ table: 'sources' });
+      const parsed = JSON.parse(result);
+
+      expect(parsed.guardrail).toBe('schema_allowlist');
     });
   });
 });

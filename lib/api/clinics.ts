@@ -72,6 +72,7 @@ export interface ClinicsQuery {
   minTrustScore?: number;
   minRating?: number;
   minReviews?: number;
+  ministryVerified?: boolean;
   page?: number;
   pageSize?: number;
   sort?: ClinicSortOption;
@@ -446,6 +447,22 @@ export async function getClinics(query: ClinicsQuery = {}): Promise<ClinicsResul
 
     const ratingFilteredIds = (ratingData ?? []).map((row) => row.clinic_id);
     filteredIds = applyIdFilter(filteredIds, ratingFilteredIds);
+  }
+
+  if (query.ministryVerified) {
+    const { data: registryData, error: registryError } = await supabase
+      .from('clinic_registry_records')
+      .select('clinic_id')
+      .eq('source', 'turkish_ministry_of_health')
+      .eq('license_status', 'active');
+
+    if (registryError) {
+      console.error('Error filtering clinics by ministry verification:', registryError);
+      throw new Error(`Failed to filter clinics: ${registryError.message}`);
+    }
+
+    const verifiedIds = (registryData ?? []).map((row) => row.clinic_id);
+    filteredIds = applyIdFilter(filteredIds, verifiedIds);
   }
 
   if (filteredIds && filteredIds.size === 0) {

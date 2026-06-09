@@ -11,6 +11,7 @@ export const FILTER_CONFIG = {
   minRating: true,
   minReviews: true,
   minTrustScore: true,
+  ministryVerified: true,
 
   // Disabled - no data yet
   budgetRange: false,

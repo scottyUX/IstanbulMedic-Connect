@@ -31,6 +31,7 @@ export const UnifiedFilterBar = ({
     }
 
     const totalActiveFilters = [
+        filters.ministryVerified,
         filters.minTrustScore !== null,
         filters.minRating !== null,
         filters.minReviews !== null,

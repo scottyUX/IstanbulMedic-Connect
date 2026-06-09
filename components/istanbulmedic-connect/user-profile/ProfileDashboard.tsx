@@ -87,6 +87,9 @@ export default function ProfileDashboard() {
   useEffect(() => {
     const section = searchParams.get('section') as DashboardSection | null
     if (section) {
+      if (NAV.some(n => n.id === section)) {
+        setActive(section as DashboardSection)
+      }
       const url = new URL(window.location.href)
       url.searchParams.delete('section')
       window.history.replaceState({}, '', url.toString())

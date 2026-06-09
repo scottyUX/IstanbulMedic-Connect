@@ -1,197 +1,245 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import type { LangchainMessage } from "@/types/langchain";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { useCopilotChatInternal } from "@copilotkit/react-core";
+import type { Message } from "@ag-ui/core";
+import type { CopilotKitMessage } from "@/types/langchain";
+import MessageBubble, { AssistantTurnBubble } from "./MessageBubble";
+import TypingIndicator from "./TypingIndicator";
 import LangchainInput from "./LangchainInput";
 
 const QUICK_SUGGESTIONS = [
-  "Schedule a free consultation",
   "What is a hair transplant?",
-  "How much does it cost?",
-  "What is the recovery time?",
+  "Compare the 2 clinics with the highest trust scores in Istanbul",
+  "Can you help me book a consultation?",
+  "Which clinics have the highest trust scores?",
 ];
 
-export default function LangchainChat() {
-  const [messages, setMessages] = useState<LangchainMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [streamingText, setStreamingText] = useState("");
-  const [showGreeting, setShowGreeting] = useState(true);
+const VISIBLE_ROLES = new Set(["user", "assistant"]);
+
+function isCopilotBridge(r: unknown): boolean {
+  if (!r || typeof r !== "object") return false;
+  const t = (r as { type?: { name?: string; displayName?: string } }).type;
+  return (
+    t?.name === "CoAgentStateRenderBridge" ||
+    t?.displayName === "CoAgentStateRenderBridge"
+  );
+}
+
+// One assistant turn: all tool-call GenUI messages preceding the text response.
+type AssistantTurn = {
+  key: string;
+  genUIMessages: Message[];
+  textMessage: Message | null;
+};
+
+type RenderedTurn =
+  | { type: "user"; message: Message }
+  | { type: "assistant"; turn: AssistantTurn };
+
+const LangchainChat = () => {
+  const { messages, sendMessage, isLoading } = useCopilotChatInternal();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const inputBarRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
+  const [inputBarHeight, setInputBarHeight] = useState(96);
+  const [awaitingAssistant, setAwaitingAssistant] = useState(false);
 
-  // Detect when the user manually scrolls away from the bottom
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      userScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 100;
-    };
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [showGreeting]);
-
-  // Auto-scroll the container only — never the page
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container || userScrolledUpRef.current) return;
-    container.scrollTop = container.scrollHeight;
-  }, [messages, streamingText]);
-
-  const sendMessage = async (text: string) => {
-    const userMessage: LangchainMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      text,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    setIsLoading(true);
-    setStreamingText("");
-    setShowGreeting(false);
-    userScrolledUpRef.current = false;
-
-    try {
-      const response = await fetch("/api/langchain-agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
-      });
-
-      if (!response.ok) throw new Error("Failed to get response");
-      if (!response.body) throw new Error("No response body");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        fullText += chunk;
-        setStreamingText(fullText);
-      }
-
-      const assistantMessage: LangchainMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text: fullText,
-        createdAt: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-      setStreamingText("");
-    } catch (error) {
-      console.error("Chat error:", error);
-      const errorMessage: LangchainMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text: "Sorry, something went wrong. Please try again.",
-        createdAt: new Date().toISOString(),
-        metadata: { error: true },
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+  // Keep only user messages and assistant messages that have real content or real GenUI.
+  const filteredMessages = (messages as Message[]).filter((m) => {
+    if (m.id?.startsWith("coagent-state-render-")) return false;
+    if (!VISIBLE_ROLES.has(m.role)) return false;
+    if (m.role === "assistant") {
+      const hasText =
+        typeof m.content === "string" && m.content.trim().length > 0;
+      const genUIResult = (m as CopilotKitMessage).generativeUI?.();
+      const hasRealGenUI =
+        genUIResult != null &&
+        genUIResult !== false &&
+        !isCopilotBridge(genUIResult);
+      return hasText || hasRealGenUI;
     }
+    return true;
+  });
+
+  // Group all assistant messages between two user messages into one turn.
+  // TEXT_MESSAGE_START is emitted before tool calls, so the text message (msg-*)
+  // can appear before the tool call messages (call_*) in the array. Collecting
+  // both regardless of order and flushing on each user message handles either ordering.
+  const turns: RenderedTurn[] = [];
+  let pendingGenUI: Message[] = [];
+  let pendingText: Message | null = null;
+
+  const flushAssistantTurn = () => {
+    if (pendingGenUI.length === 0 && !pendingText) return;
+    const key = pendingText?.id ?? pendingGenUI[0].id;
+    turns.push({
+      type: "assistant",
+      turn: { key, genUIMessages: pendingGenUI, textMessage: pendingText },
+    });
+    pendingGenUI = [];
+    pendingText = null;
   };
 
+  for (const msg of filteredMessages) {
+    if (msg.role === "user") {
+      flushAssistantTurn();
+      turns.push({ type: "user", message: msg });
+    } else if (msg.role === "assistant") {
+      const hasText =
+        typeof msg.content === "string" && msg.content.trim().length > 0;
+      if (hasText) {
+        pendingText = msg;
+      } else {
+        pendingGenUI.push(msg);
+      }
+    }
+  }
+  flushAssistantTurn();
+
+  const lastVisibleMessage = filteredMessages[filteredMessages.length - 1];
+  const showTypingIndicator = awaitingAssistant || isLoading;
+  const showGreeting = filteredMessages.length === 0 && !awaitingAssistant;
+
+  // Detect manual scroll-up so auto-scroll doesn't fight the user
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      userScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 80;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Auto-scroll to bottom on new messages / loading state, unless user scrolled up.
+  useEffect(() => {
+    if (userScrolledUpRef.current) return;
+    const frame = requestAnimationFrame(() => {
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [messages, isLoading]);
+
+  // Reset scroll flag when conversation is cleared
+  useEffect(() => {
+    if (filteredMessages.length === 0) {
+      userScrolledUpRef.current = false;
+    }
+  }, [filteredMessages.length]);
+
+  useEffect(() => {
+    if (lastVisibleMessage?.role === "assistant") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAwaitingAssistant(false);
+    }
+  }, [lastVisibleMessage]);
+
+  // Keep the bottom reserve space aligned with the fixed composer height.
+  useEffect(() => {
+    const el = inputBarRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+
+    const updateHeight = () => {
+      setInputBarHeight(el.getBoundingClientRect().height);
+    };
+
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const handleSend = useCallback(
+    async (text: string) => {
+      if (!text.trim() || isLoading) return;
+      userScrolledUpRef.current = false;
+      setAwaitingAssistant(true);
+      try {
+        await (sendMessage as unknown as (msg: Message) => Promise<void>)({
+          id: crypto.randomUUID(),
+          role: "user" as const,
+          content: text,
+        });
+      } catch (error) {
+        setAwaitingAssistant(false);
+        throw error;
+      }
+    },
+    [isLoading, sendMessage],
+  );
+
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <div className="flex-1 flex flex-col">
-        {/* Greeting Screen */}
-        {showGreeting && (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#FAFAFA]">
-            <div className="max-w-2xl w-full text-center space-y-6">
-              <h2 className="text-3xl md:text-4xl font-semibold text-gray-900">
-                Hi, I&apos;m Leila &mdash; your private AI assistant. How can I
-                help today?
-              </h2>
-
-              {/* Quick Suggestions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8">
-                {QUICK_SUGGESTIONS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => sendMessage(suggestion)}
-                    className="px-6 py-3 text-left bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-gray-700 font-medium"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Messages Area */}
-        {!showGreeting && (
-          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-6">
-            <div className="max-w-3xl mx-auto w-full space-y-3">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={
-                    msg.role === "user"
-                      ? "flex justify-end"
-                      : "flex justify-start"
-                  }
+    <div className="h-[calc(100vh-80px)] flex flex-col bg-white overflow-hidden">
+      {showGreeting ? (
+        /* ── Greeting ── */
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#FAFAFA]">
+          <div className="max-w-2xl w-full text-center space-y-6">
+            <h2 className="text-3xl md:text-4xl font-semibold text-gray-900">
+              Hi, I&apos;m Leila &mdash; your private AI assistant. How can I
+              help today?
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8">
+              {QUICK_SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => handleSend(s)}
+                  disabled={isLoading}
+                  className="px-6 py-3 text-left bg-white border border-gray-200 rounded-xl shadow-sm hover:border-[#102544] hover:shadow-md hover:-translate-y-0.5 transition-all text-gray-700 font-medium disabled:opacity-50"
                 >
-                  <div
-                    className={
-                      msg.role === "user"
-                        ? "bg-[#1a73e8] text-white rounded-[18px_18px_4px_18px] px-4 py-3 max-w-[80%]"
-                        : `bg-[#f1f3f4] text-[#202124] rounded-[18px_18px_18px_4px] px-4 py-3 max-w-[80%]${
-                            msg.metadata?.error ? " border border-red-200" : ""
-                          }`
-                    }
-                  >
-                    <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
-                      {msg.text}
-                    </p>
-                  </div>
-                </div>
+                  {s}
+                </button>
               ))}
-
-              {/* Streaming response */}
-              {isLoading && streamingText && (
-                <div className="flex justify-start">
-                  <div className="bg-[#f1f3f4] text-[#202124] rounded-[18px_18px_18px_4px] px-4 py-3 max-w-[80%]">
-                    <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
-                      {streamingText}
-                      <span className="inline-block w-[2px] h-[1em] bg-[#202124] ml-0.5 align-middle animate-pulse" />
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Thinking indicator */}
-              {isLoading && !streamingText && (
-                <div className="flex justify-start">
-                  <div className="bg-[#f1f3f4] text-[#202124] rounded-[18px_18px_18px_4px] px-4 py-3">
-                    <div className="langchain-thinking-dots flex gap-1">
-                      <span className="w-2 h-2 bg-[#5f6368] rounded-full" />
-                      <span className="w-2 h-2 bg-[#5f6368] rounded-full" />
-                      <span className="w-2 h-2 bg-[#5f6368] rounded-full" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
             </div>
+            <p className="text-sm text-gray-400 mt-4">
+              You can also ask me about any clinic&apos;s trust scores, registry verifications, surgeons, patient reviews and ratings, or source scores.
+            </p>
           </div>
-        )}
+        </div>
+      ) : (
+        /* ── Message thread ── */
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-4 pt-6"
+          style={{ paddingBottom: inputBarHeight + 16 }}
+        >
+          <div className="max-w-2xl mx-auto">
+            {turns.map((turn) => {
+              if (turn.type === "user") {
+                return <MessageBubble key={turn.message.id} message={turn.message} />;
+              }
+              return (
+                <AssistantTurnBubble
+                  key={turn.turn.key}
+                  genUIMessages={turn.turn.genUIMessages}
+                  textMessage={turn.turn.textMessage}
+                />
+              );
+            })}
+            {showTypingIndicator && <TypingIndicator />}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+      )}
 
-        {/* Input Area */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-3">
-          <div className="max-w-3xl mx-auto">
-            <LangchainInput onSend={sendMessage} isLoading={isLoading} />
-          </div>
+      {/* ── Fixed input bar ── */}
+      <div
+        ref={inputBarRef}
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-10"
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+      >
+        <div className="max-w-2xl mx-auto">
+          <LangchainInput onSend={handleSend} isLoading={isLoading} />
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default LangchainChat;

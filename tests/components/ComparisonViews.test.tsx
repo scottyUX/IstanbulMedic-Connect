@@ -26,6 +26,7 @@ vi.mock('next/navigation', () => ({
 // Stub out the client-side signals hook — we test score cards (server data) here,
 // not the live signal fetch. mockCompareSignals can be overridden per-test.
 const { mockCompareSignals } = vi.hoisted(() => ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   mockCompareSignals: vi.fn((_id: unknown, _name: unknown): { data: unknown; loading: boolean } => ({ data: null, loading: false })),
 }))
 
