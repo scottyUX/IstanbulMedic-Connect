@@ -28,11 +28,8 @@ async function main() {
     console.log(`  ${String(s).padStart(3)}: ${"█".repeat(hist[s])} (${hist[s]})`);
   }
 
-  const { data: gp } = await sb.from("clinic_google_places").select("clinic_id, rating, user_ratings_total");
-  if (gp?.length) {
-    const favs = gp.filter(g => g.rating >= 4.5 && g.user_ratings_total >= 5);
-    console.log(`\nPatient Favorite eligible (≥4.5 rating, ≥5 reviews): ${favs.length}/${gp.length} clinics`);
-  }
+  const imFavs = (data ?? []).filter(r => r.band === 'A');
+  console.log(`\nIM Favorite (band A): ${imFavs.length}/${(data ?? []).length} clinics`);
 }
 
 main().catch(console.error);

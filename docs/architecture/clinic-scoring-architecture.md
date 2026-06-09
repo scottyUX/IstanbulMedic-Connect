@@ -181,10 +181,10 @@ Evidence & Transparency carries enough weight to meaningfully shift the final sc
 
 | Band | Label | Range |
 |---|---|---|
-| A | Excellent | 70–100 |
-| B | Good | 60–69 |
-| C | Fair | 40–59 |
-| D | Limited | 0–39 |
+| A | Excellent | 80–100 |
+| B | Good | 70–79 |
+| C | Fair | 60–69 |
+| D | Limited | 0–59 |
 
 ---
 

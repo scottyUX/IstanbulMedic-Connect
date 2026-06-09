@@ -80,13 +80,7 @@ async function main() {
   for (const clinic of clinics) {
     process.stdout.write(`  ${clinic.display_name}... `);
     try {
-      if (!DRY_RUN) {
-        await scoreClinic(supabase, clinic.id);
-      } else {
-        // In dry-run mode, score against prod data but don't pass the supabase client
-        // so scoreClinic reads but the writes go nowhere — just validate the computation.
-        await scoreClinic(supabase, clinic.id);
-      }
+      await scoreClinic(supabase, clinic.id, { dryRun: DRY_RUN });
       console.log("✅");
       passed++;
     } catch (err) {

@@ -144,10 +144,11 @@ Added as a flat bonus on top of the weighted Reputation score. Cannot rescue a w
 
 ## Missing data floors
 
-| Metric | Floor |
-|---|---|
-| Reddit sentiment (no data) | 50 |
-| Reddit volume/voices/longterm (no Reddit) | 50 |
-| Registry listed (no data) | 40 |
-| Active licence (no data) | 40 |
-| Credentials (none) | 40 |
+| Metric | Floor | Where applied |
+|---|---|---|
+| Reddit sentiment (no Reddit record in DB) | 60 | Reputation pillar — `REDDIT_SENTIMENT_FLOOR` |
+| Reddit sentiment (record exists, confidence < 0.3) | 50 | `computeRedditMetrics` — metric level |
+| Reddit volume/voices/longterm (no Reddit) | 50 | Evidence pillar — `REDDIT_VOLUME_FLOOR` |
+| Registry listed (no data) | 40 | Evidence pillar |
+| Active licence (no data) | 40 | Evidence pillar |
+| Credentials (none) | 40 | Evidence pillar |

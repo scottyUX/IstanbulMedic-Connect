@@ -25,7 +25,6 @@ export interface ReputationInputs {
   instagram?: InstagramMetrics;
   // HRN stubbed — add when pipeline is live
   hrn_sentiment_score?: number;
-  hrn_caution_penalty?: number;
 }
 
 export interface ReputationResult {
@@ -70,6 +69,6 @@ export function computeReputationScore(inputs: ReputationInputs): ReputationResu
   return {
     score: Math.round(Math.min(Math.max(score, 0), 100)),
     metrics_json: metrics,
-    breakdown_json: { weights: { ...WEIGHTS, hrn_redistributed_to_google: 0.15, instagram_boost: 1 } },
+    breakdown_json: { weights: { ...WEIGHTS, hrn_redistributed_to_google: 0.15 }, additive: { instagram_boost: metrics.instagram_boost } },
   };
 }

@@ -19,7 +19,7 @@ function makeReddit(overrides: Partial<RedditRawData> = {}): RedditRawData {
   };
 }
 
-const RECENT = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+const RECENT = '2025-01-01T00:00:00Z';
 const OLD    = '2020-01-01T00:00:00Z';
 
 function makeTeam(id = 't1'): TeamMemberRaw {
