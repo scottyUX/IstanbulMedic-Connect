@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { HeroSection } from "./HeroSection"
 import { SectionNav } from "./SectionNav"
 import { OverviewSection } from "./OverviewSection"
@@ -35,6 +37,7 @@ interface ClinicProfilePageProps {
   clinic: ClinicDetail
   registryRecords: RegistryRecord[]
   complianceHistory: ComplianceEvent[]
+  backHref?: string
 }
 
 const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
@@ -50,7 +53,7 @@ const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
 }
 
 
-export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory }: ClinicProfilePageProps) => {
+export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory, backHref }: ClinicProfilePageProps) => {
   // Transform database data to component format
 
   // Get languages from clinic_languages
@@ -259,6 +262,19 @@ const communitySignals = {
 
   return (
     <div className="min-h-screen bg-background text-base antialiased" data-testid="clinic-profile">
+      {/* Back to results */}
+      <div className="border-b border-border/40 bg-background">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+          <Link
+            href={backHref ?? '/clinics'}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to results
+          </Link>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <HeroSection
         clinicName={clinic.name}
