@@ -285,6 +285,7 @@ const communitySignals = {
         rating={clinic.rating ?? null}
         reviewCount={clinic.totalReviewCount}
         isMinistryVerified={isMinistryVerified}
+        sourceScores={clinic.sourceScores}
       />
 
       {/* Section Navigation */}
@@ -295,6 +296,12 @@ const communitySignals = {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content Column */}
           <div className="space-y-6 lg:col-span-2">
+            <ScoreBreakdownCard
+              overallScore={clinic.trustScore}
+              band={clinic.trustBand}
+              scoreComponents={clinic.scoreComponents}
+              sourceScores={clinic.sourceScores}
+            />
             {FEATURE_CONFIG.profileOverview && (clinic.description || (clinic.techniques ?? []).length > 0) && (
               <OverviewSection
                 specialties={specialties}
@@ -334,12 +341,6 @@ const communitySignals = {
                 items={transparencyItems}
               />
             )}
-            <ScoreBreakdownCard
-              overallScore={clinic.trustScore}
-              band={clinic.trustBand}
-              scoreComponents={clinic.scoreComponents}
-              sourceScores={clinic.sourceScores}
-            />
             {FEATURE_CONFIG.profileRegistry && !hasActiveMOHRecord && (
               <RegistrySection
                 registryRecords={registryRecords}
@@ -362,6 +363,9 @@ const communitySignals = {
               rating={clinic.rating ?? null}
               reviewCount={clinic.totalReviewCount}
               websiteUrl={clinic.websiteUrl}
+              trustScore={clinic.trustScore}
+              trustBand={clinic.trustBand}
+              sourceScores={clinic.sourceScores}
             />
           </div>
         </div>
@@ -384,17 +388,21 @@ const communitySignals = {
           )}
 
           {FEATURE_CONFIG.profileInstagram && clinic.instagramSignals && (
-            <div id="instagram-intel">
+            <div id="instagram-intel" className="scroll-mt-32">
               <InstagramSignalsCard data={clinic.instagramSignals} />
             </div>
           )}
 
           {FEATURE_CONFIG.profileHRN && clinic.hrnSignals && (
-            <HRNSignalsCard data={clinic.hrnSignals} />
+            <div id="hrn-signals" className="scroll-mt-32">
+              <HRNSignalsCard data={clinic.hrnSignals} />
+            </div>
           )}
 
           {FEATURE_CONFIG.profileRedditSignals && clinic.redditSignals && (
-            <RedditSignalsCard data={clinic.redditSignals} />
+            <div id="reddit-signals" className="scroll-mt-32">
+              <RedditSignalsCard data={clinic.redditSignals} />
+            </div>
           )}
         </div>
       </div>

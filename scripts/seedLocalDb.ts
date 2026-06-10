@@ -42,12 +42,13 @@ const TABLES: Array<{ name: string; onConflict: string; label: string }> = [
 
   // clinic children (FK → clinics.id)
   { name: "clinic_team",              onConflict: "id",         label: "clinic_team" },
+  { name: "clinic_team_qualifications", onConflict: "id",       label: "clinic_team_qualifications" },
   { name: "clinic_locations",         onConflict: "id",         label: "clinic_locations" },
   { name: "clinic_services",          onConflict: "id",         label: "clinic_services" },
   { name: "clinic_languages",         onConflict: "id",         label: "clinic_languages" },
   { name: "clinic_credentials",       onConflict: "id",         label: "clinic_credentials" },
   { name: "clinic_media",             onConflict: "id",         label: "clinic_media" },
-  { name: "clinic_scores",            onConflict: "id",         label: "clinic_scores" },
+  { name: "clinic_scores",            onConflict: "clinic_id",  label: "clinic_scores" },
   { name: "clinic_score_components",  onConflict: "id",         label: "clinic_score_components" },
   { name: "clinic_google_places",     onConflict: "id",         label: "clinic_google_places" },
   { name: "clinic_facts",             onConflict: "id",         label: "clinic_facts" },
@@ -55,6 +56,9 @@ const TABLES: Array<{ name: string; onConflict: string; label: string }> = [
   { name: "clinic_packages",          onConflict: "id",         label: "clinic_packages" },
   { name: "clinic_instagram_posts",   onConflict: "id",         label: "clinic_instagram_posts" },
   { name: "clinic_social_media",      onConflict: "id",         label: "clinic_social_media" },
+  { name: "clinic_forum_profiles",    onConflict: "id",         label: "clinic_forum_profiles" },
+  { name: "clinic_registry_records",  onConflict: "id",         label: "clinic_registry_records" },
+  { name: "clinic_source_scores",     onConflict: "id",         label: "clinic_source_scores" },
 
   // References both clinics + sources
   { name: "clinic_mentions",          onConflict: "id",         label: "clinic_mentions" },
@@ -82,6 +86,9 @@ async function seed() {
   const WIPE_ORDER: Array<{ table: string; pk: string }> = [
     { table: "clinic_reviews",          pk: "id" },
     { table: "clinic_mentions",         pk: "id" },
+    { table: "clinic_source_scores",    pk: "id" },
+    { table: "clinic_registry_records", pk: "id" },
+    { table: "clinic_forum_profiles",   pk: "id" },
     { table: "clinic_social_media",     pk: "id" },
     { table: "clinic_instagram_posts",  pk: "id" },
     { table: "clinic_packages",         pk: "id" },
@@ -95,6 +102,7 @@ async function seed() {
     { table: "clinic_languages",        pk: "id" },
     { table: "clinic_services",         pk: "id" },
     { table: "clinic_locations",        pk: "id" },
+    { table: "clinic_team_qualifications", pk: "id" },
     { table: "clinic_team",             pk: "id" },
     { table: "clinics",                 pk: "id" },
     { table: "sources",                 pk: "id" },

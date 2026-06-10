@@ -1,0 +1,32 @@
+name: Monthly Instagram Pipeline
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'  # 1st of every month at 03:00 UTC
+  workflow_dispatch:       # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  instagram-pipeline:
+    name: Scrape → Extract → Import
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Run pipeline ──────────────────────────────────────────────────────────
+      - name: Scrape Instagram profiles and import to database
+        run: npx tsx app/api/instagramPipeline/instagramPipeline.ts

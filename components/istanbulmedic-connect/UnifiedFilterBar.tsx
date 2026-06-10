@@ -30,10 +30,15 @@ export const UnifiedFilterBar = ({
         onFilterChange({ ...filters, [key]: value })
     }
 
-    const activeTreatmentCount = Object.values(filters.treatments).filter(Boolean).length
-    const activeLanguageCount = Object.values(filters.languages).filter(Boolean).length
-    const activeAccreditationCount = Object.values(filters.accreditations).filter(Boolean).length
-    const totalActiveFilters = activeTreatmentCount + activeLanguageCount + activeAccreditationCount
+    const totalActiveFilters = [
+        filters.ministryVerified,
+        filters.minTrustScore !== null,
+        filters.minRating !== null,
+        filters.minReviews !== null,
+        ...Object.values(filters.treatments),
+        ...Object.values(filters.languages),
+        ...Object.values(filters.accreditations),
+    ].filter(Boolean).length
 
     return (
         <div className={cn("w-full", className)}>

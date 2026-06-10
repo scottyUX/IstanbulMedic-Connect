@@ -46,6 +46,8 @@ export default function Footer() {
     (t('footer.languageSelectorDescription') as string) || 'Switch site language';
   const certificationNotice = (t('footer.certificationNotice') as string) || '';
 
+  if (pathname === '/langchain') return null;
+
   return (
     <footer className="bg-[var(--im-color-text-primary)] text-white">
       <Container className="flex flex-col gap-8 px-6 py-14 text-center sm:px-8 sm:py-16 lg:gap-12 lg:px-12 lg:py-20 lg:text-left">

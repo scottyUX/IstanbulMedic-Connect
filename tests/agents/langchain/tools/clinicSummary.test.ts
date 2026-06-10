@@ -116,6 +116,11 @@ const MOCK_TEAM = [
   { name: null, role: 'coordinator', credentials: 'Patient coordinator', years_experience: null },
 ];
 
+const MOCK_MEDIA = [
+  { url: 'https://example.com/primary.jpg', alt_text: 'Clinic exterior', caption: 'Our facility', is_primary: true, media_type: 'image', display_order: 1 },
+  { url: 'https://example.com/secondary.jpg', alt_text: null, caption: null, is_primary: false, media_type: 'image', display_order: 2 },
+];
+
 // ===========================================================================
 // Supabase mock setup
 // ===========================================================================
@@ -145,6 +150,7 @@ function buildMockSupabase(overrides: Record<string, unknown> = {}) {
     clinic_languages: { data: MOCK_LANGUAGES, error: null },
     clinic_team: { data: MOCK_TEAM, error: null },
     clinic_reviews: { data: null, error: null, count: 42 },
+    clinic_media: { data: MOCK_MEDIA, error: null },
   };
 
   const tableResults = { ...defaults, ...overrides };
@@ -429,7 +435,22 @@ describe('clinicSummaryTool', () => {
     });
 
     it('includes review count', () => {
-      expect(parsed.summary.review_count).toBe(42);
+      expect(parsed.summary.platform_review_count).toBe(42);
+    });
+
+    it('includes media images with null fields stripped', () => {
+      expect(parsed.summary.media).toHaveLength(2);
+      expect(parsed.summary.media[0]).toEqual({
+        url: 'https://example.com/primary.jpg',
+        alt_text: 'Clinic exterior',
+        caption: 'Our facility',
+        is_primary: true,
+      });
+      // null alt_text and caption are stripped
+      expect(parsed.summary.media[1]).toEqual({
+        url: 'https://example.com/secondary.jpg',
+        is_primary: false,
+      });
     });
 
     it('includes metadata with timing', () => {
@@ -489,7 +510,7 @@ describe('clinicSummaryTool', () => {
       expect(parsed.summary.score).toBeUndefined();
       expect(parsed.summary.languages).toBeUndefined();
       expect(parsed.summary.team).toBeUndefined();
-      expect(parsed.summary.review_count).toBeUndefined();
+      expect(parsed.summary.platform_review_count).toBeUndefined();
     });
   });
 

@@ -8,6 +8,17 @@ import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
+import type { ClinicSourceScore } from "@/lib/api/clinics"
+import { GoogleIcon } from "@/components/icons/GoogleIcon"
+import { RedditIcon } from "@/components/icons/RedditIcon"
+import { InstagramIcon } from "@/components/icons/InstagramIcon"
+
+const BAND_CONFIG: Record<string, { color: string; bg: string }> = {
+  A: { color: "text-emerald-700", bg: "bg-emerald-50" },
+  B: { color: "text-blue-700",    bg: "bg-blue-50"    },
+  C: { color: "text-amber-700",   bg: "bg-amber-50"   },
+  D: { color: "text-red-700",     bg: "bg-red-50"     },
+}
 
 interface HeroSectionProps {
   clinicName: string
@@ -18,6 +29,7 @@ interface HeroSectionProps {
   rating: number | null
   reviewCount: number
   isMinistryVerified?: boolean
+  sourceScores?: ClinicSourceScore[]
 }
 
 export const HeroSection = ({
@@ -29,8 +41,14 @@ export const HeroSection = ({
   rating,
   reviewCount,
   isMinistryVerified = false,
+  sourceScores = [],
 }: HeroSectionProps) => {
   const safeImages = useMemo(() => images.slice(0, 5), [images])
+
+  const bandConfig = trustBand ? BAND_CONFIG[trustBand] : null
+  const googleScore = sourceScores.find((s) => s.source_name === "google" && s.is_current)
+  const instagramScore = sourceScores.find((s) => s.source_name === "instagram" && s.is_current)
+  const redditScore = sourceScores.find((s) => s.source_name === "reddit" && s.is_current)
   const hasImages = safeImages.length > 0
 
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
@@ -91,6 +109,28 @@ export const HeroSection = ({
 
             {/* Sub-header Stats */}
             <div className="flex flex-wrap items-center gap-4 text-base text-foreground">
+              {/* 1. Trust score — first */}
+              <Button
+                variant="link"
+                className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1"
+                onClick={() => {
+                  const scoreSection = document.getElementById("score-breakdown")
+                  if (scoreSection) {
+                    scoreSection.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                }}
+              >
+                <ShieldCheck className="h-4 w-4 text-[#FFD700] mr-1" />
+                <span>Trust {transparencyScore}</span>
+                {bandConfig && (
+                  <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-semibold ${bandConfig.bg} ${bandConfig.color}`}>
+                    {trustBand}
+                  </span>
+                )}
+              </Button>
+              <span className="hidden sm:inline text-muted-foreground">•</span>
+
+              {/* 2. Google star rating */}
               <Button
                 variant="link"
                 className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1"
@@ -106,24 +146,62 @@ export const HeroSection = ({
                 <span className="text-muted-foreground font-normal">·</span>
                 <span className="text-muted-foreground font-normal">{reviewCount} reviews</span>
               </Button>
-              {FEATURE_CONFIG.profileTransparency && (
+
+              {/* 3. Google source score */}
+              {googleScore && (
                 <>
                   <span className="hidden sm:inline text-muted-foreground">•</span>
                   <Button
                     variant="link"
-                    className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4"
+                    className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1.5"
+                    data-testid="google-score-chip"
                     onClick={() => {
-                      const transparencySection = document.getElementById("transparency")
-                      if (transparencySection) {
-                        transparencySection.scrollIntoView({ behavior: "smooth", block: "start" })
-                      }
+                      document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth", block: "start" })
                     }}
                   >
-                    <ShieldCheck className="h-4 w-4 text-[#FFD700] mr-1" />
-                    <span>Transparency {transparencyScore}</span>
+                    <GoogleIcon className="h-4 w-4 shrink-0" />
+                    Google {googleScore.summary_score}
                   </Button>
                 </>
               )}
+
+              {/* 5. Instagram score */}
+              {instagramScore && (
+                <>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1.5"
+                    data-testid="instagram-score-chip"
+                    onClick={() => {
+                      document.getElementById("instagram-intel")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }}
+                  >
+                    <InstagramIcon className="h-4 w-4 shrink-0" />
+                    Instagram {instagramScore.summary_score}
+                  </Button>
+                </>
+              )}
+
+              {/* 6. Reddit score */}
+              {redditScore && (
+                <>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1.5"
+                    data-testid="reddit-score-chip"
+                    onClick={() => {
+                      document.getElementById("reddit-signals")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }}
+                  >
+                    <RedditIcon className="h-4 w-4 shrink-0" />
+                    Reddit {redditScore.summary_score}
+                  </Button>
+                </>
+              )}
+
+              {/* 5. Location — last */}
               <span className="hidden sm:inline text-muted-foreground">•</span>
               <Button
                 variant="link"
@@ -140,7 +218,7 @@ export const HeroSection = ({
             </div>
           </div>
 
-          {/* Patient Favorite Banner - only show if clinic has Band A trust score */}
+          {/* IM Favorite Banner - only show if clinic has Band A trust score */}
           {trustBand === "A" && (
             <div className="border border-border/60 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-background shadow-sm">
 
@@ -151,15 +229,15 @@ export const HeroSection = ({
                   <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-[#FFD700] fill-[#FFD700] animate-pulse" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="im-heading-4 text-foreground">Patient</span>
-                  <span className="im-heading-4 text-foreground">favorite</span>
+                  <span className="im-heading-4 text-foreground">IM</span>
+                  <span className="im-heading-4 text-foreground">Favorite</span>
                 </div>
               </div>
 
               {/* Middle: Text */}
               <div className="flex-1 text-center md:text-left px-4">
                 <p className="im-text-body-lg font-medium text-foreground">
-                  One of the most loved clinics on Istanbul Medic Connect
+                  One of the most trusted clinics on Istanbul Medic Connect
                 </p>
                 <p className="text-muted-foreground">
                   Awarded our highest trust rating — Band A.

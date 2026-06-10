@@ -76,6 +76,10 @@ const buildQueryString = (filters: FilterState, sortBy: ClinicSortOption, page: 
     params.set("minTrustScore", String(filters.minTrustScore))
   }
 
+  if (filters.ministryVerified) {
+    params.set("ministryVerified", "1")
+  }
+
   if (sortBy && sortBy !== DEFAULT_SORT_OPTION) {
     params.set("sort", sortBy)
   }

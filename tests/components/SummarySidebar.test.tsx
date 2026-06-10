@@ -391,3 +391,31 @@ describe('SummarySidebar — cancellation', () => {
     });
   });
 });
+
+// ─── Trust score block ─────────────────────────────────────────────────────
+
+describe('SummarySidebar — trust score block', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isAuthenticated = false;
+    global.fetch = vi.fn();
+  });
+
+  it('renders trust score and band when trustScore and trustBand are provided', () => {
+    render(<SummarySidebar {...defaultProps} trustScore={78} trustBand="A" />);
+    expect(screen.getByText('Trust')).toBeInTheDocument();
+    expect(screen.getByText('78')).toBeInTheDocument();
+    expect(screen.getByText('A')).toBeInTheDocument();
+  });
+
+  it('does not render trust section when trustScore is undefined', () => {
+    render(<SummarySidebar {...defaultProps} />);
+    expect(screen.queryByText('Trust')).not.toBeInTheDocument();
+  });
+
+  it('renders star rating and review count alongside trust score', () => {
+    render(<SummarySidebar {...defaultProps} trustScore={78} rating={4.8} reviewCount={150} />);
+    expect(screen.getByText(/4\.80/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /150 reviews/i })).toBeInTheDocument();
+  });
+});

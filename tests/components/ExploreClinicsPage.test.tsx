@@ -62,6 +62,7 @@ describe('ExploreClinicsPage', () => {
     minRating: null,
     minReviews: null,
     minTrustScore: null,
+    ministryVerified: false,
   };
 
   const sampleClinics: Clinic[] = [

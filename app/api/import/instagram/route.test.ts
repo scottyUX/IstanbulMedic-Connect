@@ -121,6 +121,8 @@ const successPosts    = [{ id: 'p-1' }]
 function mockSupabaseSuccess(clinicHasWebsite = false) {
   // sources upsert
   mockUpsert.mockReturnValueOnce({ select: () => ({ single: () => Promise.resolve({ data: successSource, error: null }) }) })
+  // source_documents check (select to see if doc already exists) → not found, so insert path runs
+  mockSelect.mockReturnValueOnce({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) })
   // source_documents insert
   mockInsert.mockReturnValueOnce({ select: () => ({ single: () => Promise.resolve({ data: successDocument, error: null }) }) })
   // clinic_social_media upsert
@@ -232,15 +234,15 @@ describe('POST /api/import/instagram', () => {
     it('updates clinic website_url when clinic has no existing website', async () => {
       mockSupabaseSuccess(false) // clinicHasWebsite = false
       const res = await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
-      const json = await res.json()
-      expect(json.results.clinicUpdated).toBeDefined()
+      const { summary } = await res.json()
+      expect(summary.clinicWebsiteUpdated).toBe(true)
     })
 
     it('does NOT update clinic website_url when one already exists', async () => {
       mockSupabaseSuccess(true) // clinicHasWebsite = true
       const res = await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
-      const json = await res.json()
-      expect(json.results.clinicUpdated).toBeUndefined()
+      const { summary } = await res.json()
+      expect(summary.clinicWebsiteUpdated).toBe(false)
     })
   })
 
@@ -556,6 +558,8 @@ describe('POST /api/import/instagram', () => {
 
     it('returns 500 when source_documents insert fails', async () => {
       mockUpsert.mockReturnValueOnce({ select: () => ({ single: () => Promise.resolve({ data: successSource, error: null }) }) })
+      // source_documents check → not found, so insert runs (and fails)
+      mockSelect.mockReturnValueOnce({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) })
       mockInsert.mockReturnValueOnce({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('doc error') }) }) })
       const res = await POST(makeRequest({ clinicId: 'clinic-123', instagramData: fullInstagramData }))
       expect(res.status).toBe(500)
@@ -564,6 +568,8 @@ describe('POST /api/import/instagram', () => {
     it('returns 500 when rpc upsert_clinic_facts fails', async () => {
       // sources
       mockUpsert.mockReturnValueOnce({ select: () => ({ single: () => Promise.resolve({ data: successSource, error: null }) }) })
+      // source_documents check → not found
+      mockSelect.mockReturnValueOnce({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) })
       // documents
       mockInsert.mockReturnValueOnce({ select: () => ({ single: () => Promise.resolve({ data: successDocument, error: null }) }) })
       // social_media
@@ -609,8 +615,8 @@ describe('POST /api/import/instagram', () => {
       // Override clinic select – should NOT be called when no externalUrls
       const res = await POST(makeRequest({ clinicId: 'clinic-123', instagramData: dataNoUrls }))
       expect(res.status).toBe(200)
-      const json = await res.json()
-      expect(json.results.clinicUpdated).toBeUndefined()
+      const { summary } = await res.json()
+      expect(summary.clinicWebsiteUpdated).toBe(false)
     })
 
     it('handles missing optional extracted_claims fields', async () => {

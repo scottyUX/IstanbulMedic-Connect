@@ -33,6 +33,7 @@ const DEFAULT_FILTERS: FilterState = {
   minRating: null,
   minReviews: null,
   minTrustScore: null,
+  ministryVerified: false,
 }
 
 const parseList = (value?: string | string[]) => {
@@ -75,6 +76,7 @@ const buildFilters = (searchParams?: { [key: string]: string | string[] | undefi
   const minRating = parseNumber(searchParams.minRating) ?? null
   const minReviews = parseNumber(searchParams.minReviews) ?? null
   const minTrustScore = parseNumber(searchParams.minTrustScore) ?? null
+  const ministryVerified = searchParams.ministryVerified === "1"
 
   const filters: FilterState = {
     ...DEFAULT_FILTERS,
@@ -105,6 +107,7 @@ const buildFilters = (searchParams?: { [key: string]: string | string[] | undefi
     minRating,
     minReviews,
     minTrustScore,
+    ministryVerified,
   }
 
   const query: ClinicsQuery = {
@@ -116,6 +119,7 @@ const buildFilters = (searchParams?: { [key: string]: string | string[] | undefi
     minTrustScore: minTrustScore ?? undefined,
     minRating: minRating ?? undefined,
     minReviews: minReviews ?? undefined,
+    ministryVerified: ministryVerified || undefined,
   }
 
   return { filters, query }

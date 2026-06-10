@@ -3,8 +3,6 @@ import type { HRNSignalsData, HRNThread } from '@/components/istanbulmedic-conne
 import { getMockHRNSignals } from './hrn.mock';
 import { computeHRNScore } from '@/lib/scoring/hrn';
 
-const USE_MOCK_HRN = process.env.USE_MOCK_HRN === 'true';
-
 /**
  * Fetches HRN forum signals for a clinic by querying raw tables.
  * Joins forum_thread_index + forum_thread_llm_analysis (is_current=true)
@@ -13,7 +11,7 @@ const USE_MOCK_HRN = process.env.USE_MOCK_HRN === 'true';
  * Returns null if no threads are attributed to this clinic.
  */
 export async function getHRNSignals(clinicId: string, clinicName = ''): Promise<HRNSignalsData | null> {
-  if (USE_MOCK_HRN) return getMockHRNSignals(clinicId, clinicName);
+  if (process.env.USE_MOCK_HRN === 'true') return getMockHRNSignals(clinicId, clinicName);
 
   try {
     const supabase = await createClient();
