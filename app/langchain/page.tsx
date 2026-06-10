@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CopilotKit } from "@copilotkit/react-core";
 import LangchainGenUI from "@/components/langchain/LangchainGenUI";
 import LangchainChat from "@/components/langchain/LangchainChat";
-import UserContextProvider from "@/components/leila/UserContextProvider";
+import UserContextProvider from "@/components/langchain/UserContextProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
