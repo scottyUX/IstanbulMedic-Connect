@@ -3,15 +3,9 @@
 import { useCopilotReadable } from "@copilotkit/react-core";
 import { useAuth } from "@/contexts/AuthContext";
 
-/**
- * UserContextProvider exposes user profile data to CopilotKit agent
- * via useCopilotReadable hook. The agent automatically receives this
- * context with each message.
- */
 const UserContextProvider = () => {
   const { user, profile } = useAuth();
 
-  // Expose user context to CopilotKit agent
   useCopilotReadable({
     description: "Current authenticated user information including profile data from Google OAuth",
     value: {
@@ -26,7 +20,6 @@ const UserContextProvider = () => {
     },
   });
 
-  // This component doesn't render anything - it only exposes context
   return null;
 };
 
