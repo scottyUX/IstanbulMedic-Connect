@@ -14,7 +14,7 @@ interface ClinicProfilePageClientProps {
 const ClinicProfilePageClient = ({ clinic, registryRecords, complianceHistory }: ClinicProfilePageClientProps) => {
   const searchParams = useSearchParams()
   const backParam = searchParams.get('back')
-  const backHref = backParam ? `/clinics?${backParam}` : '/clinics'
+  const backHref = backParam ? `/clinics?${backParam.replace(/\+/g, '%20')}` : '/clinics'
 
   return (
     <ClinicProfilePage
