@@ -72,19 +72,25 @@ The platform was designed with clinic growth in mind. Data pipelines are in plac
 
 ### Data Sources
 
-Clinic data flows in from two external sources:
+Clinic data flows in from three external sources:
 
 **Google Places API** — Provides core clinic metadata including name, address, phone, website, rating, and review count. The field mapping from Google Places to the internal clinic schema is documented in `docs/data-sources/google-places-data-mapping.md`.
 
 **Instagram (via Apify scraper)** — Provides social signals such as follower count, post engagement, and media content. The pipeline is documented in `docs/data-sources/instagram-pipeline-README.md` and `docs/features/instagram/`.
+
+**Reddit (public JSON endpoint)** — Provides patient-reported signals from hair transplant subreddits (e.g. r/HairTransplants). The scraper hits `reddit.com/r/<sub>.json` with a User-Agent header — no OAuth app or API credentials required. It extracts post titles, comment text, upvotes, and clinic mentions, which are then attributed to clinics and surfaced as community signals on clinic profiles. The pipeline lives in `app/api/redditPipeline/`. Plans and schema are in `docs/plans/forums/reddit/`.
+
+**Note** The Hair Resotrnation Network (HRN) Forum has a data pipeline built aswell but due to TOS we are not allowed to manually scrape yet. Once Istanbul Medic works out a deal with HRN we can put it into use.
 
 ### Adding a New Clinic
 
 1. **Locate the clinic on Google Places** and obtain its Place ID.
 2. **Run the Google Places ingestion pipeline** to pull clinic data into the database. The data mapping guide in `docs/data-sources/google-places-data-mapping.md` describes how each field maps to the clinic schema.
 3. **Run the Instagram scraper** (Apify) for the clinic's Instagram handle if available. See `docs/data-sources/instagram-pipeline-README.md` for setup.
-4. **Apply any missing fields manually** via the Supabase dashboard or a SQL migration — for example, treatment categories, package details, or verification status that cannot be inferred from external sources.
-5. **Verify the clinic appears correctly** in the discovery interface and on its detail profile page.
+4. **Rerun Reddit attribution on existing data** — the Reddit pipeline attributes scraped posts to known clinics at scrape time. Any Reddit posts that mentioned the new clinic before it existed in the database will have been left unattributed. After adding the clinic record, re-run the attribution step against the already-scraped posts to retroactively link those historical mentions to the new clinic. See `docs/plans/forums/reddit/` for pipeline details. If new posts are attributed run the recompute clinic profiles script as detailed in the aformentioned pipeline details.
+5. **Apply any missing fields manually** via the Supabase dashboard or a SQL migration — for example, treatment categories, package details, or verification status that cannot be inferred from external sources.
+6. **Verify the clinic appears correctly** in the discovery interface and on its detail profile page.
+
 
 ### Schema Reference
 
@@ -184,15 +190,20 @@ IstanbulMedic-Connect/
 │   ├── leila/                    # AI assistant UI
 │   └── ui/                       # Shared Radix UI components
 ├── contexts/                     # React context providers
-├── docs/                         # ← You are here
-│   ├── architecture/             # System design decisions
-│   ├── data-sources/             # External API integration notes
-│   ├── features/                 # Feature specs (Instagram, user profile)
-│   ├── plans/                    # Development plans and roadmaps
-│   ├── reviews/                  # Code review notes
-│   ├── schemas/                  # Database schema docs
-│   ├── sessions/                 # Meeting notes
-│   └── sprints/                  # Sprint documentation
+├── docs/
+│   ├── architecture/             # System design, data layer, component decisions
+│   ├── comparison/               # Scoring and testing comparisons
+│   ├── data-sources/             # External API integrations (Google Places & Instagram)
+│   ├── features/                 # Per-feature documentation
+│   ├── plans/                    # Implementation plans, organized by area
+│   │   ├── forums/               # Forum scraping schemas and pipelines
+│   │   ├── infrastructure/       # CI/CD and deployment plans
+│   │   ├── testing/              # E2E and coverage plans
+│   │   └── ui/                   # UI revamp and cleanup plans
+│   ├── reviews/                  # Code and PR reviews
+│   ├── schemas/                  # Database schemas and data architecture
+│   ├── sessions/                 # Session summaries
+│   ├── specs/                    # Technical specifications
 ├── lib/
 │   ├── api/                      # Data fetching functions
 │   ├── supabase/                 # Supabase client setup
@@ -209,7 +220,6 @@ IstanbulMedic-Connect/
 ├── types/                        # TypeScript type definitions
 ├── middleware.ts                  # Session management (must live at root)
 ├── next.config.ts                # Next.js config
-├── QUICKSTART.md                 # Quick start for Leila's three UI patterns
 ├── README.md                     # Project overview
 └── TESTING_PHASE1.md             # OAuth login testing guide
 ```
@@ -409,16 +419,20 @@ The scraper MVP plan exists but is not deployed. The database migration for foru
 
 ## 11. Documentation Index
 
-All docs live in the `docs/` folder of this repository.
+All docs live in the `docs/` folder of this repository. See `docs/README.md` for the full structure and quick links.
 
 ### Architecture
 
 | Document | Description |
 |---|---|
+| `docs/architecture/codebase-overview.md` | High-level codebase orientation |
 | `docs/architecture/data-layer-architecture.md` | Overall data layer design and patterns |
-| `docs/architecture/server-vs-client-components.md` | Strategy for Next.js server vs client components |
 | `docs/architecture/backend-schema-mapping.md` | Backend data structure and field mapping |
+| `docs/architecture/server-vs-client-components.md` | Strategy for Next.js server vs client components |
+| `docs/architecture/clinic-scoring-architecture.md` | Clinic scoring system design |
+| `docs/architecture/clinic-scoring-schema.md` | Scoring schema reference |
 | `docs/architecture/clinic-sorting.md` | Clinic sorting and ranking logic |
+| `docs/architecture/metric-normalisation-reference.md` | Metric normalisation reference |
 
 ### Features
 
@@ -428,42 +442,63 @@ All docs live in the `docs/` folder of this repository.
 | `docs/features/instagram/data-mapping.md` | Backend to frontend view model mapping |
 | `docs/features/instagram/implementation-gaps.md` | Known gaps in the Instagram feature |
 | `docs/features/instagram/section-data-support.md` | Which data fields are supported per UI section |
+| `docs/features/instagram/instagram-signals-implementation.md` | Instagram signals implementation notes |
 | `docs/features/user-profile/README.md` | User profile / Treatment Passport spec |
 | `docs/features/user-profile/architecture.md` | User profile technical architecture |
 | `docs/features/user-profile/testing.md` | User profile testing documentation |
+| `docs/features/bookmarks-and-consultations.md` | Bookmarks and consultations feature |
+| `docs/features/clinic-comparison.md` | Clinic comparison feature |
+| `docs/features/consultation-intent-plan.md` | Consultation intent detection plan |
+| `docs/features/copilot-kit-QUICKSTART.md` | Quick start guide for Leila's three Generative UI patterns |
 
 ### Plans & Roadmaps
 
+**Forums (HRN & Reddit)**
+
 | Document | Description |
 |---|---|
-| `docs/plans/filters.md` | Filtering feature plan and label rename work |
-| `docs/plans/e2e-testing-implementation.md` | End-to-end testing strategy |
-| `docs/plans/test-coverage.md` | Test coverage goals and metrics |
-| `docs/plans/GithubActionCI_CDSetUp.md` | CI/CD pipeline setup plan |
-| `docs/plans/reddit-post-scraper.md` | Reddit scraper development plan |
-| `docs/plans/forums/hrn-forum-scraping-mvp-plan.md` | HRN forum scraping MVP plan |
-| `docs/plans/forums/hrn-scraper-progress.md` | HRN scraper progress tracking |
 | `docs/plans/forums/forum-scraping-schema.md` | Forum scraping database schema |
-| `docs/plans/forums/reddit-migration-plan.md` | Reddit data migration strategy |
+| `docs/plans/forums/hrn/hrn-forum-scraping-mvp-plan.md` | HRN forum scraping MVP plan |
+| `docs/plans/forums/hrn/hrn-scraper-progress.md` | HRN scraper progress tracking |
+| `docs/plans/forums/hrn/hrn-frontend-plan.md` | HRN signals frontend plan |
+| `docs/plans/forums/hrn/hrn-implementation.md` | HRN implementation notes |
+| `docs/plans/forums/hrn/hrn-score-plan.md` | HRN scoring plan |
+| `docs/plans/forums/reddit/reddit-post-scraper.md` | Reddit post scraper plan |
+| `docs/plans/forums/reddit/reddit-comments-plan.md` | Reddit comments scraping plan |
+| `docs/plans/forums/reddit/reddit-score-plan.md` | Reddit scoring plan |
+| `docs/plans/forums/reddit/reddit-ui-hrn-parity.md` | Reddit UI / HRN parity plan |
+| `docs/plans/forums/reddit/reddit migration plan.md` | Reddit data migration strategy |
+| `docs/plans/forums/reddit/comment-sentiment-toward-clinic.md` | Comment sentiment analysis plan |
 
-### Sprints
-
-| Document | Description |
-|---|---|
-| `docs/sprints/sprint1-backend/api_schema_docs.md` | Sprint 1 API schema specifications |
-| `docs/sprints/sprint1-backend/insta_endpoint_testing.md` | Sprint 1 Instagram endpoint testing |
-| `docs/sprints/sprint1-frontend/README.md` | Sprint 1 frontend overview |
-| `docs/sprints/sprint1-frontend/backend-frontend-integration-split.md` | Backend/frontend integration split |
-| `docs/sprints/sprint1-frontend/data-integrity-refactor.md` | Data integrity refactoring notes |
-| `docs/sprints/sprint1-frontend/migration-20260214-schema-enhancements.md` | Feb 2026 schema enhancement migration |
-| `docs/sprints/sprint1-frontend/next-steps-integration.md` | Integration next steps |
-
-### Session Notes
+**UI**
 
 | Document | Description |
 |---|---|
-| `docs/sessions/session-summary-2026-02-27.md` | Meeting notes, February 27, 2026 |
-| `docs/sessions/session-summary-2026-02-28.md` | Meeting notes, February 28, 2026 |
+| `docs/plans/ui/filters.md` | Filtering feature plan and label rename work |
+| `docs/plans/ui/clinic-card-filter-ui-cleanup.md` | Clinic card and filter UI cleanup |
+| `docs/plans/ui/clinic-profile-header-revamp.md` | Clinic profile header revamp |
+| `docs/plans/ui/google-reviews-ui-revamp.md` | Google reviews UI revamp |
+| `docs/plans/ui/leila-chat-ui-overhaul.md` | Leila chat UI overhaul |
+
+**Testing**
+
+| Document | Description |
+|---|---|
+| `docs/plans/testing/e2e-testing-implementation.md` | End-to-end testing strategy |
+| `docs/plans/testing/test-coverage.md` | Test coverage goals and metrics |
+
+**Infrastructure**
+
+| Document | Description |
+|---|---|
+| `docs/plans/infrastructure/GithubActionCI_CDSetUp.md` | CI/CD pipeline setup plan |
+
+**Other**
+
+| Document | Description |
+|---|---|
+| `docs/plans/consultation-cancellation-plan.md` | Consultation cancellation plan |
+| `docs/plans/data-integrity-refactor.md` | Data integrity refactor notes |
 
 ### Data Sources
 
@@ -473,11 +508,27 @@ All docs live in the `docs/` folder of this repository.
 | `docs/data-sources/google-places-data-mapping.md` | Google Places field mapping to clinic schema |
 | `docs/data-sources/instagram-pipeline-README.md` | Instagram data extraction pipeline |
 
-### Schema
+### Schemas
 
 | Document | Description |
 |---|---|
+| `docs/schemas/database-overview.md` | Database overview |
 | `docs/schemas/patient-profile-architecture.md` | Patient profile database schema |
+| `docs/schemas/api_schema_docs.md` | API schema specifications |
+| `docs/schemas/migration-20260214-schema-enhancements.md` | Feb 2026 schema enhancement migration |
+
+### Session Notes
+
+| Document | Description |
+|---|---|
+| `docs/sessions/session-summary-2026-02-27.md` | Meeting notes, February 27, 2026 |
+| `docs/sessions/session-summary-2026-02-28.md` | Meeting notes, February 28, 2026 |
+
+### Specs
+
+| Document | Description |
+|---|---|
+| `docs/specs/consultation-cart-spec.md` | Consultation cart technical specification |
 
 ### Reviews
 
@@ -490,7 +541,6 @@ All docs live in the `docs/` folder of this repository.
 | Document | Description |
 |---|---|
 | `README.md` | Project overview and setup |
-| `QUICKSTART.md` | Quick start for Leila's three Generative UI patterns |
 | `TESTING_PHASE1.md` | Step-by-step OAuth login testing guide |
 
 ---
