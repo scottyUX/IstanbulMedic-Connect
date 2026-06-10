@@ -177,7 +177,7 @@ export const ExploreClinicsPage = ({
     }
 
     equalize()
-    const ro = new ResizeObserver((_entries, _observer) => { equalize() })
+    const ro = new ResizeObserver(() => { equalize() })
     ro.observe(grid)
     return () => ro.disconnect()
   }, [clinics])
@@ -280,7 +280,11 @@ export const ExploreClinicsPage = ({
                 aiInsight={clinic.aiInsight}
                 initialConsultationRequested={pendingConsultationIds.has(clinic.id)}
                 isMinistryVerified={clinic.isMinistryVerified}
-                onViewProfile={() => router.push(`/clinics/${clinic.id}`)}
+                onViewProfile={() => {
+                const currentQuery = buildQueryString(filters, sortBy, page)
+                const backParam = currentQuery ? currentQuery.slice(1) : ''
+                router.push(`/clinics/${clinic.id}${backParam ? `?back=${encodeURIComponent(backParam)}` : ''}`)
+              }}
               />
             ))
           ) : (

@@ -256,7 +256,7 @@ describe('ExploreClinicsPage', () => {
         fireEvent.click(card);
 
         await waitFor(() => {
-          expect(mockPush).toHaveBeenCalledWith('/clinics/clinic-1');
+          expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/clinics/clinic-1'));
         });
       }
     });

@@ -44,7 +44,6 @@ export const ClinicCard = ({
   name,
   location,
   image,
-  specialties: _specialties,
   trustScore,
   description,
   rating,

@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { getClinicById } from "@/lib/api/clinics"
 import { getClinicRegistryData } from "@/lib/api/registry"
@@ -35,10 +36,12 @@ export default async function ClinicProfilePage({ params }: ClinicProfilePagePro
   }
 
   return (
-    <ClinicProfilePageClient
-      clinic={clinic}
-      registryRecords={registryData.registryRecords}
-      complianceHistory={registryData.complianceHistory}
-    />
+    <Suspense fallback={null}>
+      <ClinicProfilePageClient
+        clinic={clinic}
+        registryRecords={registryData.registryRecords}
+        complianceHistory={registryData.complianceHistory}
+      />
+    </Suspense>
   )
 }
