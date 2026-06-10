@@ -483,7 +483,7 @@ The team used a project management tool (similar to Jira) to track sprint tasks,
 
 **Action required for the incoming team:** Add the Jira board URL below, and request access for [ondogulu@ucsc.edu](mailto:ondogulu@ucsc.edu) so the project advisor has visibility going forward.
 
-> **Jira Board URL:** _[add link here]_
+> **Jira Board URL:** _[https://uxly115b.atlassian.net/jira/software/projects/SCRUM/boards/1]_
 
 > **Note:** The GitHub Issues list is **not** the source of truth for task status — it was not kept up to date during development. Use the task board and the sprint docs in `docs/sprints/` to understand what was planned, in progress, and completed.
 
