@@ -42,9 +42,11 @@ The documentation they left behind — architecture decisions, sprint reports, s
 **Core user flow:**
 
 1. Patient lands on the platform and signs in with Google
-2. They interact with **Leila** — an AI assistant that asks about their treatment needs and guides them to relevant clinics
-3. They browse, filter, and compare clinics using the discovery interface
-4. They view clinic profiles including treatment offers, packages, ratings, and trust scores
+2. They navigate to their dashboard to upload personal and medical information that will be shared with clinics they are interested in
+3. They interact with **Leila** — an AI assistant that asks about their treatment needs and guides them to relevant clinics
+4. They browse, filter, and compare clinics using the discovery interface
+5. They view clinic profiles including reviews, ratings, and trust scores
+6. They bookmark and schedule free consultations with clinics that match their preferences
 
 ---
 
@@ -319,9 +321,32 @@ supabase db push --prod
 npm run supabase:gen-types
 ```
 
-**Schema documentation:** `docs/schemas/patient-profile-architecture.md`
+**Schema documentation:**
 
-When adding new migrations, name them with a timestamp prefix matching the existing convention (e.g., `20260214_schema_enhancement.sql`).
+`docs/schemas/`
+* `database-overview.md` — top-level DB overview
+* `api_schema_docs.md` — API schema reference
+* `patient-profile-architecture.md` — patient profile data model
+* `migration-20260214-schema-enhancements.md` — schema enhancement notes
+
+`docs/architecture/`
+* `backend-schema-mapping.md` — full backend schema mapping
+* `clinic-scoring-schema.md` — clinic scoring tables and relationships
+* `data-layer-architecture.md` — data layer structure
+
+`docs/plans/`
+* `Initial Data Sources & Schemas.md` — original data sources
+* `forums/forum-scraping-schema.md` — forum scraping schema
+
+docs/data-sources/
+* `google-places-data-mapping.md` — Google Places field mapping
+* `instagram-pipeline-README.md` — Instagram data pipeline
+
+`docs/features/instagram/data-mapping.md` — Instagram signal schema
+
+`supabase/migrations/` — SQL migration files (ground truth for live schema)
+
+`lib/supabase/database.types.ts` — auto-generated TypeScript types mirroring the live DB
 
 ---
 
