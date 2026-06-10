@@ -25,8 +25,7 @@ IstanbulMedic-Connect/
 │   │   ├── page.tsx
 │   │   └── get-started/          ← Multi-step onboarding wizard
 │   │
-│   ├── langchain/page.tsx        ← /langchain — ACTIVE AI chat (Leila)
-│   ├── leila/page.tsx            ← /leila — LEGACY AI chat (do not develop)
+│   ├── langchain/page.tsx        ← /langchain — AI chat (Leila)
 │   ├── methodology/page.tsx      ← /methodology — scoring explainer
 │   ├── auth/                     ← Supabase auth callback + login
 │   ├── design-system/page.tsx    ← Internal design reference page
@@ -41,13 +40,8 @@ IstanbulMedic-Connect/
 │       ├── user/route.ts             ← User creation on first sign-in
 │       ├── cal-com/booking/          ← Cal.com consultation booking webhook
 │       │
-│       ├── langchain-agent/route.ts  ← ACTIVE: LangChain agent endpoint
-│       ├── langchain-tools/route.ts  ← ACTIVE: CopilotKit GenUI tool definitions
-│       ├── copilotkit-langchain/     ← ACTIVE: CopilotKit runtime for /langchain
-│       │
-│       ├── copilotkit-leila/         ← LEGACY: old CopilotKit runtime for /leila
-│       ├── copilotkit-a2ui/          ← LEGACY: A2UI experiment
-│       ├── copilotkit/               ← LEGACY: GPT-4o weather/calculator demo
+│       ├── langchain-tools/route.ts  ← CopilotKit GenUI tool definitions
+│       ├── copilotkit-langchain/     ← CopilotKit runtime for /langchain
 │       │
 │       ├── hrnPipeline/              ← HRN forum scraper pipeline
 │       ├── forumPipeline/            ← Forum thread processing (deterministic + LLM)
@@ -95,17 +89,16 @@ IstanbulMedic-Connect/
 │   │           ├── ProfileHairLossStatus.tsx + ProfileMedicalHistory.tsx
 │   │           └── ProfileConsultations.tsx
 │   │
-│   ├── langchain/                ← ACTIVE AI chat UI
+│   ├── langchain/                ← AI chat UI
 │   │   ├── LangchainChat.tsx     ← Main chat shell
 │   │   ├── LangchainGenUI.tsx    ← GenUI tool renderers (clinic cards, etc.)
 │   │   ├── LangchainInput.tsx    ← Input bar
 │   │   ├── MessageBubble.tsx
-│   │   └── TypingIndicator.tsx
-│   │
-│   ├── leila/                    ← LEGACY — do not develop (see _LEGACY.md)
+│   │   ├── TypingIndicator.tsx
+│   │   └── UserContextProvider.tsx  ← Feeds auth user data to CopilotKit agent
 │   │
 │   ├── landing/                  ← Homepage sections
-│   │   ├── HeroBanner.tsx + HeroBanner.tsx.bak (stale backup)
+│   │   ├── HeroBanner.tsx
 │   │   ├── HowItWorksSection.tsx + StepsSection.tsx
 │   │   ├── FAQSection.tsx + StatsSection.tsx
 │   │   └── ... (more landing page sections)
@@ -114,13 +107,7 @@ IstanbulMedic-Connect/
 │   ├── clinic/                   ← GoogleMaps.tsx (map embed)
 │   ├── icons/                    ← SVG icon components
 │   ├── ui/                       ← shadcn/ui primitives + custom design tokens
-│   ├── templates/HomeTemplate.tsx
-│   │
-│   └── [root-level demo files]   ← ⚠️ LIKELY UNUSED (see Dead Code section)
-│       ├── A2UIPage.tsx, GeminiChatWrapper.tsx, GeminiInput.tsx
-│       ├── Calculator.tsx, NotePad.tsx, TodoList.tsx
-│       ├── WeatherCard.tsx, WeatherLoadingState.tsx
-│       ├── StaticGenUI.tsx, DeclarativeGenUI.tsx, MCPAppsGenUI.tsx
+│   └── templates/HomeTemplate.tsx
 │
 ├── lib/                          ← Business logic (imported by app/ and scripts/)
 │   ├── agents/langchain/         ← LangChain agent
@@ -161,7 +148,6 @@ IstanbulMedic-Connect/
 │   ├── email/sendConsultationRequest.ts
 │   ├── transformers/clinic.ts    ← DB row → frontend type
 │   ├── filterConfig.ts           ← Filter definitions
-│   ├── a2ui/viewer-theme.ts      ← ⚠️ only used by legacy /leila
 │   └── utils.ts, constants.ts, social-icons.tsx, etc.
 │
 ├── types/                        ← Shared TypeScript types
@@ -218,9 +204,9 @@ IstanbulMedic-Connect/
 The core user-facing product. `ExploreClinicsPage` renders the filterable listing; `ClinicProfilePage` orchestrates the ~12 profile sections. All data flows through `lib/api/clinics.ts` → Supabase, shaped by `lib/transformers/clinic.ts`. The comparison tool at `/clinics/compare` lives in `components/istanbulmedic-connect/comparison/`.
 
 ### 2. AI Chat — Leila
-**Files:** `app/langchain/`, `components/langchain/`, `lib/agents/langchain/`, `app/api/copilotkit-langchain/`, `app/api/langchain-agent/`, `app/api/langchain-tools/`
+**Files:** `app/langchain/`, `components/langchain/`, `lib/agents/langchain/`, `app/api/copilotkit-langchain/`, `app/api/langchain-tools/`
 
-The active chat implementation. The page hits `app/api/copilotkit-langchain/` for the CopilotKit runtime, which forwards to `app/api/langchain-agent/` where the LangChain agent runs. The agent has 6 tools in `lib/agents/langchain/tools/` that query the DB to answer questions about clinics. GenUI responses (rendered clinic cards, comparison tables) are defined in `LangchainGenUI.tsx`.
+The active chat implementation. The page hits `app/api/copilotkit-langchain/` where a `CopilotRuntime` delegates to `LangchainAgentAdapter`, which bridges CopilotKit's ag-ui event protocol to `LangchainAgent.handleMessageStream()`. The agent has 6 tools in `lib/agents/langchain/tools/` that query Supabase to answer questions about clinics. GenUI responses (rendered clinic cards, comparison tables) are defined in `LangchainGenUI.tsx`.
 
 ### 3. Data Pipelines
 **Files:** `app/api/hrnPipeline/`, `app/api/forumPipeline/`, `app/api/redditPipeline/`, `app/api/instagramPipeline/`, `scraper/`
@@ -244,15 +230,22 @@ Supabase PostgreSQL with 3 client entry points: `lib/supabase/client.ts` (browse
 
 ---
 
-## Legacy & Dead Code
+## Cleanup History
 
-| File(s) | Status | Notes |
-|---|---|---|
-| `app/leila/`, `components/leila/`, `app/api/copilotkit-leila/` | **Legacy** | Explicitly marked `_LEGACY.md` — old CopilotKit-based chat, superseded by `/langchain` |
-| `app/api/copilotkit-a2ui/`, `app/api/copilotkit/`, `lib/a2ui/viewer-theme.ts` | **Legacy** | A2UI/GPT-4o demo experiments, only wired into the legacy `/leila` page |
-| `components/A2UIPage.tsx`, `GeminiChatWrapper.tsx`, `GeminiInput.tsx` | **Likely unused** | Prototype components from early experimentation — not imported by any active page |
-| `components/Calculator.tsx`, `NotePad.tsx`, `TodoList.tsx`, `WeatherCard.tsx`, `WeatherLoadingState.tsx`, `StaticGenUI.tsx`, `DeclarativeGenUI.tsx`, `MCPAppsGenUI.tsx` | **Likely unused** | CopilotKit demo GenUI components for the old `/api/copilotkit` weather/calculator route |
-| `components/landing/HeroBanner.tsx.bak` | **Stale** | `.bak` backup file — safe to delete |
-| `hello.txt`, `pr-body.md` | **Stray** | Leftover files at repo root |
+The following were deleted on 2026-06-09 after confirming no active imports:
 
-> Before deleting anything, run a quick grep to confirm nothing imports them: `grep -r "from.*leila\|from.*A2UIPage\|GeminiChat" app/ components/ --include="*.tsx" --include="*.ts"`
+| Deleted | Was |
+|---|---|
+| `app/leila/`, `components/leila/`, `app/api/copilotkit-leila/` | Legacy CopilotKit-based chat, superseded by `/langchain` |
+| `app/api/copilotkit-a2ui/`, `app/api/copilotkit/`, `lib/a2ui/` | A2UI / GPT-4o weather/calculator demo experiments |
+| `components/A2UIPage.tsx`, `GeminiChatWrapper.tsx`, `GeminiInput.tsx` | Prototype components, never wired into any active page |
+| `components/Calculator.tsx`, `NotePad.tsx`, `TodoList.tsx`, `WeatherCard.tsx`, `WeatherLoadingState.tsx`, `StaticGenUI.tsx`, `DeclarativeGenUI.tsx`, `MCPAppsGenUI.tsx` | CopilotKit demo GenUI components for the deleted `/api/copilotkit` route |
+| `components/landing/HeroBanner.tsx.bak`, `hello.txt`, `pr-body.md` | Stale backup and stray files |
+
+`components/leila/UserContextProvider.tsx` was rescued and moved to `components/langchain/UserContextProvider.tsx` — it was imported by the active `/langchain` page.
+
+The following were deleted on 2026-06-10 after confirming no active imports:
+
+| Deleted | Was |
+|---|---|
+| `app/api/langchain-agent/route.ts`, `tests/api/langchain-agent/route.test.ts` | Direct LangChain agent endpoint, superseded by the CopilotKit runtime at `/api/copilotkit-langchain/` |
