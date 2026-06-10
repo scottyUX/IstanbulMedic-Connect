@@ -311,7 +311,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       if (typeof window !== 'undefined') {
         localStorage.clear();
-        window.location.href = '/';
+        // Stay on the comparison page after sign-out — it's publicly accessible.
+        // Every other protected/stateful page falls back to the homepage.
+        const onComparePage = window.location.pathname.startsWith('/clinics/compare');
+        window.location.href = onComparePage
+          ? window.location.pathname + window.location.search
+          : '/';
       }
     }
   };

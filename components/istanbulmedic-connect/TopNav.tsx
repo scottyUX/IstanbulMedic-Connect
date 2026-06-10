@@ -32,6 +32,20 @@ export const TopNav = () => {
   const prefetchedRoutes = useRef<Set<string>>(new Set())
   const pathname = usePathname()
   const router = useRouter()
+
+  // Navigate to sign-in, passing the current page as the post-login destination.
+  // Reading window.location.search at click time avoids useSearchParams(), which
+  // would require a Suspense boundary around every page that includes TopNav.
+  // Auth pages are excluded to prevent redirect loops.
+  const handleSignInClick = useCallback(() => {
+    if (pathname.startsWith('/auth')) {
+      router.push('/auth/login')
+      return
+    }
+    const qs = window.location.search
+    const currentPath = qs ? `${pathname}${qs}` : pathname
+    router.push(`/auth/login?next=${encodeURIComponent(currentPath)}`)
+  }, [pathname, router])
   const { isAuthenticated, loading: authLoading, logout } = useAuth()
   const { count: bookmarkCount } = useBookmarkCount()
 
@@ -249,7 +263,7 @@ export const TopNav = () => {
           ) : (
             <Button
               variant="outline"
-              href="/auth/login"
+              onClick={handleSignInClick}
               className="shrink-0 border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white"
             >
               Sign in / Sign up
@@ -381,8 +395,7 @@ export const TopNav = () => {
                       ) : (
                         <Button
                           variant="outline"
-                          href="/auth/login"
-                          onClick={() => setOpen(false)}
+                          onClick={() => { setOpen(false); handleSignInClick() }}
                           className="w-full border-[#17375B] text-[#17375B] hover:bg-[#17375B] hover:text-white"
                         >
                           Sign in / Sign up
