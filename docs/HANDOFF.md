@@ -388,6 +388,23 @@ npm run test:coverage  # with coverage report
 npm run test:e2e       # Playwright end-to-end tests
 ```
 
+### Coverage Summary
+
+| Layer | Files | Approx. test cases | What's covered |
+|---|---|---|---|
+| Unit | 11 | ~235 | Scoring algorithms, data transformations, API data-fetching functions — all pure logic, no DB or network |
+| Component | 48 | ~860 | Every major UI component rendered with React Testing Library against JSDOM |
+| API routes | 9 | ~275 | Route handlers for auth, clinics, consultations, profile, and forum/Reddit pipelines — DB and auth mocked |
+| Agent | 12 | ~220 | Leila's LangChain agent, all 6 GenUI tools, and input/output guardrails — tested in isolation |
+| Integration | 3 | ~35 | Full CopilotKit + LangChain API stack with mocked LLM calls |
+| E2E (Playwright) | 3 | ~20 | Clinic discovery, filtering, and profile pages in a real browser against the running dev server |
+
+**Where coverage is thin:**
+
+- **E2E breadth is narrow.** The 3 Playwright specs only cover the clinic browse/discovery/profile flow. There are no automated E2E tests for auth (the login flow was documented as a manual checklist in `TESTING_PHASE1.md`), for Leila, for the user profile pages, or for the consultation flow.
+- **Integration tests are limited.** Only the CopilotKit/LangChain API routes have integration-level coverage. Other API routes (Reddit pipeline, Instagram pipeline, Google Places ingestion) are tested at the unit/API layer but not end-to-end.
+- **No tests for the Supabase migration scripts themselves.** Schema correctness is verified indirectly through the API and component tests, but the migrations are not run in CI.
+
 ### Test Suite Overview
 
 ```
