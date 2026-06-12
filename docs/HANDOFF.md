@@ -310,16 +310,35 @@ The app uses **Google OAuth via Supabase**. Session management is handled automa
 ```
 User clicks "Sign in with Google"
         ↓
-Supabase OAuth endpoint
+loginWithGoogle(next) in AuthContext
+  - Saves destination in auth_redirect_next cookie (5-min TTL)
         ↓
-Google authenticates user
+Supabase OAuth endpoint → Google authenticates user
         ↓
 Redirect to /auth/callback
         ↓
-Session stored → redirect to /leila
+Callback reads auth_redirect_next cookie → determines destination
+  - Falls back to /profile if cookie is missing or invalid
         ↓
-middleware.ts validates session on every subsequent request
+On first sign-in only:
+  - Calls Google People API (birthday, gender, phone, country, language)
+  - Writes results to users, user_profiles, user_qualification tables
+        ↓
+Session stored → redirect to destination (default: /profile)
+  - auth_redirect_next cookie cleared
+        ↓
+middleware.ts validates/refreshes session on every subsequent request
 ```
+
+### Post-Login Redirect Destination
+
+The destination after login is **dynamic**, not hardcoded. The flow works as follows:
+
+1. The login page reads a `?next=` query param (e.g. `/auth/login?next=/langchain`). If absent, it defaults to `/profile`.
+2. Before starting OAuth, `loginWithGoogle()` in `AuthContext.tsx` persists that destination in an `auth_redirect_next` cookie (5-minute TTL, SameSite=Lax). This is necessary because Supabase strips query params from the OAuth `redirectTo` URL.
+3. The callback handler in `app/auth/callback/route.ts` reads the cookie, validates it (must start with `/`, must not be a legacy path), and redirects there. If the cookie is missing or invalid, it falls back to `/profile`.
+
+This means any page that triggers a login redirect can control where the user lands after authenticating — for example, the bookmarks page sets the cookie to `/profile?section=consultations` before sending the user to login.
 
 ### Critical Configuration
 
@@ -327,7 +346,12 @@ middleware.ts validates session on every subsequent request
 |---|---|
 | Google Cloud redirect URI | `http://localhost:3000/auth/callback` (exact match required) |
 | Supabase callback URL | Same — set under Authentication > URL Configuration |
-| Default post-login redirect | `/leila` (set in `app/auth/callback/route.ts`) |
+| Default post-login redirect | `/profile` (fallback in `app/auth/callback/route.ts` when no valid `auth_redirect_next` cookie is present) |
+| OAuth scopes requested | `profile`, `email`, `user.birthday.read`, `user.gender.read`, `user.phonenumbers.read`, `user.addresses.read` |
+
+### First Sign-In Profile Population
+
+On a user's **first** login only, the callback makes an additional call to the **Google People API** using the provider token. It extracts name, email, gender, birthday, country, phone number, and preferred language, then writes them to three tables: `users`, `user_profiles`, and `user_qualification`. This pre-populates the user's profile without requiring them to fill out a form. On subsequent logins this step is skipped — user edits to their profile are never overwritten by Google data.
 
 ---
 
@@ -355,31 +379,109 @@ When adding new migrations, name them with a timestamp prefix matching the exist
 
 ## 9. Testing
 
-### Unit & Component Tests (Vitest)
+### Running Tests
 
 ```bash
-npm run test:run        # run once
+npm run test:run        # run all Vitest tests once
 npm test               # watch mode
 npm run test:coverage  # with coverage report
+npm run test:e2e       # Playwright end-to-end tests
 ```
 
-Tests live in `tests/unit/` and `tests/components/`.
+### Test Suite Overview
 
-### End-to-End Tests (Playwright)
-
-```bash
-npm run test:e2e
 ```
-
-Tests live in `tests/e2e/`. See `docs/plans/e2e-testing-implementation.md` for the full strategy.
-
-### Testing Phases
-
-| Phase | Status | Coverage |
-|---|---|---|
-| Phase 1 | ✅ Complete | Google OAuth login — see `TESTING_PHASE1.md` |
-| Phase 2 | 📋 Planned | Database user data integration |
-| Phase 3 | 📋 Planned | CopilotKit / Leila agent integration |
+tests/
+│
+├── unit/                          Pure logic — no DB or network
+│   ├── clinics-api.test.ts            Clinic data-fetching functions (getClinics, getClinicById, etc.)
+│   ├── forum-score.test.ts            Forum scoring algorithm (confidence tiers, recency decay, repair penalty, etc.)
+│   ├── hrn-api.test.ts                HRN signal data-fetching
+│   ├── hrn-score.test.ts              HRN scoring algorithm
+│   ├── hrnEntityFilter.test.ts        HRN entity regex matching and clinic name filtering
+│   ├── instagram-api.test.ts          Instagram signal data-fetching
+│   ├── reddit-api.test.ts             Reddit signal data-fetching
+│   ├── scoring-metrics.test.ts        Per-source metric computations (Google star/review-count, Reddit, credentials)
+│   ├── scoring-overall.test.ts        Overall score aggregation (band assignment, rounding, clamping)
+│   ├── scoring-pillars.test.ts        Pillar score composition (reputation, evidence/transparency weights)
+│   └── transformers.test.ts           Data transformation utilities (formatTime, deriveServices, deriveCommunityTags, etc.)
+│
+├── api/                           API route handlers — DB and auth mocked
+│   ├── authCallback.test.ts           GET /auth/callback: code exchange, cookie-based redirect, legacy path blocking
+│   ├── clinics-scraped-data.test.ts   Scraped data field resolution (description, techniques, URL normalisation, feature flag)
+│   ├── consultations.test.ts          POST / GET / PATCH /api/consultations
+│   ├── profileRoutes.test.ts          GET / POST /api/profile/* (qualification, treatment, status, photos)
+│   ├── forumPipeline/
+│   │   ├── deterministicExtractor.test.ts   Signal extraction from forum posts (graft count, timeline markers, issues, repair flag)
+│   │   ├── llmAttributor.test.ts            LLM-based clinic attribution (substring match, thread attribution logic)
+│   │   └── profileAggregator.test.ts        Forum profile recomputation and stale-profile batch updates
+│   └── redditPipeline/
+│       ├── redditPipeline.test.ts     Full pipeline orchestration (dry-run, comment ingestion, error handling, result shape)
+│       └── redditService.test.ts      Reddit fetch layer (fetchSubredditPosts, fetchPostComments)
+│
+├── agents/langchain/              Leila AI agent internals
+│   ├── agent.test.ts                  LangchainAgent: initialisation, state, message handling, tool registration, streaming
+│   ├── agent-guardrails.test.ts       Guardrail integration with the agent (input/output blocking, multi-turn enforcement)
+│   ├── guardrails.test.ts             Guardrail functions in isolation (checkInputGuardrails, checkOutputGuardrails)
+│   ├── adapter.test.ts                CopilotKit ↔ LangChain adapter layer
+│   ├── guardrails/
+│   │   └── schema-allowlist.test.ts   Tool schema allowlist enforcement in guardrails
+│   └── tools/                         Each of Leila's GenUI tools tested in isolation
+│       ├── _shared.test.ts                Shared tool utilities
+│       ├── clinicComparison.test.ts       clinic_comparison tool
+│       ├── clinicPackages.test.ts         clinic_packages tool
+│       ├── clinicReviews.test.ts          clinic_reviews tool
+│       ├── clinicSummary.test.ts          clinic_summary tool
+│       ├── databaseLookup.test.ts         database_lookup tool
+│       └── doctorProfile.test.ts          doctor_profile tool
+│
+├── components/                    React component rendering — React Testing Library + JSDOM
+│   ├── AIInsightsSection.test.tsx         AI insights panel on the clinic profile
+│   ├── BookmarkButton.test.tsx            Bookmark toggle button state and interaction
+│   ├── BookmarksPage.test.tsx             Full bookmarks page
+│   ├── ClinicCard.test.tsx                Clinic card (including consultation CTA variant)
+│   ├── ClinicProfilePage.test.tsx         Clinic profile page layout and section assembly
+│   ├── CommunitySignalsSection.test.tsx   Community signals section (Reddit / HRN / Google / Instagram views)
+│   ├── ComparisonViews.test.tsx           Comparison page (score pills, mobile switcher, sorting)
+│   ├── DoctorCard.test.tsx                Doctor card component
+│   ├── DoctorsSection.test.tsx            Doctors section (loading / empty / populated states)
+│   ├── ExploreClinicsPage.test.tsx        Clinic discovery page (rendering, pagination, sorting, filter integration)
+│   ├── GetStarted.test.tsx                Landing page Get Started section
+│   ├── HeroSection.test.tsx               Landing page hero section
+│   ├── LocationInfoSection.test.tsx       Clinic location info section
+│   ├── OverviewSection.test.tsx           Clinic overview section
+│   ├── PackagesSection.test.tsx           Treatment packages section
+│   ├── PricingSection.test.tsx            Pricing section
+│   ├── ProfileDashboard.test.tsx          User profile dashboard
+│   ├── RegistrySection.test.tsx           Registry/credentials section
+│   ├── ReviewsSection.test.tsx            Reviews section (sorting, date parsing, modal search)
+│   ├── ScoreBreakdownCard.test.tsx        Trust/transparency score breakdown card
+│   ├── SectionNav.test.tsx                Clinic profile section navigation bar
+│   ├── SummarySidebar.test.tsx            Summary sidebar (consultation flow, cancellation, trust score block)
+│   ├── TransparencySection.test.tsx       Transparency section
+│   ├── langchain/
+│   │   ├── LangchainChat.test.tsx         Leila chat UI (initial render, message list states)
+│   │   └── LangchainInput.test.tsx        Leila chat input field
+│   └── sections/
+│       ├── ProfileHairLossStatus.test.tsx User profile — hair loss status section
+│       ├── ProfileHome.test.tsx           User profile — home/overview section
+│       └── ProfilePersonalInfo.test.tsx   User profile — personal info section
+│
+├── integration/                   Full API route + agent stack — LLM calls mocked
+│   ├── copilotkit-langchain.test.ts   /api/copilotkit-langchain route, guardrail integration, conversation history
+│   ├── copilotkit-runtime.test.ts     CopilotKit runtime configuration
+│   └── langchain-tools-route.test.ts  /api/langchain-tools: database_lookup, clinic_summary, input validation
+│
+├── e2e/                           Playwright browser tests — requires running dev server
+│   ├── clinic-discovery.spec.ts       Browse and navigate the clinic discovery page
+│   ├── clinic-filters.spec.ts         Apply, combine, and clear clinic filters
+│   └── clinic-profile.spec.ts         View a clinic detail profile page end-to-end
+│
+├── lib/
+│   └── userProfile.test.ts        User profile library functions
+│
+└── import-google-places.test.ts   Google Places ingestion pipeline (data mapping, URL normalisation)
+```
 
 ---
 
