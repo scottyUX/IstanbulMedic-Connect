@@ -1,51 +1,195 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { MapPin, Clock } from 'lucide-react'
+import { Merriweather } from 'next/font/google'
+import { cn } from '@/lib/utils'
+import { ConsultationConfirmModal } from '@/components/istanbulmedic-connect/ConsultationConfirmModal'
+
+const merriweather = Merriweather({ subsets: ['latin'], weight: ['700'] })
+
+interface Consultation {
+  id: string
+  status: string
+  createdAt: string
+  clinicId: string | null
+  clinicName: string
+  clinicLocation: string
+  clinicImage: string | null
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === 'cancelled') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-400 border border-slate-200">
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+        Cancelled
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-600 border border-amber-200">
+      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  )
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
 export default function ProfileConsultations() {
+  const [consultations, setConsultations] = useState<Consultation[]>([])
+  const [loading, setLoading] = useState(true)
+  const [cancelTarget, setCancelTarget] = useState<Consultation | null>(null)
+
+  useEffect(() => {
+    fetch('/api/consultations')
+      .then((r) => r.json())
+      .then((data) => setConsultations(data.consultations ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleCancel = async () => {
+    if (!cancelTarget) return
+    const res = await fetch(`/api/consultations/${cancelTarget.id}`, { method: 'PATCH' })
+    if (!res.ok) throw new Error('cancel failed')
+    setConsultations((prev) =>
+      prev.map((c) => c.id === cancelTarget.id ? { ...c, status: 'cancelled' } : c)
+    )
+  }
+
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#0D1E32]">Consultations</h1>
-        <p className="text-slate-500 text-sm mt-1">Book and manage consultations with clinics</p>
+        <h1 className={cn(merriweather.className, 'text-2xl font-bold text-[#0D1E32]')}>
+          Consultations
+        </h1>
+        <p className="text-slate-500 text-sm mt-1">
+          Your consultation requests with clinics
+        </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-[#3EBBB7]/10 flex items-center justify-center mx-auto mb-5">
-          <svg
-            className="w-8 h-8 text-[#3EBBB7]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
-          </svg>
-        </div>
-
-        <span className="inline-block px-3 py-1 rounded-full bg-[#3EBBB7]/10 text-[#3EBBB7] text-xs font-semibold mb-4">
-          Coming soon
-        </span>
-
-        <h2 className="text-lg font-semibold text-[#0D1E32] mb-2">Consultations are on the way</h2>
-        <p className="text-slate-500 text-sm max-w-md mx-auto">
-          Soon you&apos;ll be able to shortlist clinics, schedule consultations directly through the platform, and manage all your bookings in one place.
-        </p>
-
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto">
-          {[
-            { label: 'Clinic shortlisting', icon: '🏥' },
-            { label: 'Schedule consultations', icon: '📅' },
-            { label: 'Manage bookings', icon: '✅' },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 border border-slate-100"
-            >
-              <span className="text-2xl">{item.icon}</span>
-              <p className="text-xs font-medium text-slate-600 text-center">{item.label}</p>
-            </div>
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 rounded-2xl bg-slate-100 animate-pulse" />
           ))}
         </div>
-      </div>
+      ) : consultations.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-16 text-center">
+          <Clock className="mx-auto mb-4 h-10 w-10 text-slate-300" />
+          <p className="text-sm font-medium text-slate-500">No consultations yet</p>
+          <p className="mt-1 text-xs text-slate-400">
+            Request a free consultation from any clinic page or your saved clinics.
+          </p>
+          <div className="mt-5 flex justify-center gap-4">
+            <Link href="/clinics" className="text-sm font-semibold text-[#3EBBB7] hover:underline">
+              Browse clinics
+            </Link>
+            <Link href="/bookmarks" className="text-sm font-semibold text-[#3EBBB7] hover:underline">
+              Saved clinics
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Clinic
+                </th>
+                <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:table-cell">
+                  Date Submitted
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {consultations.map((c) => (
+                <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3 max-w-0 w-full">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                        {c.clinicImage ? (
+                          <Image
+                            src={c.clinicImage}
+                            alt={c.clinicName}
+                            fill
+                            sizes="40px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[10px] text-slate-300">
+                            No img
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        {c.clinicId ? (
+                          <Link
+                            href={`/clinics/${c.clinicId}`}
+                            className="font-semibold text-[#0D1E32] hover:text-[#3EBBB7] transition-colors truncate block"
+                          >
+                            {c.clinicName}
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-[#0D1E32] truncate block">
+                            {c.clinicName}
+                          </span>
+                        )}
+                        {c.clinicLocation && (
+                          <span className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            {c.clinicLocation}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="hidden px-4 py-3 text-slate-500 sm:table-cell">
+                    {formatDate(c.createdAt)}
+                  </td>
+                  <td className="px-4 py-3 w-40">
+                    <div className="flex flex-col items-start gap-1">
+                      <StatusBadge status={c.status} />
+                      {c.status === 'pending' && (
+                        <button
+                          type="button"
+                          onClick={() => setCancelTarget(c)}
+                          className="text-xs text-slate-400 hover:text-red-500 transition-colors whitespace-nowrap"
+                        >
+                          Cancel request
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <ConsultationConfirmModal
+        open={cancelTarget !== null}
+        onOpenChange={(open) => { if (!open) setCancelTarget(null) }}
+        clinicName={cancelTarget?.clinicName ?? ''}
+        isRemoving={false}
+        isCancelling={true}
+        onConfirm={handleCancel}
+      />
     </div>
   )
 }

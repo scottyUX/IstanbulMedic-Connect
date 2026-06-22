@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { CheckCircle2 } from 'lucide-react';
 import Section from '@/components/ui/section';
 import Container from '@/components/ui/container';

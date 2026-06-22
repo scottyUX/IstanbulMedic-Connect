@@ -305,16 +305,12 @@ describe('LangchainAgent', () => {
   });
 
   describe('tool registration', () => {
-    it('has exactly 2 tools registered', () => {
-      const agent = new LangchainAgent();
-      expect(agent.tools).toHaveLength(2);
-    });
-
-    it('registered tools are database_lookup and clinic_summary', () => {
+    it('registers the expected server-side tools', () => {
       const agent = new LangchainAgent();
       const names = agent.tools.map((t) => t.name);
       expect(names).toContain('database_lookup');
       expect(names).toContain('clinic_summary');
+      expect(names).toContain('doctor_profile');
     });
   });
 

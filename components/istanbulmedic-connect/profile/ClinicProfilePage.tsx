@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { HeroSection } from "./HeroSection"
 import { SectionNav } from "./SectionNav"
 import { OverviewSection } from "./OverviewSection"
@@ -10,11 +12,12 @@ import { TransparencySection } from "./TransparencySection"
 import { AIInsightsSection } from "./AIInsightsSection"
 import { ReviewsSection } from "./ReviewsSection"
 import { normalizeReviewSource } from "@/lib/review-sources"
-import { CommunitySignalsSection } from "./CommunitySignalsSection"
 import { InstagramSignalsCard } from "./InstagramSignalsCard"
+import { HRNSignalsCard } from "./HRNSignalsCard"
 import { RedditSignalsCard } from "./RedditSignalsCard"
 import { LocationInfoSection } from "./LocationInfoSection"
 import { SummarySidebar } from "./SummarySidebar"
+import { ScoreBreakdownCard } from "./ScoreBreakdownCard"
 import type { ClinicDetail } from "@/lib/api/clinics"
 import {
   toNumber,
@@ -23,28 +26,18 @@ import {
   type OpeningHoursJson,
 } from "@/lib/transformers/clinic"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
-
-type CommunityPostSource = "reddit" | "instagram" | "google" | "facebook" | "youtube" | "forums" | "other"
-type CommunitySentiment = "Positive" | "Neutral" | "Negative"
+import type { RegistryRecord, ComplianceEvent } from "./RegistrySection"
+import { RegistrySection } from "./RegistrySection"
 
 interface ClinicProfilePageProps {
   clinic: ClinicDetail
-}
-
-const SOURCE_TYPE_MAP: Record<string, CommunityPostSource> = {
-  reddit: "reddit",
-  forum: "forums",
-  quora: "forums",
-  social_media: "other",
-  review_platform: "google",
-  clinic_website: "other",
-  registry: "other",
-  mystery_inquiry: "other",
-  internal_note: "other",
+  registryRecords: RegistryRecord[]
+  complianceHistory: ComplianceEvent[]
+  backHref?: string
 }
 
 
-export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
+export const ClinicProfilePage = ({ clinic, registryRecords, complianceHistory, backHref }: ClinicProfilePageProps) => {
   // Transform database data to component format
 
   // Get languages from clinic_languages
@@ -66,6 +59,13 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
       credentials: t.credentials ? [t.credentials] : [],
       yearsOfExperience: t.years_experience,
       education: null, // No fake "Medical School" - show only if we have real data
+      verifiedQualifications: t.qualifications.map((q) => ({
+        qualification: q.qualification,
+        source: q.source,
+        sourceUrl: q.source_url,
+        verifiedAt: q.verified_at,
+      })),
+      lastVerifiedAt: t.last_verified_at,
     }))
 
   // Transform credentials to transparency items (no fake defaults)
@@ -102,6 +102,13 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
     .map((m) => m.url)
   const heroImages = imageMedia
 
+  const isMinistryVerified = registryRecords.some(
+    (record) =>
+      record.source === "turkish_ministry_of_health" &&
+      record.license_status === "active"
+  )
+  const hasActiveMOHRecord = isMinistryVerified
+
   // Build AI insights from score components (no fake defaults)
   const aiInsights = clinic.scoreComponents.map((sc) => sc.explanation)
 
@@ -130,124 +137,33 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
   // Derive services from packages
   const services = deriveServicesFromPackages(clinic.packages)
 
-  const topicLabels: Record<string, string> = {
-    pricing: "Pricing transparency",
-    results: "Results quality",
-    staff: "Staff professionalism",
-    logistics: "Logistics",
-    complaint: "Concerns",
-    praise: "Praise",
-    package_accuracy: "Package accuracy",
-  }
-
-  const posts = clinic.mentions.map((mention) => {
-    const source =
-      Array.isArray(mention.sources) ? mention.sources[0] : mention.sources
-    const sourceType = source?.source_type ?? "other"
-    const sourceName = source?.source_name ?? "Community"
-    const url = source?.url ?? "#"
-    const author = source?.author_handle ?? sourceName
-    const date = mention.created_at
-      ? new Date(mention.created_at).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
-      : "Recent"
-
-    return {
-      source: SOURCE_TYPE_MAP[sourceType] ?? "other",
-      author,
-      date,
-      snippet: mention.mention_text,
-      url,
-      topic: mention.topic,
-      sentiment: mention.sentiment,
-    }
-  })
-
-  const sentimentCounts = posts.reduce(
-    (acc, post) => {
-      if (post.sentiment === "positive") acc.positive += 1
-      if (post.sentiment === "negative") acc.negative += 1
-      if (post.sentiment === "neutral") acc.neutral += 1
-      return acc
-    },
-    { positive: 0, negative: 0, neutral: 0 }
-  )
-
-  const overallSentiment: CommunitySentiment =
-    sentimentCounts.positive > sentimentCounts.negative
-      ? "Positive"
-      : sentimentCounts.negative > sentimentCounts.positive
-        ? "Negative"
-        : "Neutral"
-
-  const commonThemes = posts
-    .map((post) => topicLabels[post.topic] ?? "Other")
-    .filter((value, index, self) => self.indexOf(value) === index)
-    .slice(0, 3)
-
-  const communitySignals = {
-    posts: posts.map((post) => ({
-      source: post.source,
-      author: post.author,
-      date: post.date,
-      snippet: post.snippet,
-      url: post.url,
-    })),
-    summary: {
-      totalMentions: posts.length,
-      sentiment: overallSentiment,
-      commonThemes, // No fake fallback
-    },
-    instagramIntelligence: {
-      profileUrl: "https://instagram.com/istanbulhaircenter",
-      username: "istanbulhaircenter",
-      fullName: "Istanbul Hair Center",
-      biography:
-        "Leading hair transplant clinic in Istanbul. Premium FUE & DHI specialists with 15+ years experience. Natural results. International patients welcome.",
-      followersCount: 12500,
-      postsCount: 342,
-      verified: true,
-      isBusinessAccount: true,
-      businessCategoryName: "Medical & Health",
-      externalUrls: [
-        "https://linktr.ee/istanbulhaircenter",
-        "https://istanbulhaircenter.com",
-      ],
-      extracted: {
-        positioningClaims: [
-          "Premium FUE",
-          "DHI specialists",
-          "15+ years experience",
-        ],
-        servicesClaimed: [
-          "Hair transplant",
-          "Beard transplant",
-          "PRP therapy",
-        ],
-        geographyClaimed: ["Istanbul", "Turkey", "Europe"],
-        languagesClaimed: ["English", "Turkish", "Arabic", "German"],
-        addressText: "Halaskargazi Cad. No: 124, Şişli",
-        websiteCandidates: ["https://istanbulhaircenter.com"],
-        linkAggregatorDetected: "linktr.ee",
-      },
-      firstSeenAt: "2025-01-15T00:00:00Z",
-      lastSeenAt: "2026-02-01T00:00:00Z",
-    },
-  }
 
   return (
     <div className="min-h-screen bg-background text-base antialiased" data-testid="clinic-profile">
+      {/* Back to results */}
+      <div className="border-b border-border/40 bg-background">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+          <Link
+            href={backHref ?? '/clinics'}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to results
+          </Link>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <HeroSection
         clinicName={clinic.name}
         location={clinic.location}
         images={heroImages}
         transparencyScore={clinic.trustScore}
+        trustBand={clinic.trustBand}
         rating={clinic.rating ?? null}
         reviewCount={clinic.totalReviewCount}
+        isMinistryVerified={isMinistryVerified}
+        sourceScores={clinic.sourceScores}
       />
 
       {/* Section Navigation */}
@@ -258,13 +174,20 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main Content Column */}
           <div className="space-y-6 lg:col-span-2">
-            {FEATURE_CONFIG.profileOverview && (
+            <ScoreBreakdownCard
+              overallScore={clinic.trustScore}
+              band={clinic.trustBand}
+              scoreComponents={clinic.scoreComponents}
+              sourceScores={clinic.sourceScores}
+            />
+            {FEATURE_CONFIG.profileOverview && (clinic.description || (clinic.techniques ?? []).length > 0) && (
               <OverviewSection
                 specialties={specialties}
                 yearsInOperation={yearsInOperation}
                 proceduresPerformed={proceduresPerformed}
                 languages={languages}
-                description={clinic.description}
+                description={clinic.description ?? ''}
+                techniques={clinic.techniques ?? []}
               />
             )}
 
@@ -286,7 +209,7 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
               <PackagesSection packages={clinic.packages} />
             )}
 
-            {FEATURE_CONFIG.profileDoctors && doctors.length > 0 && (
+            {FEATURE_CONFIG.profileDoctors && (
               <DoctorsSection doctors={doctors} />
             )}
 
@@ -294,6 +217,12 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
               <TransparencySection
                 transparencyScore={clinic.trustScore}
                 items={transparencyItems}
+              />
+            )}
+            {FEATURE_CONFIG.profileRegistry && !hasActiveMOHRecord && (
+              <RegistrySection
+                registryRecords={registryRecords}
+                complianceHistory={complianceHistory}
               />
             )}
 
@@ -305,13 +234,20 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <SummarySidebar
-              transparencyScore={clinic.trustScore}
-              topSpecialties={specialties.slice(0, 3)}
+              clinicId={clinic.id}
+              clinicName={clinic.name}
+              clinicLocation={clinic.location}
+              clinicImageUrl={clinic.image}
               rating={clinic.rating ?? null}
               reviewCount={clinic.totalReviewCount}
+              websiteUrl={clinic.websiteUrl}
+              trustScore={clinic.trustScore}
+              trustBand={clinic.trustBand}
+              sourceScores={clinic.sourceScores}
             />
           </div>
         </div>
+  
 
         {/* Full Width Sections */}
         <div className="mt-12 space-y-12 w-full">
@@ -319,21 +255,26 @@ export const ClinicProfilePage = ({ clinic }: ClinicProfilePageProps) => {
             averageRating={clinic.rating ?? null}
             totalReviews={clinic.totalReviewCount}
             reviews={allReviews}
+            googleScore={clinic.sourceScores?.find((s) => s.source_name === "google" && s.is_current)?.summary_score ?? null}
           />
 
-          {FEATURE_CONFIG.profileCommunitySignals && (
-            <CommunitySignalsSection
-              posts={communitySignals.posts}
-              summary={communitySignals.summary}
-            />
-          )}
 
           {FEATURE_CONFIG.profileInstagram && clinic.instagramSignals && (
-            <InstagramSignalsCard data={clinic.instagramSignals} />
+            <div id="instagram-intel" className="scroll-mt-32">
+              <InstagramSignalsCard data={clinic.instagramSignals} />
+            </div>
+          )}
+
+          {FEATURE_CONFIG.profileHRN && clinic.hrnSignals && (
+            <div id="hrn-signals" className="scroll-mt-32">
+              <HRNSignalsCard data={clinic.hrnSignals} />
+            </div>
           )}
 
           {FEATURE_CONFIG.profileRedditSignals && clinic.redditSignals && (
-            <RedditSignalsCard data={clinic.redditSignals} />
+            <div id="reddit-signals" className="scroll-mt-32">
+              <RedditSignalsCard data={clinic.redditSignals} />
+            </div>
           )}
         </div>
       </div>

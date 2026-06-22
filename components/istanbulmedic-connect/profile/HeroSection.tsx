@@ -5,16 +5,31 @@ import { useMemo, useState } from "react"
 import { ShieldCheck, Star, Share, Heart, Grid3X3, X, ChevronLeft, ChevronRight, Trophy, Sparkles } from "lucide-react"
 import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FEATURE_CONFIG } from "@/lib/filterConfig"
+import type { ClinicSourceScore } from "@/lib/api/clinics"
+import { GoogleIcon } from "@/components/icons/GoogleIcon"
+import { RedditIcon } from "@/components/icons/RedditIcon"
+import { InstagramIcon } from "@/components/icons/InstagramIcon"
+
+const BAND_CONFIG: Record<string, { color: string; bg: string }> = {
+  A: { color: "text-emerald-700", bg: "bg-emerald-50" },
+  B: { color: "text-blue-700",    bg: "bg-blue-50"    },
+  C: { color: "text-amber-700",   bg: "bg-amber-50"   },
+  D: { color: "text-red-700",     bg: "bg-red-50"     },
+}
 
 interface HeroSectionProps {
   clinicName: string
   location: string
   images: string[]
   transparencyScore: number
+  trustBand?: "A" | "B" | "C" | "D" | null
   rating: number | null
   reviewCount: number
+  isMinistryVerified?: boolean
+  sourceScores?: ClinicSourceScore[]
 }
 
 export const HeroSection = ({
@@ -22,10 +37,18 @@ export const HeroSection = ({
   location,
   images,
   transparencyScore,
+  trustBand = null,
   rating,
   reviewCount,
+  isMinistryVerified = false,
+  sourceScores = [],
 }: HeroSectionProps) => {
   const safeImages = useMemo(() => images.slice(0, 5), [images])
+
+  const bandConfig = trustBand ? BAND_CONFIG[trustBand] : null
+  const googleScore = sourceScores.find((s) => s.source_name === "google" && s.is_current)
+  const instagramScore = sourceScores.find((s) => s.source_name === "instagram" && s.is_current)
+  const redditScore = sourceScores.find((s) => s.source_name === "reddit" && s.is_current)
   const hasImages = safeImages.length > 0
 
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
@@ -52,9 +75,20 @@ export const HeroSection = ({
           {/* Header Section */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-start justify-between">
-              <h1 className="im-heading-1 text-foreground" data-testid="clinic-name">
-                {clinicName}
-              </h1>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h1 className="im-heading-1 text-foreground" data-testid="clinic-name">
+                  {clinicName}
+                </h1>
+                {isMinistryVerified && (
+                  <Badge
+                    variant="outline"
+                    className="gap-1.5 border-[#3EBBB7]/40 bg-[#3EBBB7]/10 px-3 py-1 text-sm font-medium text-[#17375B]"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-[#3EBBB7]" aria-hidden />
+                    Verified by Turkish Ministry of Health
+                  </Badge>
+                )}
+              </div>
               {(FEATURE_CONFIG.share || FEATURE_CONFIG.saveClinic) && (
                 <div className="hidden sm:flex items-center gap-2">
                   {FEATURE_CONFIG.share && (
@@ -75,6 +109,28 @@ export const HeroSection = ({
 
             {/* Sub-header Stats */}
             <div className="flex flex-wrap items-center gap-4 text-base text-foreground">
+              {/* 1. Trust score — first */}
+              <Button
+                variant="link"
+                className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1"
+                onClick={() => {
+                  const scoreSection = document.getElementById("score-breakdown")
+                  if (scoreSection) {
+                    scoreSection.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                }}
+              >
+                <ShieldCheck className="h-4 w-4 text-[#FFD700] mr-1" />
+                <span>Trust {transparencyScore}</span>
+                {bandConfig && (
+                  <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-semibold ${bandConfig.bg} ${bandConfig.color}`}>
+                    {trustBand}
+                  </span>
+                )}
+              </Button>
+              <span className="hidden sm:inline text-muted-foreground">•</span>
+
+              {/* 2. Google star rating */}
               <Button
                 variant="link"
                 className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1"
@@ -90,24 +146,62 @@ export const HeroSection = ({
                 <span className="text-muted-foreground font-normal">·</span>
                 <span className="text-muted-foreground font-normal">{reviewCount} reviews</span>
               </Button>
-              {FEATURE_CONFIG.profileTransparency && (
+
+              {/* 3. Google source score */}
+              {googleScore && (
                 <>
                   <span className="hidden sm:inline text-muted-foreground">•</span>
                   <Button
                     variant="link"
-                    className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4"
+                    className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1.5"
+                    data-testid="google-score-chip"
                     onClick={() => {
-                      const transparencySection = document.getElementById("transparency")
-                      if (transparencySection) {
-                        transparencySection.scrollIntoView({ behavior: "smooth", block: "start" })
-                      }
+                      document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth", block: "start" })
                     }}
                   >
-                    <ShieldCheck className="h-4 w-4 text-[#FFD700] mr-1" />
-                    <span>Transparency {transparencyScore}</span>
+                    <GoogleIcon className="h-4 w-4 shrink-0" />
+                    Google {googleScore.summary_score}
                   </Button>
                 </>
               )}
+
+              {/* 5. Instagram score */}
+              {instagramScore && (
+                <>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1.5"
+                    data-testid="instagram-score-chip"
+                    onClick={() => {
+                      document.getElementById("instagram-intel")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }}
+                  >
+                    <InstagramIcon className="h-4 w-4 shrink-0" />
+                    Instagram {instagramScore.summary_score}
+                  </Button>
+                </>
+              )}
+
+              {/* 6. Reddit score */}
+              {redditScore && (
+                <>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-foreground hover:text-[#3EBBB7] font-medium underline-offset-4 flex items-center gap-1.5"
+                    data-testid="reddit-score-chip"
+                    onClick={() => {
+                      document.getElementById("reddit-signals")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }}
+                  >
+                    <RedditIcon className="h-4 w-4 shrink-0" />
+                    Reddit {redditScore.summary_score}
+                  </Button>
+                </>
+              )}
+
+              {/* 5. Location — last */}
               <span className="hidden sm:inline text-muted-foreground">•</span>
               <Button
                 variant="link"
@@ -124,8 +218,8 @@ export const HeroSection = ({
             </div>
           </div>
 
-          {/* Patient Favorite Banner - only show if clinic qualifies (rating >= 4.8 with at least 100 reviews) */}
-          {rating !== null && rating >= 4.8 && reviewCount >= 100 && (
+          {/* IM Favorite Banner - only show if clinic has Band A trust score */}
+          {trustBand === "A" && (
             <div className="border border-border/60 rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 bg-background shadow-sm">
 
               {/* Left: Badge */}
@@ -135,25 +229,30 @@ export const HeroSection = ({
                   <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-[#FFD700] fill-[#FFD700] animate-pulse" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="im-heading-4 text-foreground">Patient</span>
-                  <span className="im-heading-4 text-foreground">favorite</span>
+                  <span className="im-heading-4 text-foreground">IM</span>
+                  <span className="im-heading-4 text-foreground">Favorite</span>
                 </div>
               </div>
 
               {/* Middle: Text */}
               <div className="flex-1 text-center md:text-left px-4">
                 <p className="im-text-body-lg font-medium text-foreground">
-                  One of the most loved clinics on Istanbul Medic Connect
+                  One of the most trusted clinics on Istanbul Medic Connect
                 </p>
                 <p className="text-muted-foreground">
-                  Rated highly for hygiene, outcome, and service.
+                  Awarded our highest trust rating — Band A.
                 </p>
               </div>
 
               {/* Right: Stats */}
               <div className="flex items-center gap-6 shrink-0 md:border-l md:pl-6 border-border/60">
                 <div className="text-center">
-                  <div className="im-heading-3 text-foreground">{rating.toFixed(2)}</div>
+                  <div className="im-heading-3 text-foreground">{transparencyScore}</div>
+                  <div className="text-sm text-muted-foreground mt-1">Trust Score</div>
+                </div>
+                <div className="h-10 w-px bg-border/60 hidden md:block"></div>
+                <div className="text-center">
+                  <div className="im-heading-3 text-foreground">{rating !== null ? rating.toFixed(1) : "—"}</div>
                   <div className="flex gap-0.5 mt-1 justify-center">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star key={i} className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />

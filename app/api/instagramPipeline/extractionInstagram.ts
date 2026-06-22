@@ -88,7 +88,7 @@ export function extractInstagramClaims(rawData: InstagramScraperResult) {
     "carrd.co",
   ];
 
-  let linkAggregatorDetected: string | null = null;
+  let linkAggregatorDetected: string | undefined;
   for (const url of websiteCandidates) {
     try {
       const domain = new URL(url).hostname.toLowerCase();
@@ -182,21 +182,21 @@ export function extractInstagramClaims(rawData: InstagramScraperResult) {
 
   // All posts
   const allPosts = postsData.map((post) => ({
-    id: post.id ?? "",
-    type: post.type ?? "",
-    shortCode: post.shortCode ?? "",
-    url: post.url ?? "",
-    caption: post.caption ?? "",
-    hashtags: post.hashtags ?? [],
-    mentions: post.mentions ?? [],
-    likesCount: post.likesCount ?? 0,
-    commentsCount: post.commentsCount ?? 0,
-    firstComment: post.firstComment ?? "",
-    latestComments: post.latestComments ?? [],
-    timestamp: post.timestamp ?? "",
-    displayUrl: post.displayUrl ?? "",
-    alt: post.alt ?? "",
-    isCommentsDisabled: post.isCommentsDisabled ?? false,
+    id: String(post.id ?? ""),
+    type: String(post.type ?? ""),
+    shortCode: String(post.shortCode ?? ""),
+    url: String(post.url ?? ""),
+    caption: String(post.caption ?? ""),
+    hashtags: Array.isArray(post.hashtags) ? (post.hashtags as string[]) : [],
+    mentions: Array.isArray(post.mentions) ? (post.mentions as string[]) : [],
+    likesCount: Number(post.likesCount ?? 0),
+    commentsCount: Number(post.commentsCount ?? 0),
+    firstComment: String(post.firstComment ?? ""),
+    latestComments: Array.isArray(post.latestComments) ? (post.latestComments as unknown[]) : [],
+    timestamp: String(post.timestamp ?? ""),
+    displayUrl: String(post.displayUrl ?? ""),
+    alt: String(post.alt ?? ""),
+    isCommentsDisabled: Boolean(post.isCommentsDisabled ?? false),
   }));
 
   return {

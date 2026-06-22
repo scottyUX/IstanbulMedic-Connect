@@ -4,31 +4,30 @@ import {
   copilotRuntimeNextJSAppRouterEndpoint,
   OpenAIAdapter,
 } from "@copilotkit/runtime";
-import { BuiltInAgent } from "@copilotkit/runtime/v2";
 import type { AbstractAgent } from "@ag-ui/client";
-import { LEILA_SYSTEM_PROMPT } from "@/lib/agents/langchain/prompts/leila-system-prompt";
+import { LangchainAgentAdapter } from "@/lib/agents/langchain/adapter";
 
 /**
- * CopilotKit runtime powered by the LangChain agent's system prompt and tools.
+ * CopilotKit runtime powered by the real server-side LangchainAgent.
  *
  * Architecture:
- * - BuiltInAgent uses the versioned Leila system prompt (guardrails included)
- * - Tools (database_lookup, clinic_summary) are registered client-side via
- *   LangchainGenUI and routed through /api/langchain-tools
- * - OpenAI gpt-4o-mini matches the LangChain agent's model config
+ * - LangchainAgentAdapter bridges ag-ui's AbstractAgent interface to
+ *   LangchainAgent.handleMessageStream(), so the LLM tool-calling loop
+ *   (clinic_summary, database_lookup, …) runs server-side against Supabase.
+ * - OpenAIAdapter remains as the service adapter for legacy callers; the
+ *   adapter above takes over once an agent is selected from the `agents` map.
  */
 
 const serviceAdapter = new OpenAIAdapter({
   model: "gpt-4o-mini",
 });
 
-const agent = new BuiltInAgent({
-  model: "openai/gpt-4o-mini",
-  prompt: LEILA_SYSTEM_PROMPT,
+const langchainAdapter = new LangchainAgentAdapter({
+  agentId: "langchain-default",
 });
 
 const agents = {
-  default: agent as unknown as AbstractAgent,
+  default: langchainAdapter as unknown as AbstractAgent,
 } as unknown as Record<string, AbstractAgent> &
   PromiseLike<Record<string, AbstractAgent>>;
 

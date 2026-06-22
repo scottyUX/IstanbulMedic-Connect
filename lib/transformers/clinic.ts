@@ -189,12 +189,3 @@ export const deriveCommunityTags = (
   return topics;
 };
 
-/**
- * Check if a clinic qualifies for "Patient Favorite" badge
- */
-export const isPatientFavorite = (
-  rating: number | null,
-  reviewCount: number
-): boolean => {
-  return rating !== null && rating >= 4.5 && reviewCount >= 5;
-};

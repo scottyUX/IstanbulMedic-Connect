@@ -1,7 +1,7 @@
 # Forum Scraping Schema — Proposed Design
 
-**Last Updated:** 2026-04-09
-**Status:** Draft — for review before migration
+**Last Updated:** 2026-04-11
+**Status:** Schema applied, extraction tested
 
 ---
 
@@ -46,11 +46,13 @@ scrape_strategy      image_urls
 - Adding a new forum source = new extension table + new enum value. Nothing else changes.
 - The 1:1 join from hub → extension is effectively free in Postgres (both on PK/FK).
 
-### Reddit refactor
+### Reddit refactor (deferred)
 
-The existing `clinic_reddit_posts` and `clinic_reddit_profiles` tables will be migrated into this pattern:
+The existing `clinic_reddit_posts` and `clinic_reddit_profiles` tables will eventually be migrated into this pattern:
 - `clinic_reddit_posts` → split into `forum_thread_index` rows + `reddit_thread_content` rows
 - `clinic_reddit_profiles` → migrated into `clinic_forum_profiles` with `forum_source = 'reddit'`
+
+**Note (2026-04-11):** Reddit migration is deferred to a separate migration file. The current migration (`20260409000000_create_hrn_forum_tables.sql`) only creates HRN tables and shared infrastructure. Reddit tables will be handled once the Reddit implementation is finalized.
 
 ---
 
@@ -282,15 +284,29 @@ Profile aggregator (nightly or on-demand)
 
 ---
 
-## Migration Plan (Reddit Refactor)
+## Migration Plan
+
+### Phase 1: HRN Tables (Current)
+
+Migration: `20260409000000_create_forum_scraping_tables.sql`
 
 | Step | Action |
 |------|--------|
-| 1 | Create `forum_thread_index`, `reddit_thread_content`, `hrn_thread_content` |
-| 2 | Create `forum_thread_signals`, `forum_thread_llm_analysis`, `clinic_forum_profiles` |
-| 3 | Migrate `clinic_reddit_posts` → insert into `forum_thread_index` + `reddit_thread_content` |
-| 4 | Migrate `clinic_reddit_profiles` → insert into `clinic_forum_profiles` with `forum_source = 'reddit'` |
-| 5 | Drop `clinic_reddit_posts`, `clinic_reddit_profiles` |
+| 1 | Create `forum_source_enum` |
+| 2 | Create `forum_thread_index` (hub) |
+| 3 | Create `hrn_thread_content` (HRN extension) |
+| 4 | Create `forum_thread_signals`, `forum_thread_llm_analysis`, `clinic_forum_profiles` |
+
+### Phase 2: Reddit Refactor (Deferred)
+
+Will be handled in a separate migration once Reddit implementation is finalized.
+
+| Step | Action |
+|------|--------|
+| 1 | Create `reddit_thread_content` (Reddit extension) |
+| 2 | Migrate `clinic_reddit_posts` → `forum_thread_index` + `reddit_thread_content` |
+| 3 | Migrate `clinic_reddit_profiles` → `clinic_forum_profiles` with `forum_source = 'reddit'` |
+| 4 | Drop `clinic_reddit_posts`, `clinic_reddit_profiles` |
 
 ---
 
@@ -300,3 +316,21 @@ Profile aggregator (nightly or on-demand)
 - A separate images table (URLs stored as array on `hrn_thread_content` is sufficient for MVP)
 - Auto-discovery of clinics from content (LLM attribution matches to existing `clinics` rows only)
 - A many-to-many junction table for multi-clinic threads — secondary mentions are captured in `forum_thread_llm_analysis.secondary_clinic_mentions` (jsonb) so the data is preserved and a junction table can be backfilled later without re-running the LLM
+
+---
+
+## Deferred: `forum_score` Field
+
+**Decision (2026-04-11):** An aggregate "HRN Score" / "Forum Score" will be added to `clinic_forum_profiles` **after** we have real data to inform the formula.
+
+**Rationale:**
+- The schema already captures all raw inputs needed to compute a score: `thread_count`, `photo_thread_count`, `longterm_thread_count`, `repair_mention_count`, `sentiment_score`, `sentiment_distribution`
+- The optimal weighting formula (how to combine these signals) will become clear once we can experiment with real data
+- Adding a column later is trivial: `ALTER TABLE clinic_forum_profiles ADD COLUMN forum_score numeric(4,3);`
+
+**When to add:**
+1. Run the pipeline and populate real data
+2. Experiment with score formulas in queries/code
+3. Once the formula is validated, add the column and persist it
+
+This is a shared field (not HRN-specific) since `clinic_forum_profiles` has one row per `(clinic_id, forum_source)` — each source gets its own score computed with source-appropriate logic.

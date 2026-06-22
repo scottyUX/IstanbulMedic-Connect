@@ -29,15 +29,24 @@ describe('HeroSection', () => {
     expect(screen.getByText('Istanbul Hair Clinic')).toBeInTheDocument();
   });
 
+  it('renders Ministry of Health verification badge when verified', () => {
+    render(<HeroSection {...defaultProps} isMinistryVerified />);
+    expect(screen.getByText('Verified by Turkish Ministry of Health')).toBeInTheDocument();
+  });
+
+  it('does not render Ministry of Health verification badge by default', () => {
+    render(<HeroSection {...defaultProps} />);
+    expect(screen.queryByText('Verified by Turkish Ministry of Health')).not.toBeInTheDocument();
+  });
+
   it('renders location', () => {
     render(<HeroSection {...defaultProps} />);
     expect(screen.getByText('Istanbul, Turkey')).toBeInTheDocument();
   });
 
-  // TODO: Unskip when FEATURE_CONFIG.profileTransparency is enabled
-  it.skip('renders transparency score', () => {
+  it('renders trust score in sub-header', () => {
     render(<HeroSection {...defaultProps} />);
-    expect(screen.getByText(/Transparency 85/)).toBeInTheDocument();
+    expect(screen.getByText(/Trust 85/)).toBeInTheDocument();
   });
 
   it('renders rating when provided', () => {
@@ -74,22 +83,27 @@ describe('HeroSection', () => {
     expect(screen.getByText('No clinic photos uploaded yet')).toBeInTheDocument();
   });
 
-  // Patient Favorite threshold updated to rating >= 4.8 and reviewCount >= 100
-  it('shows Patient Favorite badge when rating >= 4.8 and reviewCount >= 100', () => {
-    render(<HeroSection {...defaultProps} rating={4.9} reviewCount={150} />);
-    expect(screen.getByText('Patient')).toBeInTheDocument();
-    expect(screen.getByText('favorite')).toBeInTheDocument();
-    expect(screen.getByText('One of the most loved clinics on Istanbul Medic Connect')).toBeInTheDocument();
+  it('shows IM Favorite banner when trustBand is A', () => {
+    render(<HeroSection {...defaultProps} trustBand="A" />);
+    expect(screen.getByText('IM')).toBeInTheDocument();
+    expect(screen.getByText('Favorite')).toBeInTheDocument();
+    expect(screen.getByText('One of the most trusted clinics on Istanbul Medic Connect')).toBeInTheDocument();
+    expect(screen.getByText('Awarded our highest trust rating — Band A.')).toBeInTheDocument();
   });
 
-  it('does not show Patient Favorite badge when rating < 4.8', () => {
-    render(<HeroSection {...defaultProps} rating={4.7} reviewCount={150} />);
-    expect(screen.queryByText('One of the most loved clinics')).not.toBeInTheDocument();
+  it('shows Trust Score in banner stats when trustBand is A', () => {
+    render(<HeroSection {...defaultProps} trustBand="A" transparencyScore={85} />);
+    expect(screen.getByText('Trust Score')).toBeInTheDocument();
   });
 
-  it('does not show Patient Favorite badge when reviewCount < 100', () => {
-    render(<HeroSection {...defaultProps} rating={4.9} reviewCount={50} />);
-    expect(screen.queryByText('One of the most loved clinics')).not.toBeInTheDocument();
+  it('does not show IM Favorite banner when trustBand is B', () => {
+    render(<HeroSection {...defaultProps} trustBand="B" />);
+    expect(screen.queryByText('One of the most trusted clinics')).not.toBeInTheDocument();
+  });
+
+  it('does not show IM Favorite banner when trustBand is not provided', () => {
+    render(<HeroSection {...defaultProps} />);
+    expect(screen.queryByText('One of the most trusted clinics')).not.toBeInTheDocument();
   });
 
   it('renders images with correct alt text', () => {
@@ -124,5 +138,44 @@ describe('HeroSection', () => {
 
     // Should show 1 / 5 (limited to 5)
     expect(screen.getByText('1 / 5')).toBeInTheDocument();
+  });
+
+  // ── Source score chips ────────────────────────────────────────────────────
+
+  const mockSourceScores = [
+    { id: '1', clinic_id: 'c1', source_name: 'google',    summary_score: 81, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: true, score_version: 'v1.0' },
+    { id: '2', clinic_id: 'c1', source_name: 'instagram', summary_score: 62, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: true, score_version: 'v1.0' },
+    { id: '3', clinic_id: 'c1', source_name: 'reddit',    summary_score: 71, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: true, score_version: 'v1.0' },
+  ];
+
+  it('renders Google score chip when a current Google source score is provided', () => {
+    render(<HeroSection {...defaultProps} sourceScores={mockSourceScores} />);
+    expect(screen.getByTestId('google-score-chip')).toBeInTheDocument();
+    expect(screen.getByText(/Google 81/)).toBeInTheDocument();
+  });
+
+  it('renders Instagram score chip when a current Instagram source score is provided', () => {
+    render(<HeroSection {...defaultProps} sourceScores={mockSourceScores} />);
+    expect(screen.getByTestId('instagram-score-chip')).toBeInTheDocument();
+    expect(screen.getByText(/Instagram 62/)).toBeInTheDocument();
+  });
+
+  it('renders Reddit score chip when a current Reddit source score is provided', () => {
+    render(<HeroSection {...defaultProps} sourceScores={mockSourceScores} />);
+    expect(screen.getByTestId('reddit-score-chip')).toBeInTheDocument();
+    expect(screen.getByText(/Reddit 71/)).toBeInTheDocument();
+  });
+
+  it('does not render Instagram chip when no sourceScores are provided', () => {
+    render(<HeroSection {...defaultProps} />);
+    expect(screen.queryByTestId('instagram-score-chip')).not.toBeInTheDocument();
+  });
+
+  it('does not render Reddit chip when score exists but is_current is false', () => {
+    const staleScores = [
+      { id: '2', clinic_id: 'c1', source_name: 'reddit', summary_score: 71, confidence_score: null, metrics_json: {}, breakdown_json: {}, explanation: null, computed_at: '', is_current: false, score_version: 'v1.0' },
+    ];
+    render(<HeroSection {...defaultProps} sourceScores={staleScores} />);
+    expect(screen.queryByTestId('reddit-score-chip')).not.toBeInTheDocument();
   });
 });

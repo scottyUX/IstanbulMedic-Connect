@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { resolveClinic, fetchClinicData } from "./_shared";
 
 // ============================================================================
 // Types
@@ -59,6 +60,12 @@ interface ClinicSummary {
     price_max?: number;
     currency?: string;
   }[];
+  media?: {
+    url: string;
+    alt_text?: string;
+    caption?: string;
+    is_primary?: boolean;
+  }[];
   score?: {
     overall_score: number;
     band: string;
@@ -73,17 +80,25 @@ interface ClinicSummary {
     credentials: string;
     years_experience?: number;
   }[];
-  review_count?: number;
+  platform_review_count?: number;
+  instagram?: {
+    handle: string | null;
+    follower_count: number | null;
+    verified: boolean | null;
+  };
+  reddit?: {
+    score: number | null;
+    thread_count: number;
+    sentiment_score: number | null;
+  };
+  registry_verified?: boolean;
+  google?: { rating: number | null; total: number | null };
 }
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-/**
- * Strip null/undefined values from an object so the summary only contains
- * fields that actually have data in the database.
- */
 function stripNulls<T extends Record<string, unknown>>(obj: T): Partial<T> {
   const cleaned: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -92,45 +107,6 @@ function stripNulls<T extends Record<string, unknown>>(obj: T): Partial<T> {
     }
   }
   return cleaned as Partial<T>;
-}
-
-/**
- * Resolve a clinic row by ID or by name search.
- * Returns the first matching active clinic, or null.
- */
-async function resolveClinic(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  clinicId?: string,
-  clinicName?: string
-) {
-  // Direct ID lookup
-  if (clinicId) {
-    const { data, error } = await supabase
-      .from("clinics")
-      .select("*")
-      .eq("id", clinicId)
-      .limit(1);
-
-    if (error || !data || data.length === 0) return null;
-    return data[0];
-  }
-
-  // Name search — partial match, prefer active clinics
-  if (clinicName) {
-    const { data, error } = await supabase
-      .from("clinics")
-      .select("*")
-      .ilike("display_name", `%${clinicName}%`)
-      .limit(5);
-
-    if (error || !data || data.length === 0) return null;
-
-    // Prefer active clinics over inactive/under_review
-    const active = data.find((c) => c.status === "active");
-    return active ?? data[0];
-  }
-
-  return null;
 }
 
 // ============================================================================
@@ -164,9 +140,7 @@ export const clinicSummaryTool = new DynamicStructuredTool({
     try {
       const supabase = await createClient();
 
-      // Step 1: Resolve the clinic
       const clinic = await resolveClinic(supabase, clinic_id, clinic_name);
-
       if (!clinic) {
         return JSON.stringify({
           error: "No clinic found matching the given criteria",
@@ -174,77 +148,38 @@ export const clinicSummaryTool = new DynamicStructuredTool({
         });
       }
 
-      const id = clinic.id;
-
-      // Step 2: Fetch all related data in parallel
-      const [
-        locationsResult,
-        servicesResult,
-        credentialsResult,
-        pricingResult,
-        packagesResult,
-        scoresResult,
-        languagesResult,
-        teamResult,
-        reviewCountResult,
-      ] = await Promise.all([
+      const [bundle, socialResult, redditResult, registryResult, googleResult] = await Promise.all([
+        fetchClinicData(supabase, clinic),
         supabase
-          .from("clinic_locations")
-          .select(
-            "city, country, address_line, postal_code, opening_hours, payment_methods, is_primary"
-          )
-          .eq("clinic_id", id)
-          .eq("is_primary", true)
-          .limit(1),
+          .from("clinic_social_media")
+          .select("account_handle, follower_count, verified")
+          .eq("clinic_id", clinic.id)
+          .eq("platform", "instagram")
+          .maybeSingle(),
         supabase
-          .from("clinic_services")
-          .select("service_name, service_category, is_primary_service")
-          .eq("clinic_id", id),
+          .from("clinic_forum_profiles")
+          .select("score, thread_count, sentiment_score")
+          .eq("clinic_id", clinic.id)
+          .eq("forum_source", "reddit")
+          .maybeSingle(),
         supabase
-          .from("clinic_credentials")
-          .select(
-            "credential_name, credential_type, issuing_body, valid_from, valid_to"
-          )
-          .eq("clinic_id", id),
+          .from("clinic_registry_records")
+          .select("license_status")
+          .eq("clinic_id", clinic.id)
+          .limit(5),
         supabase
-          .from("clinic_pricing")
-          .select(
-            "service_name, price_min, price_max, currency, pricing_type, is_verified"
-          )
-          .eq("clinic_id", id),
-        supabase
-          .from("clinic_packages")
-          .select(
-            "package_name, includes, excludes, nights_included, transport_included, aftercare_duration_days, price_min, price_max, currency"
-          )
-          .eq("clinic_id", id),
-        supabase
-          .from("clinic_scores")
-          .select("overall_score, band")
-          .eq("clinic_id", id)
-          .limit(1),
-        supabase
-          .from("clinic_languages")
-          .select("language, support_type")
-          .eq("clinic_id", id),
-        supabase
-          .from("clinic_team")
-          .select("name, role, credentials, years_experience")
-          .eq("clinic_id", id),
-        supabase
-          .from("clinic_reviews")
-          .select("id", { count: "exact", head: true })
-          .eq("clinic_id", id),
+          .from("clinic_google_places")
+          .select("rating, user_ratings_total")
+          .eq("clinic_id", clinic.id)
+          .maybeSingle(),
       ]);
 
-      // Step 3: Build structured summary — only include fields with data
       const summary: ClinicSummary = {
         id: clinic.id,
         display_name: clinic.display_name,
         status: clinic.status,
       };
 
-      // Optional clinic-level fields
       if (clinic.description) summary.description = clinic.description;
       if (clinic.short_description)
         summary.short_description = clinic.short_description;
@@ -254,7 +189,6 @@ export const clinicSummaryTool = new DynamicStructuredTool({
       if (clinic.procedures_performed != null)
         summary.procedures_performed = clinic.procedures_performed;
 
-      // Contact info — only if at least one channel exists
       const contact = stripNulls({
         phone: clinic.phone_contact,
         email: clinic.email_contact,
@@ -264,8 +198,7 @@ export const clinicSummaryTool = new DynamicStructuredTool({
         summary.contact = contact as ClinicSummary["contact"];
       }
 
-      // Primary location
-      const loc = locationsResult.data?.[0];
+      const loc = bundle.location;
       if (loc) {
         const location: ClinicSummary["location"] = {
           city: loc.city,
@@ -279,18 +212,16 @@ export const clinicSummaryTool = new DynamicStructuredTool({
         summary.location = location;
       }
 
-      // Specialties / services
-      if (servicesResult.data && servicesResult.data.length > 0) {
-        summary.specialties = servicesResult.data.map((s) => ({
+      if (bundle.services.length > 0) {
+        summary.specialties = bundle.services.map((s) => ({
           service_name: s.service_name,
           service_category: s.service_category,
           is_primary: s.is_primary_service,
         }));
       }
 
-      // Accreditations / credentials
-      if (credentialsResult.data && credentialsResult.data.length > 0) {
-        summary.accreditations = credentialsResult.data.map((c) =>
+      if (bundle.credentials.length > 0) {
+        summary.accreditations = bundle.credentials.map((c) =>
           stripNulls({
             credential_name: c.credential_name,
             credential_type: c.credential_type,
@@ -301,9 +232,8 @@ export const clinicSummaryTool = new DynamicStructuredTool({
         ) as ClinicSummary["accreditations"];
       }
 
-      // Pricing
-      if (pricingResult.data && pricingResult.data.length > 0) {
-        summary.pricing = pricingResult.data.map((p) =>
+      if (bundle.pricing.length > 0) {
+        summary.pricing = bundle.pricing.map((p) =>
           stripNulls({
             service_name: p.service_name,
             price_min: p.price_min,
@@ -315,9 +245,8 @@ export const clinicSummaryTool = new DynamicStructuredTool({
         ) as ClinicSummary["pricing"];
       }
 
-      // Packages
-      if (packagesResult.data && packagesResult.data.length > 0) {
-        summary.packages = packagesResult.data.map((pkg) =>
+      if (bundle.packages.length > 0) {
+        summary.packages = bundle.packages.map((pkg) =>
           stripNulls({
             package_name: pkg.package_name,
             includes: pkg.includes,
@@ -332,26 +261,30 @@ export const clinicSummaryTool = new DynamicStructuredTool({
         ) as ClinicSummary["packages"];
       }
 
-      // Trust score
-      const score = scoresResult.data?.[0];
-      if (score) {
-        summary.score = {
-          overall_score: score.overall_score,
-          band: score.band,
-        };
+      if (bundle.media.length > 0) {
+        summary.media = bundle.media.map((m) =>
+          stripNulls({
+            url: m.url,
+            alt_text: m.alt_text,
+            caption: m.caption,
+            is_primary: m.is_primary,
+          })
+        ) as ClinicSummary["media"];
       }
 
-      // Languages
-      if (languagesResult.data && languagesResult.data.length > 0) {
-        summary.languages = languagesResult.data.map((l) => ({
+      if (bundle.score) {
+        summary.score = bundle.score;
+      }
+
+      if (bundle.languages.length > 0) {
+        summary.languages = bundle.languages.map((l) => ({
           language: l.language,
           support_type: l.support_type,
         }));
       }
 
-      // Team
-      if (teamResult.data && teamResult.data.length > 0) {
-        summary.team = teamResult.data.map((t) =>
+      if (bundle.team.length > 0) {
+        summary.team = bundle.team.map((t) =>
           stripNulls({
             name: t.name,
             role: t.role,
@@ -361,9 +294,36 @@ export const clinicSummaryTool = new DynamicStructuredTool({
         ) as ClinicSummary["team"];
       }
 
-      // Review count
-      if (reviewCountResult.count != null && reviewCountResult.count > 0) {
-        summary.review_count = reviewCountResult.count;
+      if (bundle.reviewCount > 0) {
+        summary.platform_review_count = bundle.reviewCount;
+      }
+
+      if (socialResult.data) {
+        summary.instagram = {
+          handle: socialResult.data.account_handle,
+          follower_count: socialResult.data.follower_count,
+          verified: socialResult.data.verified,
+        };
+      }
+
+      if (redditResult.data) {
+        const r = redditResult.data;
+        summary.reddit = {
+          score: r.score != null ? Number(r.score) : null,
+          thread_count: r.thread_count ?? 0,
+          sentiment_score: r.sentiment_score != null ? Number(r.sentiment_score) : null,
+        };
+      }
+
+      if ((registryResult.data ?? []).some((r) => r.license_status === "active")) {
+        summary.registry_verified = true;
+      }
+
+      if (googleResult.data) {
+        summary.google = {
+          rating: googleResult.data.rating,
+          total: googleResult.data.user_ratings_total,
+        };
       }
 
       return JSON.stringify({
