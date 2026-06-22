@@ -5,7 +5,6 @@ import {
   transformOpeningHours,
   deriveServicesFromPackages,
   deriveCommunityTags,
-  isPatientFavorite,
   type OpeningHoursJson,
 } from '@/lib/transformers/clinic';
 import type { ClinicDetail } from '@/lib/api/clinics';
@@ -241,30 +240,3 @@ describe('deriveCommunityTags', () => {
   });
 });
 
-describe('isPatientFavorite', () => {
-  it('returns true for high rating with enough reviews', () => {
-    expect(isPatientFavorite(4.5, 5)).toBe(true);
-    expect(isPatientFavorite(4.8, 10)).toBe(true);
-    expect(isPatientFavorite(5.0, 100)).toBe(true);
-  });
-
-  it('returns false for null rating', () => {
-    expect(isPatientFavorite(null, 100)).toBe(false);
-  });
-
-  it('returns false for rating below 4.5', () => {
-    expect(isPatientFavorite(4.4, 100)).toBe(false);
-    expect(isPatientFavorite(3.0, 100)).toBe(false);
-    expect(isPatientFavorite(0, 100)).toBe(false);
-  });
-
-  it('returns false for fewer than 5 reviews', () => {
-    expect(isPatientFavorite(5.0, 4)).toBe(false);
-    expect(isPatientFavorite(5.0, 0)).toBe(false);
-    expect(isPatientFavorite(5.0, 1)).toBe(false);
-  });
-
-  it('returns false when both criteria not met', () => {
-    expect(isPatientFavorite(4.0, 3)).toBe(false);
-  });
-});

@@ -29,6 +29,7 @@ vi.mock("@/lib/supabase/server", () => {
       eq: () => self,
       ilike: () => self,
       or: () => self,
+      order: () => self,
       limit: () => ({ data, error: null, count }),
       then: (resolve: unknown) =>
         (resolve as (val: { data: unknown[]; error: null; count: number | null }) => void)({ data, error: null, count }),

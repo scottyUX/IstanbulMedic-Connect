@@ -52,6 +52,8 @@ async function renderLoaded() {
     profile: { email: 'jane@example.com', full_name: 'Jane Doe' } as unknown as ReturnType<typeof useAuth>['profile'],
     loading: false,
     loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
+    consultationResult: null, clearConsultationResult: vi.fn(),
+    bookmarkSyncCount: 0, clearBookmarkSyncCount: vi.fn(),
   })
   // Wrap in async act so the useEffect fetch and subsequent state updates
   // are fully flushed before we assert. Required when vi.useFakeTimers() is
@@ -75,6 +77,8 @@ describe('ProfilePersonalInfo', () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: true, user: null, profile: null, loading: false,
       loginWithGoogle: vi.fn(), logout: vi.fn(), fetchUserProfile: vi.fn(),
+    consultationResult: null, clearConsultationResult: vi.fn(),
+    bookmarkSyncCount: 0, clearBookmarkSyncCount: vi.fn(),
     })
     const { container } = render(<ProfilePersonalInfo />)
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()

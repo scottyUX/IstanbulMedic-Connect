@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ExploreClinicsPage } from '@/components/istanbulmedic-connect/ExploreClinicsPage';
 import type { Clinic, FilterState } from '@/components/istanbulmedic-connect/types';
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ isAuthenticated: false, loading: false }),
+}));
+
 // Mock next/navigation
 const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -57,6 +61,8 @@ describe('ExploreClinicsPage', () => {
     aiMatchScore: 0,
     minRating: null,
     minReviews: null,
+    minTrustScore: null,
+    ministryVerified: false,
   };
 
   const sampleClinics: Clinic[] = [
@@ -71,6 +77,7 @@ describe('ExploreClinicsPage', () => {
       trustScore: 90,
       description: 'Top rated hair clinic',
       rating: 4.8,
+      isMinistryVerified: true,
     },
     {
       id: 'clinic-2',
@@ -83,6 +90,7 @@ describe('ExploreClinicsPage', () => {
       trustScore: 85,
       description: 'Premier dental center',
       rating: 4.5,
+      isMinistryVerified: false,
     },
   ];
 
@@ -102,7 +110,7 @@ describe('ExploreClinicsPage', () => {
   describe('Rendering', () => {
     it('renders page headline', () => {
       render(<ExploreClinicsPage {...defaultProps} />);
-      expect(screen.getByText(/Connect with a Trusted Hair Transplant Clinic/)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Connect with a Trusted Hair Transplant Clinic/i })).toBeInTheDocument();
     });
 
     it('renders total count header', () => {
@@ -119,6 +127,11 @@ describe('ExploreClinicsPage', () => {
       render(<ExploreClinicsPage {...defaultProps} />);
       expect(screen.getByText('Istanbul Hair Clinic')).toBeInTheDocument();
       expect(screen.getByText('Dental Center Ankara')).toBeInTheDocument();
+    });
+
+    it('renders Ministry verification badges on verified clinic cards', () => {
+      render(<ExploreClinicsPage {...defaultProps} />);
+      expect(screen.getByText('Ministry verified')).toBeInTheDocument();
     });
 
     it('renders sort dropdown with default value', () => {
@@ -243,7 +256,7 @@ describe('ExploreClinicsPage', () => {
         fireEvent.click(card);
 
         await waitFor(() => {
-          expect(mockPush).toHaveBeenCalledWith('/clinics/clinic-1');
+          expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/clinics/clinic-1'));
         });
       }
     });

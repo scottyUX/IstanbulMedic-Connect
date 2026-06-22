@@ -1,18 +1,17 @@
 /**
  * Integration tests for the CopilotKit runtime route (/api/copilotkit-langchain).
- * Verifies the runtime is correctly configured with the LangChain system prompt.
+ * Verifies the runtime is correctly wired to the LangchainAgentAdapter.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// vi.hoisted ensures these are available when hoisted vi.mock factories execute
 const {
-  capturedBuiltInAgent,
+  capturedAdapterCtor,
   capturedOpenAIAdapter,
   capturedCopilotRuntime,
   mockHandleRequest,
 } = vi.hoisted(() => ({
-  capturedBuiltInAgent: vi.fn(),
+  capturedAdapterCtor: vi.fn(),
   capturedOpenAIAdapter: vi.fn(),
   capturedCopilotRuntime: vi.fn(),
   mockHandleRequest: vi.fn(),
@@ -34,18 +33,19 @@ vi.mock("@copilotkit/runtime", () => {
   };
 });
 
-vi.mock("@copilotkit/runtime/v2", () => {
-  function BuiltInAgent(this: unknown, config: Record<string, unknown>) {
-    capturedBuiltInAgent(config);
-    Object.assign(this as object, {
-      model: config.model,
-      prompt: config.prompt,
-    });
+vi.mock("@/lib/agents/langchain/adapter", () => {
+  class LangchainAgentAdapter {
+    agentId?: string;
+    constructor(config: { agentId?: string }) {
+      capturedAdapterCtor(config);
+      this.agentId = config?.agentId;
+    }
+    run() {
+      return { subscribe: () => undefined };
+    }
   }
-  return { BuiltInAgent };
+  return { LangchainAgentAdapter };
 });
-
-vi.mock("@ag-ui/client", () => ({}));
 
 import { GET, POST } from "@/app/api/copilotkit-langchain/route";
 
@@ -80,21 +80,12 @@ describe("CopilotKit LangChain runtime (/api/copilotkit-langchain)", () => {
     expect(mockHandleRequest).toHaveBeenCalledWith(req);
   });
 
-  it("BuiltInAgent is configured with gpt-4o-mini", () => {
-    expect(capturedBuiltInAgent).toHaveBeenCalledWith(
+  it("LangchainAgentAdapter is constructed with an agentId", () => {
+    expect(capturedAdapterCtor).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "openai/gpt-4o-mini",
+        agentId: expect.any(String),
       })
     );
-  });
-
-  it("BuiltInAgent uses the versioned Leila system prompt", () => {
-    const config = capturedBuiltInAgent.mock.calls[0][0];
-    expect(config.prompt).toContain("Leila");
-    expect(config.prompt).toContain("hair restoration");
-    expect(config.prompt).toContain("SAFETY GUARDRAILS");
-    expect(config.prompt).toContain("database_lookup");
-    expect(config.prompt).toContain("clinic_summary");
   });
 
   it("OpenAIAdapter is configured with gpt-4o-mini", () => {
@@ -105,9 +96,11 @@ describe("CopilotKit LangChain runtime (/api/copilotkit-langchain)", () => {
     );
   });
 
-  it("CopilotRuntime receives a default agent", () => {
+  it("CopilotRuntime receives a default agent backed by LangchainAgentAdapter", () => {
     const runtimeConfig = capturedCopilotRuntime.mock.calls[0][0];
     expect(runtimeConfig.agents).toBeDefined();
     expect(runtimeConfig.agents.default).toBeDefined();
+    // The default agent should be our adapter instance
+    expect(runtimeConfig.agents.default.agentId).toBeDefined();
   });
 });

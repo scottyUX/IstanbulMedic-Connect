@@ -172,7 +172,9 @@ export async function extractAndStoreSignals(
   directSignals: Record<string, unknown> = {}
 ): Promise<{ inserted: number; errors: number }> {
   const supabase = getSupabaseAdmin()
-  const rows = extractSignals(text, threadId, directSignals)
+  // Strip lone Unicode surrogates — PostgreSQL rejects them as invalid JSON
+  const sanitized = text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '')
+  const rows = extractSignals(sanitized, threadId, directSignals)
 
   if (rows.length === 0) return { inserted: 0, errors: 0 }
 
